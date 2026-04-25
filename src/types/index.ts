@@ -10,6 +10,8 @@ export interface User {
   isSuperAdmin?: boolean;
   program?: string;
   branch?: string;
+  createdAt?: number;
+  lastActive?: number;
 }
 
 export interface ClassData {
@@ -84,6 +86,7 @@ export interface Event {
   title: string;
   description: string;
   date: number; // timestamp
+  endDate?: number; // optional end time
   venue: string;
   organizer: string;
   category: string;
@@ -91,6 +94,30 @@ export interface Event {
   createdBy: string;
   goingCount: number;
   status: 'pending' | 'approved' | 'rejected';
+  // Rich metadata
+  registrationLink?: string;
+  websiteLink?: string;
+  instagramLink?: string;
+  linkedinLink?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  entryFee?: string;
+  teamSize?: string;
+  customFields?: { label: string; value: string }[];
+  pendingUpdate?: Partial<Event>;
+  moderatorRemarks?: string;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  remarks?: string;
+  type: 'event_approval' | 'event_rejection' | 'event_deletion' | 'system';
+  eventId?: string;
+  createdAt: number;
+  read: boolean;
 }
 
 export interface EventParticipation {

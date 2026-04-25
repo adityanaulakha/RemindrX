@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, writeBatch, getDocs, deleteDoc, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Event, EventParticipation } from '../types';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Calendar, Clock, MapPin, Users, Plus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Plus, ExternalLink, Globe } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { EventModal } from '../components/EventModal';
+import { EventDetailModal } from '../components/EventDetailModal';
 
 export default function Events() {
   const { userData, currentUser } = useAuth();
@@ -15,6 +16,7 @@ export default function Events() {
   const [participations, setParticipations] = useState<Record<string, string>>({}); // eventId -> participationId
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     if (!userData?.classId || !currentUser) return;
@@ -89,6 +91,36 @@ export default function Events() {
     }
   };
 
+  const handleDeleteEvent = async (eventId: string, remarks: string = "") => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) return;
+    
+    try {
+      const eventDoc = events.find(e => e.id === eventId) || (selectedEvent?.id === eventId ? selectedEvent : null);
+      if (!eventDoc) return;
+
+      // Notify the creator if a Super Admin deleted it (and it's not the creator themselves)
+      if (userData?.isSuperAdmin && eventDoc.createdBy !== currentUser?.uid) {
+        await addDoc(collection(db, 'notifications'), {
+          userId: eventDoc.createdBy,
+          title: `Event Deleted: ${eventDoc.title}`,
+          message: `Your event "${eventDoc.title}" has been deleted by a Super Admin.`,
+          remarks: remarks || "No specific reason provided.",
+          type: 'event_deletion',
+          createdAt: Date.now(),
+          read: false
+        });
+      }
+
+      await deleteDoc(doc(db, 'events', eventId));
+      toast.success('Event deleted successfully');
+      setEvents(prev => prev.filter(e => e.id !== eventId));
+      setSelectedEvent(null);
+    } catch (error) {
+      toast.error('Failed to delete event');
+      console.error(error);
+    }
+  };
+
   const now = Date.now();
   const upcomingEvents = events.filter(e => e.date >= now - 24 * 60 * 60 * 1000); // include today's events
   const pastEvents = events.filter(e => e.date < now - 24 * 60 * 60 * 1000);
@@ -125,7 +157,7 @@ export default function Events() {
             const isGoing = !!participations[event.id];
             
             return (
-              <Card key={event.id} className="overflow-hidden border-border hover:border-primary/50 transition-colors">
+              <Card key={event.id} className="overflow-hidden border-border hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setSelectedEvent(event)}>
                 <CardContent className="p-0 sm:flex">
                   {/* Date Block */}
                   <div className="bg-primary/5 p-6 flex flex-col items-center justify-center sm:w-32 sm:border-r border-b sm:border-b-0 border-border">
@@ -160,13 +192,20 @@ export default function Events() {
                             <span>{event.goingCount || 0} going</span>
                           </div>
                         </div>
+                        {/* Link indicators */}
+                        {(event.registrationLink || event.websiteLink) && (
+                          <div className="flex items-center gap-2 mt-1">
+                            {event.registrationLink && <span className="flex items-center gap-1 text-xs text-primary"><ExternalLink className="h-3 w-3" /> Register</span>}
+                            {event.websiteLink && <span className="flex items-center gap-1 text-xs text-accent"><Globe className="h-3 w-3" /> Website</span>}
+                          </div>
+                        )}
                       </div>
 
                       <div className="shrink-0 flex items-center md:items-end flex-col justify-between">
                         <Button 
                           variant={isGoing ? "secondary" : "primary"} 
                           className={`w-full md:w-32 ${isGoing ? 'bg-primary/20 hover:bg-danger/20 hover:text-danger text-primary' : ''}`}
-                          onClick={() => toggleParticipation(event)}
+                          onClick={(e) => { e.stopPropagation(); toggleParticipation(event); }}
                         >
                           {isGoing ? 'Cancel' : 'I am Going'}
                         </Button>
@@ -208,6 +247,14 @@ export default function Events() {
       )}
 
       <EventModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <EventDetailModal
+        isOpen={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        event={selectedEvent}
+        isGoing={selectedEvent ? !!participations[selectedEvent.id] : false}
+        onToggleParticipation={(ev) => { toggleParticipation(ev); setSelectedEvent(null); }}
+        onDelete={handleDeleteEvent}
+      />
     </div>
   );
 }

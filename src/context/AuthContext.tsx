@@ -37,25 +37,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         let fetchedUser: User;
         if (userDoc.exists()) {
-          fetchedUser = userDoc.data() as User;
+          fetchedUser = { id: userDoc.id, ...userDoc.data() } as User;
           
-          // Auto-sync email if the user verified a new email address out of band
+          // Auto-sync email and update lastActive
+          const updates: any = { lastActive: Date.now() };
           if (user.email && user.email !== fetchedUser.email) {
+            updates.email = user.email;
             fetchedUser.email = user.email;
-            setDoc(userDocRef, { email: user.email }, { merge: true }).catch(console.error);
           }
+          setDoc(userDocRef, updates, { merge: true }).catch(console.error);
           
           setUserData(fetchedUser);
         } else {
           // If the user exists in Auth but not in Firestore, create a basic record
-          // This usually happens right after a new signup
           const newUser: User = {
             id: user.uid,
             name: user.displayName || 'New User',
             email: user.email || '',
-            classId: null, // They haven't joined a class yet
-            role: 'student', // Default role
+            classId: null,
+            role: 'student',
             trustScore: 0,
+            createdAt: Date.now(),
+            lastActive: Date.now()
           };
           await setDoc(userDocRef, newUser);
           fetchedUser = newUser;
