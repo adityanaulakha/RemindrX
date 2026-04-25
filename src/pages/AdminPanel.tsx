@@ -7,11 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { ShieldAlert, Users, UserMinus, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { calculateTrustScore } from '../utils/trustScore';
 
 export default function AdminPanel() {
   const { userData, currentUser } = useAuth();
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [students, setStudents] = useState<User[]>([]);
+  const [trustScores, setTrustScores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,7 +33,15 @@ export default function AdminPanel() {
       // Fetch Students
       const q = query(collection(db, 'users'), where('classId', '==', userData.classId));
       const studentSnap = await getDocs(q);
-      setStudents(studentSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
+      const fetchedStudents = studentSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      setStudents(fetchedStudents);
+      
+      // Compute trust scores
+      const scores: Record<string, number> = {};
+      await Promise.all(fetchedStudents.map(async (student) => {
+        scores[student.id] = await calculateTrustScore(student.id);
+      }));
+      setTrustScores(scores);
     } catch (error) {
       console.error("Error fetching admin data:", error);
     } finally {
@@ -125,7 +135,7 @@ export default function AdminPanel() {
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-xs font-medium text-foreground/50 uppercase">Trust Score</p>
-                      <p className="font-mono font-bold text-primary">{student.trustScore}</p>
+                      <p className="font-mono font-bold text-primary">{trustScores[student.id] ?? 0}</p>
                     </div>
                     {student.role === 'admin' && student.id !== currentUser?.uid && (
                       <Button 

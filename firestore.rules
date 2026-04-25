@@ -17,26 +17,33 @@ service cloud.firestore {
       return userData.classId == classId && userData.role == 'admin';
     }
 
+    function isSuperAdmin() {
+      let userData = getUserData();
+      return userData.isSuperAdmin == true;
+    }
+
     // Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      // Users can only create/update their own document.
-      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      // Users can only create their own document.
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      // Super admins can update other users (e.g. changing classId)
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
       allow delete: if false; // Never hard delete
     }
 
     // Classes Collection
     match /classes/{classId} {
       allow read: if isAuthenticated();
-      allow create: if false; // Created manually or via a cloud function
+      allow create: if isAuthenticated() && isSuperAdmin(); // Created by Super Admin
       // Only students joining can update adminCodeUses and admins array, or admins can update
       allow update: if isAuthenticated();
-      allow delete: if false;
+      allow delete: if isAuthenticated() && isSuperAdmin();
     }
 
     // Subjects Collection
     match /subjects/{subjectId} {
-      allow read: if isAuthenticated() && getUserData().classId == resource.data.classId;
+      allow read: if isAuthenticated() && (getUserData().classId == resource.data.classId || isSuperAdmin());
       // Only admins of the class can create or update subjects
       allow create, update: if isAuthenticated() && isClassAdmin(request.resource.data.classId);
       allow delete: if false;
@@ -57,6 +64,28 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update: if isAuthenticated(); // For confirming/disputing
       allow delete: if isAuthenticated() && (request.auth.uid == resource.data.createdBy || isClassAdmin(getUserData().classId));
+    }
+
+    // Events Collection
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated(); // Allowed for RSVP (goingCount) updates
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.createdBy || isSuperAdmin());
+    }
+
+    // Event Participations Collection
+    match /event_participations/{participationId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    // Class Change Requests Collection
+    match /class_change_requests/{requestId} {
+      allow read: if isAuthenticated(); // Users can read their own, admins can read all
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if isSuperAdmin(); // Super Admins approve/reject
     }
   }
 }

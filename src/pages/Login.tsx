@@ -57,7 +57,10 @@ export default function Login() {
             <BookOpen className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">RemindrX</h1>
-          <p className="text-sm text-foreground/60">
+          <p className="text-sm font-medium text-primary mt-2 uppercase tracking-widest">
+            Never miss anything academic again
+          </p>
+          <p className="text-sm text-foreground/60 mt-4">
             {isLogin ? 'Enter your credentials to access your class.' : 'Create an account to join your class.'}
           </p>
         </div>

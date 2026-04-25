@@ -1,15 +1,43 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { auth, db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X, ShieldAlert } from 'lucide-react';
+import { BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X, ShieldAlert, CalendarRange, MessageSquare, Activity, Bell } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { GlobalFAB } from '../GlobalFAB';
+import type { Task } from '../../types';
 
 export default function Layout() {
   const { userData } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!userData?.classId) return;
+
+    const fetchUrgentTasks = async () => {
+      const now = Date.now();
+      const next24 = now + 24 * 60 * 60 * 1000;
+      const q = query(collection(db, 'tasks'), where('classId', '==', userData.classId));
+      const snap = await getDocs(q);
+      const urgent = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Task))
+        .filter(t => t.deadline > now && t.deadline <= next24)
+        .map(t => ({
+          id: t.id,
+          title: `Urgent Deadline: ${t.title}`,
+          message: `Due in less than 24 hours!`,
+          link: `/timeline`
+        }));
+      setNotifications(urgent);
+    };
+
+    fetchUrgentTasks();
+  }, [userData]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -32,13 +60,25 @@ export default function Layout() {
   };
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Subjects', path: '/subjects', icon: BookOpen },
-    { name: 'Timeline', path: '/timeline', icon: ListTodo },
+    { name: 'Global Events', path: '/events', icon: CalendarRange },
   ];
 
-  if (userData?.role === 'admin') {
+  if (userData?.classId) {
+    navItems.unshift(
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { name: 'Subjects', path: '/subjects', icon: BookOpen },
+      { name: 'Attendance', path: '/attendance', icon: Activity },
+      { name: 'Timeline', path: '/timeline', icon: ListTodo },
+      { name: 'Class Updates', path: '/updates', icon: MessageSquare }
+    );
+  }
+
+  if (userData?.role === 'admin' && userData?.classId) {
     navItems.push({ name: 'Admin Panel', path: '/admin', icon: ShieldAlert });
+  }
+
+  if (userData?.isSuperAdmin) {
+    navItems.push({ name: 'Super Admin', path: '/super-admin', icon: ShieldAlert });
   }
 
   return (
@@ -121,14 +161,66 @@ export default function Layout() {
 
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-4 lg:hidden">
-          <button
-            className="text-foreground/60 hover:text-foreground"
-            onClick={() => setIsMobileMenuOpen(true)}
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <span className="ml-4 text-lg font-bold">RemindrX</span>
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
+          <div className="flex items-center">
+            <button
+              className="text-foreground/60 hover:text-foreground"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <span className="ml-4 text-lg font-bold">RemindrX</span>
+          </div>
+          {userData?.classId && (
+            <button className="relative p-2 text-foreground/60 hover:text-foreground" onClick={() => navigate('/timeline')}>
+              <Bell className="h-5 w-5" />
+              {notifications.length > 0 && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-danger"></span>}
+            </button>
+          )}
+        </header>
+
+        {/* Desktop Header */}
+        <header className="hidden lg:flex h-16 shrink-0 items-center justify-end border-b border-border bg-card px-8">
+          {userData?.classId && (
+            <div className="relative">
+              <button 
+                className="relative p-2 text-foreground/60 hover:text-foreground rounded-full hover:bg-border transition-colors"
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              >
+                <Bell className="h-5 w-5" />
+                {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-danger border-2 border-card"></span>}
+              </button>
+
+              {isNotificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 rounded-xl bg-card border border-border shadow-xl z-50 overflow-hidden">
+                  <div className="p-4 border-b border-border bg-primary/5">
+                    <h3 className="font-bold">Notifications</h3>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <p className="p-4 text-sm text-foreground/50 text-center">You're all caught up!</p>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {notifications.map(n => (
+                          <div 
+                            key={n.id} 
+                            className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                            onClick={() => {
+                              setIsNotificationsOpen(false);
+                              navigate(n.link);
+                            }}
+                          >
+                            <p className="text-sm font-bold text-danger">{n.title}</p>
+                            <p className="text-xs text-foreground/60 mt-1">{n.message}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </header>
 
         <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
@@ -137,6 +229,9 @@ export default function Layout() {
           </div>
         </main>
       </div>
+
+      {/* Global Floating Action Button */}
+      {userData?.classId && <GlobalFAB />}
     </div>
   );
 }

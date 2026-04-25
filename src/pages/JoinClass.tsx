@@ -14,6 +14,11 @@ export default function JoinClass() {
   const [loading, setLoading] = useState(false);
   const [classCode, setClassCode] = useState('');
   const [adminCode, setAdminCode] = useState('');
+  const [program, setProgram] = useState('');
+  const [branch, setBranch] = useState('');
+
+  const PROGRAMS = ['B.Tech', 'M.Tech', 'BCA', 'MCA'];
+  const BRANCHES = ['CSE Core', 'CSE Specialization', 'CSE Honors', 'ECE', 'ME', 'CE'];
 
   // Redirect if already in a class
   useEffect(() => {
@@ -25,6 +30,10 @@ export default function JoinClass() {
   const handleJoinClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !userData) return;
+    if (!program || !branch) {
+      toast.error('Please select your Program and Branch');
+      return;
+    }
     
     setLoading(true);
 
@@ -80,6 +89,8 @@ export default function JoinClass() {
       await updateDoc(userRef, {
         classId: classDoc.id,
         role: newRole,
+        program,
+        branch,
       });
 
       // Update local context
@@ -87,9 +98,11 @@ export default function JoinClass() {
         ...userData,
         classId: classDoc.id,
         role: newRole,
+        program,
+        branch,
       });
 
-      navigate('/dashboard');
+      navigate('/dashboard?firstTime=true');
     } catch (error: any) {
       toast.error(error.message || 'Failed to join class.');
     } finally {
@@ -108,8 +121,35 @@ export default function JoinClass() {
         </div>
 
         <form onSubmit={handleJoinClass} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-foreground/80">Program *</label>
+              <select
+                className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                value={program}
+                onChange={(e) => setProgram(e.target.value)}
+                required
+              >
+                <option value="" disabled>Select</option>
+                {PROGRAMS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-foreground/80">Branch *</label>
+              <select
+                className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+                required
+              >
+                <option value="" disabled>Select</option>
+                {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+          </div>
+
           <Input
-            label="Class Code *"
+            label="Section Code *"
             type="text"
             placeholder="e.g. CS2024"
             value={classCode}
