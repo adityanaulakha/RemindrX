@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
@@ -10,34 +10,33 @@ import { GlobalFAB } from '../GlobalFAB';
 import type { Task } from '../../types';
 
 export default function Layout() {
-  const { userData } = useAuth();
+  const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!userData?.classId) return;
+    if (!currentUser) return;
 
-    const fetchUrgentTasks = async () => {
-      const now = Date.now();
-      const next24 = now + 24 * 60 * 60 * 1000;
-      const q = query(collection(db, 'tasks'), where('classId', '==', userData.classId));
-      const snap = await getDocs(q);
-      const urgent = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as Task))
-        .filter(t => t.deadline > now && t.deadline <= next24)
-        .map(t => ({
-          id: t.id,
-          title: `Urgent Deadline: ${t.title}`,
-          message: `Due in less than 24 hours!`,
-          link: `/timeline`
-        }));
-      setNotifications(urgent);
-    };
+    const q = query(
+      collection(db, 'notifications'), 
+      where('userId', '==', currentUser.uid)
+    );
 
-    fetchUrgentTasks();
-  }, [userData]);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
+      } as any));
+      
+      // Sort by createdAt desc
+      fetched.sort((a, b) => b.createdAt - a.createdAt);
+      setNotifications(fetched);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -172,9 +171,9 @@ export default function Layout() {
             <span className="ml-4 text-lg font-bold">RemindrX</span>
           </div>
           {userData?.classId && (
-            <button className="relative p-2 text-foreground/60 hover:text-foreground" onClick={() => navigate('/timeline')}>
+            <button className="relative p-2 text-foreground/60 hover:text-foreground" onClick={() => setIsNotificationsOpen(true)}>
               <Bell className="h-5 w-5" />
-              {notifications.length > 0 && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-danger"></span>}
+              {notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-danger"></span>}
             </button>
           )}
         </header>
@@ -188,7 +187,7 @@ export default function Layout() {
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
               >
                 <Bell className="h-5 w-5" />
-                {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-danger border-2 border-card"></span>}
+                {notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-danger border-2 border-card"></span>}
               </button>
 
               {isNotificationsOpen && (
@@ -204,14 +203,29 @@ export default function Layout() {
                         {notifications.map(n => (
                           <div 
                             key={n.id} 
-                            className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                            onClick={() => {
+                            className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors border-l-4 ${n.read ? 'border-transparent' : 'border-primary bg-primary/5'}`}
+                            onClick={async () => {
                               setIsNotificationsOpen(false);
-                              navigate(n.link);
+                              if (!n.read) {
+                                try {
+                                  await updateDoc(doc(db, 'notifications', n.id), { read: true });
+                                } catch (e) { console.error(e); }
+                              }
+                              navigate(n.eventId ? '/events' : (n.link || '/dashboard'));
                             }}
                           >
-                            <p className="text-sm font-bold text-danger">{n.title}</p>
-                            <p className="text-xs text-foreground/60 mt-1">{n.message}</p>
+                            <div className="flex justify-between items-start mb-1">
+                              <p className={`text-sm font-bold ${n.type === 'event_rejection' ? 'text-danger' : 'text-primary'}`}>{n.title}</p>
+                              {!n.read && <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded-full font-black">NEW</span>}
+                            </div>
+                            <p className="text-xs text-foreground/70 leading-relaxed">{n.message}</p>
+                            {n.remarks && (
+                              <div className="mt-2 p-2 bg-background/50 rounded border border-border/50">
+                                <p className="text-[10px] font-bold uppercase tracking-tight text-foreground/40 mb-1">Moderator Remarks:</p>
+                                <p className="text-xs italic text-foreground/80">"{n.remarks}"</p>
+                              </div>
+                            )}
+                            <p className="text-[10px] text-foreground/40 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
                           </div>
                         ))}
                       </div>

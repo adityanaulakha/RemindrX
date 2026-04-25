@@ -1,4 +1,5 @@
-import { ButtonHTMLAttributes, forwardRef } from 'react';
+import React, { forwardRef } from 'react';
+import type { ButtonHTMLAttributes } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -7,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -23,6 +24,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             'bg-card border border-border text-foreground hover:bg-border': variant === 'secondary',
             'bg-danger text-danger-foreground hover:bg-danger/90': variant === 'danger',
             'hover:bg-border text-foreground': variant === 'ghost',
+            'border border-border text-foreground hover:bg-border/50 bg-transparent': variant === 'outline',
             'h-9 px-3 text-sm': size === 'sm',
             'h-10 px-4 py-2': size === 'md',
             'h-11 px-8 text-lg': size === 'lg',
