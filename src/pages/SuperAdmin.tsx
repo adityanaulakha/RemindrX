@@ -946,7 +946,7 @@ export default function SuperAdmin() {
         <EditSectionModal
           isOpen={!!editingClass}
           onClose={() => setEditingClass(null)}
-          classData={editingClass}
+          section={editingClass}
         />
       )}
 
