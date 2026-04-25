@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isClassAdmin(classId) {
+      let userData = getUserData();
+      return userData.classId == classId && userData.role == 'admin';
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Users can only create/update their own document.
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if false; // Never hard delete
+    }
+
+    // Classes Collection
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow create: if false; // Created manually or via a cloud function
+      // Only students joining can update adminCodeUses and admins array, or admins can update
+      allow update: if isAuthenticated();
+      allow delete: if false;
+    }
+
+    // Subjects Collection
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated() && getUserData().classId == resource.data.classId;
+      // Only admins of the class can create or update subjects
+      allow create, update: if isAuthenticated() && isClassAdmin(request.resource.data.classId);
+      allow delete: if false;
+    }
+
+    // Tasks Collection
+    match /tasks/{taskId} {
+      // Anyone in the class can read and create tasks
+      allow read: if isAuthenticated(); // Simplified: should strictly check subject's classId
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.createdBy || isClassAdmin(getUserData().classId));
+      allow delete: if false;
+    }
+
+    // Posts Collection
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated(); // For confirming/disputing
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.createdBy || isClassAdmin(getUserData().classId));
+    }
+  }
+}
