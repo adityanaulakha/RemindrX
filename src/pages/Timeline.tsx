@@ -89,7 +89,7 @@ export default function Timeline() {
         {timelineItems.length === 0 ? (
           <p className="text-foreground/50">Your timeline is clear!</p>
         ) : (
-          timelineItems.map((item, index) => {
+          timelineItems.map((item) => {
             const past = isPast(item.timestamp);
             const key = item.type === 'task' ? `task-${item.data.id}` : `event-${item.data.id}`;
             

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import type { User, ClassData } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { ShieldAlert, Users, UserMinus, ShieldCheck } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, Users, BookOpen, Search, Plus, Edit2, Trash2, ShieldAlert, UserMinus, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
 

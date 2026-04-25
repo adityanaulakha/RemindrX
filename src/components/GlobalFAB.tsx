@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit3, CheckSquare, X } from 'lucide-react';
+import { Plus, Edit3, CheckSquare } from 'lucide-react';
 import { TaskModal } from './TaskModal';
 import { PostModal } from './PostModal';
 

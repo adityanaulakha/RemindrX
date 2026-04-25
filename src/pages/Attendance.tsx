@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Activity, ShieldAlert, CheckCircle2, AlertTriangle, RefreshCw, Link as LinkIcon, GraduationCap } from 'lucide-react';
+import { Activity, CheckCircle2, AlertTriangle, RefreshCw, GraduationCap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import type { Subject } from '../types';

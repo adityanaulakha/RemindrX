@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { CreateSectionModal } from '../components/CreateSectionModal';
 import { EditSectionModal } from '../components/EditSectionModal';
-import { Calendar, Clock, MapPin, CheckCircle, XCircle, ShieldAlert, Users, BookOpen, LayoutDashboard, Search, ListTodo, MessageSquare, TrendingUp, Trophy, Plus, Edit2, Trash2, Repeat } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, Users, BookOpen, LayoutDashboard, Search, ListTodo, MessageSquare, TrendingUp, Trophy, Plus, Edit2, Trash2, Repeat } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 interface ClassChangeRequest {

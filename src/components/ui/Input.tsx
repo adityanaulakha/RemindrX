@@ -1,4 +1,5 @@
-import { InputHTMLAttributes, forwardRef } from 'react';
+import React, { forwardRef } from 'react';
+import type { InputHTMLAttributes } from 'react';
 import { cn } from './Button';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
