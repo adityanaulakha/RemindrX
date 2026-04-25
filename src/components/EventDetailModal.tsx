@@ -107,7 +107,7 @@ export function EventDetailModal({
     setSaving(true);
     try {
       const eventTimestamp = new Date(`${editDate}T${editTime}`).getTime();
-      const endTimestamp = editEndDate && editEndTime ? new Date(`${editEndDate}T${editEndTime}`).getTime() : null;
+      const endTimestamp = editEndDate && editEndTime ? new Date(`${editEndDate}T${editEndTime}`).getTime() : undefined;
 
       const data: Partial<Event> = {
         title: editTitle,
@@ -116,15 +116,15 @@ export function EventDetailModal({
         venue: editVenue,
         organizer: editOrganizer,
         category: editCategory,
-        registrationLink: editRegistrationLink || null,
-        websiteLink: editWebsiteLink || null,
-        instagramLink: editInstagramLink || null,
-        linkedinLink: editLinkedinLink || null,
-        contactEmail: editContactEmail || null,
-        contactPhone: editContactPhone || null,
-        entryFee: editEntryFee || null,
-        teamSize: editTeamSize || null,
-        endDate: endTimestamp,
+        registrationLink: editRegistrationLink || undefined,
+        websiteLink: editWebsiteLink || undefined,
+        instagramLink: editInstagramLink || undefined,
+        linkedinLink: editLinkedinLink || undefined,
+        contactEmail: editContactEmail || undefined,
+        contactPhone: editContactPhone || undefined,
+        entryFee: editEntryFee || undefined,
+        teamSize: editTeamSize || undefined,
+        endDate: endTimestamp || undefined,
         customFields: editCustomFields.filter(f => f.label && f.value),
       };
 
