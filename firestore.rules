@@ -9,17 +9,18 @@ service cloud.firestore {
     }
     
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
     }
     
     function isClassAdmin(classId) {
       let userData = getUserData();
-      return userData.classId == classId && userData.role == 'admin';
+      return userData != null && userData.classId == classId && userData.role == 'admin';
     }
 
     function isSuperAdmin() {
       let userData = getUserData();
-      return userData.isSuperAdmin == true;
+      return userData != null && userData.isSuperAdmin == true;
     }
 
     // Users Collection
@@ -70,7 +71,14 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated(); // Allowed for RSVP (goingCount) updates
+      allow update: if isAuthenticated() && (
+        // Case 1: Updating RSVP count (limited fields)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goingCount'])) ||
+        // Case 2: Creator editing event (must set status to pending)
+        (request.auth.uid == resource.data.createdBy && request.resource.data.status == 'pending') ||
+        // Case 3: Super admin moderation
+        isSuperAdmin()
+      );
       allow delete: if isAuthenticated() && (request.auth.uid == resource.data.createdBy || isSuperAdmin());
     }
 
@@ -86,6 +94,14 @@ service cloud.firestore {
       allow read: if isAuthenticated(); // Users can read their own, admins can read all
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if isSuperAdmin(); // Super Admins approve/reject
+    }
+
+    // Notifications Collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (isSuperAdmin() || request.auth.uid == resource.data.userId);
+      allow create: if isAuthenticated() && isSuperAdmin();
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if false;
     }
   }
 }
