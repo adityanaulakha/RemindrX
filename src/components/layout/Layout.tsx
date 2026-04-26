@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X,
   ShieldAlert, CalendarRange, MessageSquare, Activity, Bell, Download,
-  Sun, Moon, RotateCw
+  Sun, Moon, RotateCw, Monitor
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { GlobalFAB } from '../GlobalFAB';
@@ -73,19 +73,43 @@ export default function Layout() {
     }
   };
 
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
 
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    const root = document.documentElement;
+    
+    const applyTheme = (currentTheme: string) => {
+      if (currentTheme === 'system') {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        root.classList.toggle('dark', systemTheme === 'dark');
+      } else {
+        root.classList.toggle('dark', currentTheme === 'dark');
+      }
+    };
+
+    applyTheme(theme);
     localStorage.setItem('theme', theme);
+
+    // Listen for system theme changes if in system mode
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme('system');
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    const modes = ['light', 'dark', 'system'];
+    const currentIndex = modes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setTheme(modes[nextIndex]);
+  };
+
+  const getThemeIcon = () => {
+    if (theme === 'light') return <Sun className="h-5 w-5" />;
+    if (theme === 'dark') return <Moon className="h-5 w-5" />;
+    return <Monitor className="h-5 w-5" />;
   };
 
   const navItems = [
@@ -213,9 +237,9 @@ export default function Layout() {
             <button
               className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
               onClick={toggleTheme}
-              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to toggle)`}
             >
-              {theme === 'light' ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
+              {getThemeIcon()}
             </button>
             {userData?.classId && (
               <div className="relative">
@@ -313,9 +337,9 @@ export default function Layout() {
           <button
             className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
             onClick={toggleTheme}
-            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to toggle)`}
           >
-            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            {getThemeIcon()}
           </button>
 
           {userData?.classId && (
