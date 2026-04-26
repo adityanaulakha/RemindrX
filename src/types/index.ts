@@ -12,6 +12,7 @@ export interface User {
   branch?: string;
   createdAt?: number;
   lastActive?: number;
+  fcmTokens?: string[];
 }
 
 export interface ClassData {

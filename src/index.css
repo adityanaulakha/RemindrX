@@ -45,4 +45,11 @@
     color: var(--foreground);
     font-family: ui-sans-serif, system-ui, sans-serif;
   }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0);
+  }
 }

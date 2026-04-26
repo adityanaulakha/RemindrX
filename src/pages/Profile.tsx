@@ -7,12 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
-import { UserCircle, Lock, ShieldCheck, Repeat } from 'lucide-react';
+import { UserCircle, Lock, ShieldCheck, Repeat, Bell } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
+import { useNotifications } from '../hooks/useNotifications'; // Updated extension-less import
 
 export default function Profile() {
   const { currentUser, userData, setUserData } = useAuth();
+  const { requestPermission } = useNotifications();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -242,6 +244,39 @@ export default function Profile() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+ 
+        {/* Notifications Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              Push Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-foreground/70">
+              Receive real-time alerts for event approvals, rejections, and class updates even when the app is closed.
+            </p>
+            <div className="p-4 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+              <div>
+                <p className="font-bold text-sm">Status</p>
+                <p className={`text-xs ${Notification.permission === 'granted' ? 'text-success' : 'text-danger'}`}>
+                  {Notification.permission === 'granted' ? 'Notifications Enabled' : 'Notifications Blocked/Disabled'}
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={requestPermission}
+                disabled={Notification.permission === 'granted'}
+              >
+                {Notification.permission === 'granted' ? 'Enabled' : 'Enable Notifications'}
+              </Button>
+            </div>
+            <p className="text-[10px] text-foreground/50">
+              Note: Ensure you have allowed notifications in your browser settings.
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -1,6 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager 
+} from 'firebase/firestore';
 import { getMessaging } from 'firebase/messaging';
 import { getStorage } from 'firebase/storage';
 
@@ -20,7 +24,14 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Initialize Firestore with modern persistent cache (multi-tab support)
+export const db = initializeFirestore(app, {
+  cache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
+
 export const storage = getStorage(app);
 
 // Messaging is only supported in context of a service worker or on supported browsers

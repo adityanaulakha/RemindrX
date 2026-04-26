@@ -4,14 +4,19 @@ import { collection, query, where, getDocs, onSnapshot, updateDoc, doc } from 'f
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X, ShieldAlert, CalendarRange, MessageSquare, Activity, Bell } from 'lucide-react';
+import { 
+  BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X, 
+  ShieldAlert, CalendarRange, MessageSquare, Activity, Bell, Download 
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 import { GlobalFAB } from '../GlobalFAB';
-import type { Task } from '../../types';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { OfflineIndicator } from '../OfflineIndicator';
 
 export default function Layout() {
   const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
+  const { isInstallable, handleInstall } = usePWAInstall();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -151,10 +156,23 @@ export default function Layout() {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             </button>
           </div>
-          <Button variant="ghost" className="w-full justify-start text-danger hover:text-danger hover:bg-danger/10" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
+          
+          <div className="space-y-2">
+            {isInstallable && (
+              <Button 
+                variant="outline" 
+                className="w-full justify-start border-primary/30 text-primary hover:bg-primary/5" 
+                onClick={handleInstall}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Install App
+              </Button>
+            )}
+            <Button variant="ghost" className="w-full justify-start text-danger hover:text-danger hover:bg-danger/10" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </aside>
 
@@ -237,8 +255,8 @@ export default function Layout() {
           )}
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-          <div className="mx-auto max-w-5xl">
+        <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8 pb-safe pt-safe">
+          <div className="mx-auto max-w-5xl pb-12">
             <Outlet />
           </div>
         </main>
@@ -246,6 +264,7 @@ export default function Layout() {
 
       {/* Global Floating Action Button */}
       {userData?.classId && <GlobalFAB />}
+      <OfflineIndicator />
     </div>
   );
 }
