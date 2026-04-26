@@ -479,9 +479,17 @@ export function EventDetailModal({
               variant="ghost"
               className="h-11 flex items-center gap-2 font-semibold hover:bg-primary/5 text-foreground/70"
               onClick={() => {
-                const text = `Check out this event: ${event.title}\n📅 ${new Date(event.date).toLocaleDateString()}\n📍 ${event.venue}\nOrganized by ${event.organizer}\n\nJoin RemindrX to see more details!`;
-                navigator.clipboard.writeText(text);
-                toast.success('Event info copied to clipboard!');
+                if (navigator.share) {
+                  navigator.share({
+                    title: event.title,
+                    text: `Check out ${event.title} on RemindrX!`,
+                    url: window.location.href
+                  });
+                } else {
+                  const text = `Check out this event: ${event.title}\n📅 ${new Date(event.date).toLocaleDateString()}\n📍 ${event.venue}\nOrganized by ${event.organizer}\n\nJoin RemindrX to see more details!`;
+                  navigator.clipboard.writeText(text);
+                  toast.success('Event info copied to clipboard!');
+                }
               }}
             >
               <Share2 className="h-4 w-4" /> Share

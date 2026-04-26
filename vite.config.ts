@@ -10,23 +10,47 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true
+      },
       manifest: {
         name: 'RemindrX',
         short_name: 'RemindrX',
         description: 'Modern academic management system for college students',
-        theme_color: '#0ea5e9', // Tailwind sky-500
-        background_color: '#ffffff',
+        theme_color: '#0ea5e9',
+        background_color: '#0f172a', // slate-900 for dark mode feel
         display: 'standalone',
+        orientation: 'portrait',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'favicon.svg',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/svg+xml'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'favicon.svg',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/svg+xml'
+          },
+          {
+            src: 'favicon.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
+          }
+        ],
+        shortcuts: [
+          {
+            name: 'Events',
+            url: '/events',
+            icons: [{ src: 'favicon.svg', sizes: '192x192' }]
+          },
+          {
+            name: 'Timeline',
+            url: '/timeline',
+            icons: [{ src: 'favicon.svg', sizes: '192x192' }]
           }
         ]
       }
