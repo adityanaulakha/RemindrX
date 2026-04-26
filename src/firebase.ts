@@ -27,7 +27,7 @@ export const auth = getAuth(app);
 
 // Initialize Firestore with modern persistent cache (multi-tab support)
 export const db = initializeFirestore(app, {
-  cache: persistentLocalCache({
+  localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
   })
 });
