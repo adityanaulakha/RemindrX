@@ -50,9 +50,7 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
       const b = branch.replace(/[^A-Za-z]/g, '').toUpperCase(); // CSE Core -> CSECORE
       const code = `${p}-${b}-Y${year}-${section.toUpperCase()}`;
       setJoinCode(code);
-      if (!adminCode) {
-        setAdminCode(`CR-${code}-${Math.floor(100 + Math.random() * 900)}`);
-      }
+      setAdminCode(`CR-${code}-${Math.floor(1000 + Math.random() * 9000)}`);
     }
   }, [program, branch, year, section, isOpen]);
 
@@ -69,7 +67,14 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
       const q = query(collection(db, 'classes'), where('joinCode', '==', joinCode));
       const snap = await getDocs(q);
       if (!snap.empty) {
-        toast.error('A section with this automatically generated code already exists!');
+        // Check if there's a collision in the currently selected institute
+        const sameInstituteMatch = snap.docs.find(doc => doc.data().instituteId === selectedInstituteId);
+        
+        if (sameInstituteMatch) {
+          toast.error('This section already exists in the selected institute. Please delete it first to recreate.');
+        } else {
+          toast.error('A section with this automatically generated code already exists! Please change the section name slightly.');
+        }
         setLoading(false);
         return;
       }
@@ -163,33 +168,30 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
           />
         </div>
 
-        <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <p className="text-xs text-primary font-bold uppercase tracking-wider mb-1">Generated Section Code</p>
-          <p className="font-mono text-lg">{joinCode}</p>
-          <p className="text-[10px] text-foreground/50 mt-1">Students will use this exact code to join this section.</p>
+        <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 space-y-3">
+          <div>
+            <p className="text-xs text-primary font-bold uppercase tracking-wider mb-1">Generated Section Code</p>
+            <p className="font-mono text-lg">{joinCode}</p>
+            <p className="text-[10px] text-foreground/50 mt-1">Students will use this exact code to join this section.</p>
+          </div>
+          <div className="pt-2 border-t border-primary/10">
+            <p className="text-xs text-primary font-bold uppercase tracking-wider mb-1">Generated Admin Invite Code</p>
+            <p className="font-mono text-lg">{adminCode}</p>
+            <p className="text-[10px] text-foreground/50 mt-1">Unique code for Class Representatives to get admin rights.</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2">
-            <Input
-              label="Admin Invite Code (For CRs)"
-              type="text"
-              value={adminCode}
-              onChange={(e) => setAdminCode(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <Input
-              label="Usage Limit"
-              type="number"
-              min={1}
-              max={10}
-              value={adminLimit.toString()}
-              onChange={(e) => setAdminLimit(parseInt(e.target.value) || 1)}
-              required
-            />
-          </div>
+        <div>
+          <Input
+            label="Admin Code Usage Limit"
+            type="number"
+            min={1}
+            max={10}
+            value={adminLimit.toString()}
+            onChange={(e) => setAdminLimit(parseInt(e.target.value) || 1)}
+            required
+          />
+          <p className="text-[10px] text-foreground/50 mt-1">How many CRs can use this admin code.</p>
         </div>
 
         <div className="pt-4 flex justify-end gap-3">
