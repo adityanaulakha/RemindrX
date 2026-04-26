@@ -189,7 +189,7 @@ export default function Layout() {
 
           {/* User Section */}
           <div className="p-6 border-t border-white/5 bg-white/5">
-            <div className="flex items-center gap-4 mb-6 group cursor-pointer" onClick={() => navigate('/profile', { replace: true })}>
+            <div className="flex items-center gap-4 mb-6 group cursor-pointer" onClick={() => { setIsMobileMenuOpen(false); navigate('/profile', { replace: true }); }}>
               <div className="relative">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black text-lg shadow-lg group-hover:scale-110 transition-transform">
                   {userData?.name?.charAt(0).toUpperCase() || 'U'}

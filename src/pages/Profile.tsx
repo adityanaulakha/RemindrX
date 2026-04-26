@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
-import { UserCircle, Lock, ShieldCheck, Repeat, Bell, Fingerprint, Mail, ShieldAlert, Zap } from 'lucide-react';
+import { UserCircle, Lock, ShieldCheck, Repeat, Bell, Fingerprint, Mail, ShieldAlert } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
 import { useNotifications } from '../hooks/useNotifications';
@@ -169,33 +169,6 @@ export default function Profile() {
     }
   };
 
-  const handleTestPulse = async () => {
-    if (!currentUser) return;
-    
-    try {
-      // 1. Add to Firestore Notifications (for Inbox)
-      await addDoc(collection(db, 'notifications'), {
-        userId: currentUser.uid,
-        title: 'System Test: Pulse Active',
-        message: 'This is a test transmission to verify your notification sync.',
-        type: 'system_test',
-        createdAt: Date.now(),
-        read: false
-      });
-
-      // 2. Local Browser Notification
-      if (Notification.permission === 'granted') {
-        new Notification('RemindrX Pulse', {
-          body: 'System sync verified. You are now receiving transmissions.',
-          icon: '/Cropped.png'
-        });
-      }
-
-      toast.success('Test pulse sent!');
-    } catch (error) {
-      toast.error('Test pulse failed');
-    }
-  };
 
   const handleAccountDelete = async () => {
     if (!currentUser || !userData || !currentPassword) {
@@ -394,14 +367,6 @@ export default function Profile() {
                     <Repeat className="mr-2 h-4 w-4" /> Transfer Class
                  </Button>
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={handleTestPulse}
-                      className="h-12 sm:h-14 px-6 sm:px-8 rounded-2xl font-black uppercase tracking-widest italic border-primary/20 text-primary hover:bg-primary/5 text-[10px] sm:text-xs"
-                    >
-                      <Zap className="h-4 w-4 mr-2" /> Test Notifications
-                    </Button>
                     <Button type="submit" disabled={loading} className="h-12 sm:h-14 px-8 sm:px-12 rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-primary/20 text-[10px] sm:text-xs">
                       {loading ? 'Saving...' : 'Update Profile'}
                     </Button>

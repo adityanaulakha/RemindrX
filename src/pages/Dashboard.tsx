@@ -158,15 +158,50 @@ export default function Dashboard() {
     );
   }
 
+  const firstName = userData?.name?.split(' ')[0] || 'User';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
+  const activeTasks = tasks.filter(t => t.deadline > now && !t.completedBy?.includes(currentUser?.uid || '')).length;
+  const upcomingEvents = events.filter(e => e.date > now).length;
+
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-10 duration-1000">
-      <div className="flex flex-col gap-3">
-        <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
-          Dashboard
-        </h1>
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-foreground/30 mt-2 flex items-center gap-2">
-          All Systems Functional
-        </p>
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-10 duration-1000 pb-20">
+      <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-6 sm:p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+          <Activity className="h-64 w-64 text-primary" />
+        </div>
+        
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="h-1 w-12 bg-primary rounded-full" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">{greeting}</span>
+          </div>
+          
+          <div className="space-y-2">
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
+              Hello, {firstName}
+            </h1>
+            <p className="text-sm font-medium text-foreground/40 max-w-xl leading-relaxed">
+              Here's your academic overview for today. Stay on track and crush your goals.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
+              <BookOpen className="h-4 w-4 text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest">{subjects.length} Subjects</span>
+            </div>
+            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
+              <Clock className="h-4 w-4 text-warning" />
+              <span className="text-[10px] font-black uppercase tracking-widest">{activeTasks} Active Tasks</span>
+            </div>
+            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
+              <Calendar className="h-4 w-4 text-accent" />
+              <span className="text-[10px] font-black uppercase tracking-widest">{upcomingEvents} Upcoming Events</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Danger Zone - Refactored to Ultra-Premium Warning */}
