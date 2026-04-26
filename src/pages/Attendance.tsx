@@ -103,7 +103,7 @@ export default function Attendance() {
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="relative group">
           <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse group-hover:bg-primary/30 transition-all" />
-          <div className="relative h-40 w-40 rounded-[3rem] bg-card/40 backdrop-blur-3xl border border-white/10 flex items-center justify-center shadow-2xl transition-transform duration-700 group-hover:scale-110">
+          <div className="relative h-40 w-40 rounded-[3rem] bg-card/40 backdrop-blur-xl border border-white/10 flex items-center justify-center shadow-2xl transition-transform duration-700 group-hover:scale-110">
             <GraduationCap className="h-20 w-20 text-primary" />
           </div>
         </div>
@@ -121,7 +121,7 @@ export default function Attendance() {
           </p>
         </div>
 
-        <div className="w-full bg-card/60 backdrop-blur-3xl border border-white/10 rounded-[4rem] p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="w-full bg-card/60 backdrop-blur-xl border border-white/10 rounded-[4rem] p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
           <form onSubmit={handleConnect} className="space-y-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <Input label="Student ID / Roll Node" placeholder="e.g. 21BCE10234" value={studentId} onChange={(e) => setStudentId(e.target.value)} required />
@@ -161,7 +161,7 @@ export default function Attendance() {
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-3xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <Activity className="h-64 w-64 text-primary" />
         </div>
@@ -209,7 +209,7 @@ export default function Attendance() {
           const strokeDashoffset = circumference - (data.percentage / 100) * circumference;
 
           return (
-            <div key={data.subjectId} className={`group relative bg-card/60 backdrop-blur-3xl border rounded-[3.5rem] p-8 transition-all duration-500 hover:scale-[1.03] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] overflow-hidden ${isDanger ? 'border-rose-500/20' : 'border-emerald-500/20'}`}>
+            <div key={data.subjectId} className={`group relative bg-card/60 backdrop-blur-xl border rounded-[3.5rem] p-8 transition-all duration-500 hover:scale-[1.03] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] overflow-hidden ${isDanger ? 'border-rose-500/20' : 'border-emerald-500/20'}`}>
               <div className="relative z-10 flex flex-col items-center text-center">
                 <div className="relative h-40 w-40 flex items-center justify-center mb-8">
                    <svg className="h-full w-full transform -rotate-90">

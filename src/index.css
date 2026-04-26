@@ -46,12 +46,31 @@
   * {
     border-color: var(--border);
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* GPU-accelerated scrolling */
+  main, [class*="overflow-y-auto"], [class*="overflow-x-auto"] {
+    -webkit-overflow-scrolling: touch;
+    will-change: scroll-position;
+  }
+
+  /* Reduce animations for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0); }
@@ -60,7 +79,7 @@
 
 @layer components {
   .glass-panel {
-    @apply bg-card/60 backdrop-blur-2xl border border-white/10 shadow-2xl;
+    @apply bg-card/60 backdrop-blur-lg border border-white/10 shadow-2xl;
   }
   
   .mesh-bg {

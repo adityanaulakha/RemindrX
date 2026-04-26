@@ -156,7 +156,7 @@ export default function SubjectDetails() {
         <div className="h-px flex-1 bg-white/5" />
       </div>
 
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/40 backdrop-blur-3xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/40 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           {subject.type === 'theory' ? <Layers className="h-64 w-64 text-primary" /> : <Zap className="h-64 w-64 text-accent" />}
         </div>
@@ -216,7 +216,7 @@ export default function SubjectDetails() {
                 <div key={task.id} className={`group relative rounded-[2.5rem] border p-8 transition-all duration-500 hover:scale-[1.01] ${
                   isCritical(task.deadline, task.priority) && !isPast(task.deadline)
                     ? 'bg-rose-500/5 border-rose-500/20 shadow-rose-500/5' 
-                    : 'bg-card/40 border-white/5 backdrop-blur-3xl'
+                    : 'bg-card/40 border-white/5 backdrop-blur-xl'
                 } ${isPast(task.deadline) ? 'opacity-40 grayscale' : ''}`}>
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
                     <div className="space-y-4">
@@ -279,7 +279,7 @@ export default function SubjectDetails() {
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
                 placeholder="Broadcast intelligence to this cluster..."
-                className="w-full h-20 pl-8 pr-32 rounded-[2rem] bg-card/40 backdrop-blur-3xl border border-white/10 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                className="w-full h-20 pl-8 pr-32 rounded-[2rem] bg-card/40 backdrop-blur-xl border border-white/10 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/30 transition-all"
               />
               <Button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 h-14 px-8 rounded-2xl font-black uppercase tracking-widest italic">
                 Post
@@ -291,7 +291,7 @@ export default function SubjectDetails() {
                 <div className="text-center py-12 opacity-30 italic font-black uppercase tracking-widest text-xs">No intelligence detected.</div>
               ) : (
                 posts.slice(0, visiblePosts).map(post => (
-                  <div key={post.id} className="rounded-[2.5rem] bg-card/40 backdrop-blur-3xl border border-white/5 p-8 space-y-6">
+                  <div key={post.id} className="rounded-[2.5rem] bg-card/40 backdrop-blur-xl border border-white/5 p-8 space-y-6">
                     <div className="flex justify-between items-start gap-4">
                       <p className="text-lg font-medium text-foreground/80 leading-relaxed">{post.content}</p>
                       <div className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2 shrink-0 ${

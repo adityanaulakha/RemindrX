@@ -94,7 +94,7 @@ export default function ClassUpdates() {
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-3xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <MessageSquare className="h-64 w-64 text-primary" />
         </div>
@@ -129,7 +129,7 @@ export default function ClassUpdates() {
             const subject = subjects[post.subjectId];
 
             return (
-              <div key={post.id} className="group relative bg-card/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 transition-all duration-500 hover:border-primary/30 hover:shadow-2xl overflow-hidden">
+              <div key={post.id} className="group relative bg-card/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 transition-all duration-500 hover:border-primary/30 hover:shadow-2xl overflow-hidden">
                 <div className="flex flex-col lg:flex-row justify-between gap-8">
                   <div className="flex-1 space-y-6">
                     <div className="flex flex-wrap items-center gap-4">

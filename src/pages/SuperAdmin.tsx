@@ -509,7 +509,7 @@ export default function SuperAdmin() {
   return (
     <div className="min-h-screen space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
       {/* Cinematic Command Header */}
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/40 backdrop-blur-3xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/40 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <ShieldCheck className="h-64 w-64 text-primary" />
         </div>
@@ -580,7 +580,7 @@ export default function SuperAdmin() {
                 ].map(stat => (
                   <div 
                     key={stat.id} 
-                    className={`group relative overflow-hidden bg-card/20 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 transition-all duration-500 hover:scale-[1.05] hover:border-primary/30 hover:shadow-2xl cursor-pointer ${activeDetailTab === stat.id ? 'border-primary/50 bg-primary/5' : ''}`}
+                    className={`group relative overflow-hidden bg-card/20 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 transition-all duration-500 hover:scale-[1.05] hover:border-primary/30 hover:shadow-2xl cursor-pointer ${activeDetailTab === stat.id ? 'border-primary/50 bg-primary/5' : ''}`}
                     onClick={() => setActiveDetailTab(activeDetailTab === stat.id ? null : stat.id as any)}
                   >
                     <div className="flex flex-col gap-6 relative z-10">
@@ -599,7 +599,7 @@ export default function SuperAdmin() {
               {/* Data Intelligence Dropdown */}
               {activeDetailTab && (
                 <div className="animate-in zoom-in-95 fade-in duration-500">
-                   <div className="bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden">
+                   <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[3.5rem] p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden">
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12">
                         <div className="space-y-2">
                            <h3 className="text-3xl font-black tracking-tighter italic uppercase text-primary">Detailed Records</h3>

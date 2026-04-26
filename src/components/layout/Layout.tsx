@@ -138,21 +138,21 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background font-['Outfit'] selection:bg-primary/30 relative">
-      {/* Gen Z Grainy Background */}
+      {/* Background */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/20 rounded-full blur-[150px] animate-pulse opacity-50" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-success/10 rounded-full blur-[150px] animate-pulse opacity-50" style={{ animationDelay: '2s' }} />
-        <div className="absolute inset-0 opacity-[0.05] mix-blend-overlay pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.4\'/%3E%3C/svg%3E")' }} />
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/15 rounded-full blur-[100px] opacity-40" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-success/8 rounded-full blur-[100px] opacity-40" />
+        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.4\'/%3E%3C/svg%3E")' }} />
       </div>
 
       {/* Sidebar Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-md lg:hidden animate-in fade-in duration-300" onClick={() => setIsMobileMenuOpen(false)} />
+        <div className="fixed inset-0 z-[60] bg-black/50 lg:hidden animate-in fade-in duration-200" onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-[70] w-72 transform transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] lg:static lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 p-4' : '-translate-x-full lg:p-6'}`}>
-        <div className="flex h-full flex-col rounded-[3rem] border border-white/10 bg-card/60 backdrop-blur-3xl shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] overflow-hidden">
+      <aside className={`fixed inset-y-0 left-0 z-[70] w-72 transform transition-transform duration-300 ease-out will-change-transform lg:static lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 p-4' : '-translate-x-full lg:p-6'}`}>
+        <div className="flex h-full flex-col rounded-[3rem] border border-white/10 bg-card/80 backdrop-blur-xl shadow-2xl overflow-hidden">
           {/* Brand */}
           <div className="flex h-28 items-center px-8">
             <div className="flex items-center group cursor-pointer" onClick={() => navigate('/dashboard', { replace: true })}>
@@ -221,21 +221,21 @@ export default function Layout() {
       <div className="flex flex-1 flex-col overflow-hidden relative z-50">
         {/* Mobile Header */}
         <header className="lg:hidden flex h-20 shrink-0 items-center justify-between px-6 z-50">
-          <button className="p-3 bg-card/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg" onClick={() => setIsMobileMenuOpen(true)}>
+          <button className="p-3 bg-card/60 backdrop-blur-lg rounded-2xl border border-white/10 shadow-lg" onClick={() => setIsMobileMenuOpen(true)}>
             <Menu className="h-6 w-6" />
           </button>
           <img src="/Cropped.png" alt="Logo" className="h-8 w-auto" />
           <div className="flex gap-2 relative">
-            <button className={`p-3 bg-card/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg transition-all ${refreshCooldown > 0 ? 'text-primary' : 'opacity-40 hover:opacity-100'}`} onClick={handleManualRefresh} disabled={refreshCooldown > 0}>
+            <button className={`p-3 bg-card/60 backdrop-blur-lg rounded-2xl border border-white/10 shadow-lg transition-colors ${refreshCooldown > 0 ? 'text-primary' : 'opacity-40 hover:opacity-100'}`} onClick={handleManualRefresh} disabled={refreshCooldown > 0}>
               {refreshCooldown > 0 ? <span className="text-xs font-black">{refreshCooldown}</span> : <RotateCw className="h-5 w-5" />}
             </button>
-            <button className="p-3 bg-card/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg relative" onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}>
+            <button className="p-3 bg-card/60 backdrop-blur-lg rounded-2xl border border-white/10 shadow-lg relative" onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}>
               <Bell className="h-5 w-5" />
               {notifications.some(n => !n.read) && <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-danger animate-ping"></span>}
             </button>
 
             {isNotificationsOpen && (
-              <div className="absolute right-0 mt-16 w-[calc(100vw-3rem)] sm:w-96 rounded-[2.5rem] bg-card/90 backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] z-[999] overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="absolute right-0 mt-16 w-[calc(100vw-3rem)] sm:w-96 rounded-[2rem] bg-card/95 backdrop-blur-xl border border-white/10 shadow-2xl z-[999] overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
                   <h3 className="font-black italic uppercase tracking-tighter text-lg pr-2">Inbox</h3>
                   <button onClick={markAllAsRead} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Clear All</button>
@@ -297,7 +297,7 @@ export default function Layout() {
               </button>
 
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-6 w-96 rounded-[2.5rem] bg-card/90 backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] z-[999] overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="absolute right-0 mt-6 w-96 rounded-[2.5rem] bg-card/90 backdrop-blur-xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] z-[999] overflow-hidden animate-in zoom-in-95 duration-200">
                   <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
                     <h3 className="font-black italic uppercase tracking-tighter text-xl">Inbox</h3>
                     <button onClick={markAllAsRead} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Clear All</button>
@@ -350,7 +350,7 @@ export default function Layout() {
       {/* Notification Prompt Refactored */}
       {showNotificationPrompt && (
         <div className="fixed bottom-10 right-10 z-[100] w-96 animate-in slide-in-from-right-8 duration-500">
-          <div className="bg-primary/20 backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl overflow-hidden relative group">
+          <div className="bg-primary/20 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl overflow-hidden relative group">
             <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative flex flex-col items-center text-center gap-6">
               <div className="h-20 w-20 bg-primary/20 rounded-[2rem] flex items-center justify-center shadow-inner">

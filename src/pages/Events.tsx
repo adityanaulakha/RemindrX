@@ -127,7 +127,7 @@ export default function Events() {
       {/* Featured Header / Hero */}
       <div className="relative group">
         <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-accent/30 rounded-[4rem] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
-        <div className="relative overflow-hidden rounded-[4rem] bg-card/60 backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="relative overflow-hidden rounded-[4rem] bg-card/60 backdrop-blur-xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5" />
           
           <div className="relative z-10 flex flex-col lg:flex-row items-stretch min-h-[450px]">
@@ -191,7 +191,7 @@ export default function Events() {
       </div>
 
       {/* Discovery Toolbar */}
-      <div className="sticky top-4 z-40 flex flex-col md:flex-row gap-6 items-center justify-between p-4 bg-card/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] shadow-2xl">
+      <div className="sticky top-4 z-40 flex flex-col md:flex-row gap-6 items-center justify-between p-4 bg-card/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] shadow-2xl">
          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-2 w-full md:w-auto">
             {CATEGORIES.map(cat => (
               <button
@@ -242,7 +242,7 @@ export default function Events() {
             return (
               <div 
                 key={event.id} 
-                className="group relative flex flex-col bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:border-primary/30 hover:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] cursor-pointer"
+                className="group relative flex flex-col bg-card/40 backdrop-blur-xl border border-white/10 rounded-[3rem] overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:border-primary/30 hover:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] cursor-pointer"
                 onClick={() => setSelectedEvent(event)}
               >
                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none group-hover:scale-150 transition-transform duration-1000">

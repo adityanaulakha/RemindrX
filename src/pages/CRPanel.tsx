@@ -112,7 +112,7 @@ export default function CRPanel() {
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-3xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <ShieldAlert className="h-64 w-64 text-primary" />
         </div>
@@ -130,7 +130,7 @@ export default function CRPanel() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Class Metadata */}
         <div className="space-y-8">
-          <Card className="rounded-[3rem] border border-white/5 bg-card/40 backdrop-blur-3xl overflow-hidden group">
+          <Card className="rounded-[3rem] border border-white/5 bg-card/40 backdrop-blur-xl overflow-hidden group">
             <CardHeader className="p-8 border-b border-white/5">
               <CardTitle className="text-xl font-black italic uppercase tracking-tighter flex items-center gap-3">
                 <LayoutGrid className="h-5 w-5 text-primary" /> Matrix Info
@@ -178,7 +178,7 @@ export default function CRPanel() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[3rem] border border-white/5 bg-card/40 backdrop-blur-3xl p-8">
+          <Card className="rounded-[3rem] border border-white/5 bg-card/40 backdrop-blur-xl p-8">
              <div className="space-y-6">
                <p className="text-sm font-black italic uppercase tracking-widest opacity-30">Access Protocols</p>
                <div className="space-y-4">
@@ -225,7 +225,7 @@ export default function CRPanel() {
 
         {/* Members Management */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="flex flex-col md:flex-row gap-6 items-center justify-between bg-card/40 backdrop-blur-3xl border border-white/5 p-6 rounded-[2.5rem]">
+          <div className="flex flex-col md:flex-row gap-6 items-center justify-between bg-card/40 backdrop-blur-xl border border-white/5 p-6 rounded-[2.5rem]">
              <div className="relative w-full md:w-96 group">
                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-primary opacity-30 group-focus-within:opacity-100 transition-opacity" />
                 <input 
@@ -269,7 +269,7 @@ export default function CRPanel() {
               </div>
             ) : (
               paginatedStudents.map(student => (
-                <div key={student.id} className="group relative flex flex-col sm:flex-row items-center justify-between p-6 bg-card/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] transition-all hover:bg-white/5 hover:border-primary/20">
+                <div key={student.id} className="group relative flex flex-col sm:flex-row items-center justify-between p-6 bg-card/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] transition-all hover:bg-white/5 hover:border-primary/20">
                   <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
                     <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center font-black text-xl italic shadow-inner">
                       {student.name.charAt(0)}

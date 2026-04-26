@@ -105,7 +105,7 @@ export default function Subjects() {
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-3xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <BookOpen className="h-64 w-64 text-primary" />
         </div>
@@ -145,7 +145,7 @@ export default function Subjects() {
 
       {showAddForm && userData?.role === 'admin' && (
         <div className="animate-in zoom-in-95 fade-in duration-500">
-          <div className="bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-10 lg:p-12 shadow-2xl relative overflow-hidden">
+          <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[3.5rem] p-10 lg:p-12 shadow-2xl relative overflow-hidden">
              <div className="absolute -top-24 -right-24 h-64 w-64 bg-primary/10 rounded-full blur-[100px]" />
              <h2 className="text-2xl font-black tracking-tighter italic uppercase mb-10 text-primary">Unit Configuration</h2>
              <form onSubmit={handleAddSubject} className="space-y-8">
@@ -194,7 +194,7 @@ export default function Subjects() {
           {filteredSubjects.map((subject) => (
             <div 
               key={subject.id} 
-              className="group relative bg-card/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-8 transition-all duration-500 hover:scale-[1.02] hover:border-primary/30 hover:shadow-2xl cursor-pointer overflow-hidden"
+              className="group relative bg-card/40 backdrop-blur-xl border border-white/5 rounded-[3rem] p-8 transition-all duration-500 hover:scale-[1.02] hover:border-primary/30 hover:shadow-2xl cursor-pointer overflow-hidden"
               onClick={() => navigate(`/subjects/${subject.id}`)}
             >
               {/* Card Glow */}

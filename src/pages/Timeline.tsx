@@ -102,34 +102,43 @@ export default function Timeline() {
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-        <div className="space-y-4">
-          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
-            Timeline
-          </h1>
-          <p className="text-sm font-medium text-foreground/40 max-w-xl">
-            Integrated stream of tasks, assignments, and events.
-          </p>
+      <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-6 sm:p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+          <Clock className="h-64 w-64 text-primary" />
         </div>
         
-        <div className="flex flex-wrap items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="xl" 
-            className="rounded-[2rem] px-8 font-black uppercase tracking-widest italic text-[10px] opacity-40 hover:opacity-100"
-            onClick={() => navigate('/profile')}
-          >
-            Deadline Prefs: {userData?.deadlinePreference || 2}D
-          </Button>
-          <Button size="xl" className="rounded-[2rem] px-10 shadow-2xl shadow-primary/20 italic font-black uppercase tracking-widest" onClick={() => setIsModalOpen(true)}>
-            <Plus className="mr-2 h-5 w-5" /> New Mission
-          </Button>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-10">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-1 w-12 bg-primary rounded-full" />
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Live Stream</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
+              Timeline
+            </h1>
+            <p className="text-sm font-medium text-foreground/40 max-w-xl leading-relaxed">
+              Integrated stream of tasks, assignments, and events.
+            </p>
+          </div>
+        
+          <div className="flex flex-wrap items-center gap-3 p-2 bg-white/5 rounded-[2rem] border border-white/5 shadow-inner">
+            <Button 
+              variant="ghost" 
+              className="h-12 sm:h-14 px-5 sm:px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic text-[10px] opacity-40 hover:opacity-100"
+              onClick={() => navigate('/profile')}
+            >
+              Prefs: {userData?.deadlinePreference || 2}D
+            </Button>
+            <Button className="h-12 sm:h-14 px-6 sm:px-10 rounded-[1.8rem] shadow-2xl shadow-primary/20 italic font-black uppercase tracking-widest text-[10px] sm:text-xs" onClick={() => setIsModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New Mission
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="relative ml-4 md:ml-8 mt-12 pb-20">
+      <div className="relative ml-6 sm:ml-8 mt-12 pb-20">
         {/* Glowing Timeline Axis */}
-        <div className="absolute left-0 top-4 bottom-0 w-1 bg-gradient-to-b from-primary via-accent to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)] opacity-20" />
+        <div className="absolute left-0 top-4 bottom-0 w-0.5 sm:w-1 bg-gradient-to-b from-primary via-accent to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)] opacity-20" />
 
         {timelineItems.length === 0 ? (
           <div className="pl-12 py-24">
@@ -152,18 +161,18 @@ export default function Timeline() {
                 const critical = isCritical(task.deadline, task.priority) && !isDone;
                 
                 return (
-                  <div key={key} className={`relative pl-12 group transition-all duration-500 ${isDone ? 'opacity-40' : isMissed ? 'opacity-80' : ''}`}>
+                  <div key={key} className={`relative pl-8 sm:pl-12 group transition-all duration-500 ${isDone ? 'opacity-40' : isMissed ? 'opacity-80' : ''}`}>
                     {/* Simple Node for Past Tasks */}
-                    <div className={`absolute -left-[14px] top-6 h-7 w-7 rounded-full border-4 border-background flex items-center justify-center shadow-xl z-10 transition-transform group-hover:scale-125 ${
+                    <div className={`absolute -left-[10px] sm:-left-[14px] top-6 h-5 w-5 sm:h-7 sm:w-7 rounded-full border-[3px] sm:border-4 border-background flex items-center justify-center shadow-xl z-10 transition-transform group-hover:scale-125 ${
                       isDone ? 'bg-success' : isMissed ? 'bg-foreground/20' : critical ? 'bg-danger animate-pulse shadow-danger/50' : 'bg-primary shadow-primary/50'
                     }`}>
-                      {isDone ? <CheckCircle2 className="h-4 w-4 text-white" /> : <div className="h-1.5 w-1.5 bg-white rounded-full" />}
+                      {isDone ? <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-white" /> : <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 bg-white rounded-full" />}
                     </div>
 
                     <Card className={`overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl ${
                       isDone ? 'border-success/30 bg-success/5' : isMissed ? 'border-white/5 bg-white/5' : critical ? 'border-danger/30 bg-danger/5' : 'bg-card/20 backdrop-blur-xl border-white/10'
                     }`}>
-                      <div className="p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                      <div className="p-5 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-8">
                         <div className="space-y-4 flex-1">
                           <div className="flex items-center gap-3">
                             <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg italic ${
@@ -182,7 +191,7 @@ export default function Timeline() {
                             )}
                           </div>
                           
-                          <h3 className={`text-3xl font-black italic tracking-tighter uppercase leading-tight transition-colors ${isDone ? 'text-success line-through opacity-50' : 'group-hover:text-primary'}`}>
+                          <h3 className={`text-xl sm:text-3xl font-black italic tracking-tighter uppercase leading-tight transition-colors ${isDone ? 'text-success line-through opacity-50' : 'group-hover:text-primary'}`}>
                             {task.title}
                           </h3>
                           
@@ -191,24 +200,24 @@ export default function Timeline() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-6">
-                          <div className="shrink-0 flex flex-col gap-2 p-6 rounded-[2rem] bg-white/5 border border-white/5 min-w-[180px]">
+                        <div className="flex items-center gap-3 sm:gap-6">
+                          <div className="shrink-0 flex flex-col gap-2 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-white/5 border border-white/5 min-w-[140px] sm:min-w-[180px]">
                              <div className="flex items-center justify-between">
-                                <Calendar className="h-4 w-4 opacity-20" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">{itemDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}</span>
+                                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-20" />
+                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">{itemDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}</span>
                              </div>
                              <div className="flex items-center justify-between">
-                                <Clock className="h-4 w-4 opacity-20" />
-                                <span className="text-xl font-black italic">{itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-20" />
+                                <span className="text-base sm:text-xl font-black italic">{itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                              </div>
                           </div>
 
                           <Button 
                             variant="ghost" 
-                            className={`h-14 w-14 p-0 rounded-2xl border border-white/10 ${isDone ? 'text-success bg-success/10' : 'text-foreground/40 hover:text-primary'}`}
+                            className={`h-11 w-11 sm:h-14 sm:w-14 p-0 rounded-xl sm:rounded-2xl border border-white/10 shrink-0 ${isDone ? 'text-success bg-success/10' : 'text-foreground/40 hover:text-primary'}`}
                             onClick={() => handleToggleDone(task.id, !!isDone)}
                           >
-                            {isDone ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
+                            {isDone ? <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" /> : <Circle className="h-5 w-5 sm:h-6 sm:w-6" />}
                           </Button>
                         </div>
                       </div>
@@ -218,15 +227,15 @@ export default function Timeline() {
               } else {
                 const event = item.data;
                 return (
-                  <div key={key} className={`relative pl-12 group transition-all duration-500 ${past ? 'opacity-30 grayscale' : ''}`}>
-                    <div className={`absolute -left-[14px] top-6 h-7 w-7 rounded-full border-4 border-background flex items-center justify-center shadow-xl z-10 transition-transform group-hover:scale-125 ${
+                  <div key={key} className={`relative pl-8 sm:pl-12 group transition-all duration-500 ${past ? 'opacity-30 grayscale' : ''}`}>
+                    <div className={`absolute -left-[10px] sm:-left-[14px] top-6 h-5 w-5 sm:h-7 sm:w-7 rounded-full border-[3px] sm:border-4 border-background flex items-center justify-center shadow-xl z-10 transition-transform group-hover:scale-125 ${
                       past ? 'bg-foreground/20' : 'bg-accent shadow-accent/50'
                     }`}>
-                       <div className="h-1.5 w-1.5 bg-white rounded-full" />
+                       <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 bg-white rounded-full" />
                     </div>
 
                     <Card className="bg-accent/5 backdrop-blur-xl border border-accent/20 overflow-hidden hover:border-accent/40 transition-all hover:-translate-y-1 hover:shadow-2xl">
-                       <div className="p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                       <div className="p-5 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-8">
                           <div className="space-y-4 flex-1">
                              <div className="flex items-center gap-3">
                                 <span className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-accent/20 text-accent italic">
@@ -234,7 +243,7 @@ export default function Timeline() {
                                 </span>
                              </div>
                              
-                             <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-tight group-hover:text-accent transition-colors">
+                             <h3 className="text-xl sm:text-3xl font-black italic tracking-tighter uppercase leading-tight group-hover:text-accent transition-colors">
                                 {event.title}
                              </h3>
                              
@@ -244,14 +253,14 @@ export default function Timeline() {
                              </div>
                           </div>
 
-                          <div className="shrink-0 flex flex-col gap-2 p-6 rounded-[2rem] bg-accent/10 border border-accent/10 min-w-[180px]">
+                          <div className="shrink-0 flex flex-col gap-2 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-accent/10 border border-accent/10 min-w-[140px] sm:min-w-[180px]">
                              <div className="flex items-center justify-between text-accent">
-                                <Calendar className="h-4 w-4 opacity-40" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">{itemDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}</span>
+                                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-40" />
+                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">{itemDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}</span>
                              </div>
                              <div className="flex items-center justify-between text-accent">
-                                <Clock className="h-4 w-4 opacity-40" />
-                                <span className="text-xl font-black italic">{itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-40" />
+                                <span className="text-base sm:text-xl font-black italic">{itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                              </div>
                           </div>
                        </div>

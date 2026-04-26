@@ -137,7 +137,7 @@ export default function Login() {
         </div>
 
         <div className="w-full max-w-xl z-10 animate-in fade-in zoom-in duration-700">
-          <div className="bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] text-center relative overflow-hidden">
+          <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[3rem] p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-accent to-primary animate-gradient-x" />
             
             <div className="w-24 h-24 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
@@ -183,7 +183,7 @@ export default function Login() {
       </div>
 
       <div className="w-full max-w-[480px] z-10 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-        <div className="bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] relative overflow-hidden">
+        <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[3.5rem] p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] relative overflow-hidden">
           {/* Header Branding */}
           <div className="text-center mb-12 relative">
             <div className="inline-block mb-8 relative group cursor-none">

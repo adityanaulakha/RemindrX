@@ -296,7 +296,7 @@ export default function Profile() {
   return (
     <>
       <div className="space-y-12 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="relative overflow-hidden rounded-[3.5rem] bg-card/40 backdrop-blur-3xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] bg-card/40 backdrop-blur-xl border border-white/10 p-5 sm:p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
           <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
             <Fingerprint className="h-64 w-64 text-primary" />
           </div>
@@ -389,20 +389,20 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-between items-center">
-                 <Button type="button" variant="ghost" onClick={() => setIsClassChangeModalOpen(true)} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest italic hover:bg-primary/10 hover:text-primary">
+              <div className="pt-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+                 <Button type="button" variant="ghost" onClick={() => setIsClassChangeModalOpen(true)} className="rounded-2xl h-12 sm:h-14 px-6 sm:px-8 font-black uppercase tracking-widest italic hover:bg-primary/10 hover:text-primary text-[10px] sm:text-xs">
                     <Repeat className="mr-2 h-4 w-4" /> Transfer Class
                  </Button>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <Button 
                       type="button" 
                       variant="outline" 
                       onClick={handleTestPulse}
-                      className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest italic border-primary/20 text-primary hover:bg-primary/5"
+                      className="h-12 sm:h-14 px-6 sm:px-8 rounded-2xl font-black uppercase tracking-widest italic border-primary/20 text-primary hover:bg-primary/5 text-[10px] sm:text-xs"
                     >
                       <Zap className="h-4 w-4 mr-2" /> Test Notifications
                     </Button>
-                    <Button type="submit" disabled={loading} className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-primary/20">
+                    <Button type="submit" disabled={loading} className="h-12 sm:h-14 px-8 sm:px-12 rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-primary/20 text-[10px] sm:text-xs">
                       {loading ? 'Saving...' : 'Update Profile'}
                     </Button>
                   </div>
@@ -411,8 +411,8 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-10 shadow-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl">
             <h2 className="text-2xl font-black tracking-tighter italic uppercase mb-6 flex items-center gap-3">
               <Bell className="h-6 w-6 text-primary" /> Notifications
             </h2>
@@ -441,7 +441,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-10 shadow-2xl flex flex-col justify-between">
+          <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl flex flex-col justify-between">
             <div className="space-y-6">
               <h2 className="text-2xl font-black tracking-tighter italic uppercase flex items-center gap-3 text-danger">
                 <ShieldAlert className="h-6 w-6" /> Account Security
