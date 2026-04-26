@@ -1,36 +1,59 @@
-import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, writeBatch, getDocs, deleteDoc, addDoc } from 'firebase/firestore';
+import { useEffect, useState, useMemo } from 'react';
+import { collection, query, where, onSnapshot, doc, writeBatch, getDocs, deleteDoc, addDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Event, EventParticipation } from '../types';
-import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Calendar, Clock, MapPin, Users, Plus, ExternalLink, Globe } from 'lucide-react';
+import { 
+  Calendar, Clock, MapPin, Users, Plus, ExternalLink, Globe, 
+  RefreshCw, Activity, Zap, ShieldCheck, Search, Filter, 
+  Sparkles, ArrowRight, Radio
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { EventModal } from '../components/EventModal';
 import { EventDetailModal } from '../components/EventDetailModal';
 
+const CATEGORIES = ['All', 'Academic', 'Club', 'Sports', 'Cultural', 'Workshop', 'Hackathon', 'Other'];
+
 export default function Events() {
   const { userData, currentUser } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
-  const [participations, setParticipations] = useState<Record<string, string>>({}); // eventId -> participationId
+  const [participations, setParticipations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  
+  // Filtering
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchEvents = async () => {
+    if (!currentUser) return;
+    
+    setLoading(true);
+    try {
+      const q = query(
+        collection(db, 'events'), 
+        where('status', '==', 'approved'),
+        limit(100)
+      );
+      const snapshot = await getDocs(q);
+      const fetchedEvents = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Event))
+        .sort((a, b) => a.date - b.date);
+      
+      setEvents(fetchedEvents);
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!userData?.classId || !currentUser) return;
+    fetchEvents();
 
-    // Listen to Global Approved Events
-    const eventsQuery = query(collection(db, 'events'), where('status', '==', 'approved'));
-    const unsubscribeEvents = onSnapshot(eventsQuery, (snapshot) => {
-      const fetchedEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
-      fetchedEvents.sort((a, b) => a.date - b.date); // Sort by date ascending
-      setEvents(fetchedEvents);
-      setLoading(false);
-    });
-
-    // Listen to current user's participations
+    if (!currentUser) return;
     const participationsQuery = query(
       collection(db, 'event_participations'),
       where('userId', '==', currentUser.uid)
@@ -39,212 +62,240 @@ export default function Events() {
       const parts: Record<string, string> = {};
       snapshot.docs.forEach(doc => {
         const data = doc.data() as EventParticipation;
-        if (data.status === 'going') {
-          parts[data.eventId] = doc.id;
-        }
+        if (data.status === 'going') parts[data.eventId] = doc.id;
       });
       setParticipations(parts);
     });
 
-    return () => {
-      unsubscribeEvents();
-      unsubscribeParticipations();
-    };
-  }, [userData, currentUser]);
-
-  const toggleParticipation = async (event: Event) => {
-    if (!currentUser) return;
-    
-    const isGoing = !!participations[event.id];
-    const participationId = participations[event.id];
-    
-    try {
-      const batch = writeBatch(db);
-      const eventRef = doc(db, 'events', event.id);
-      
-      if (isGoing && participationId) {
-        // User wants to cancel
-        const partRef = doc(db, 'event_participations', participationId);
-        batch.delete(partRef);
-        batch.update(eventRef, {
-          goingCount: Math.max(0, event.goingCount - 1)
-        });
-        toast.success("You are no longer going to this event");
-      } else {
-        // User wants to go
-        const newPartRef = doc(collection(db, 'event_participations'));
-        batch.set(newPartRef, {
-          userId: currentUser.uid,
-          eventId: event.id,
-          status: 'going'
-        });
-        batch.update(eventRef, {
-          goingCount: event.goingCount + 1
-        });
-        toast.success("Awesome! You're going!");
-      }
-
-      await batch.commit();
-    } catch (error) {
-      toast.error('Failed to update participation');
-      console.error(error);
-    }
-  };
+    return () => unsubscribeParticipations();
+  }, [currentUser]);
 
   const handleDeleteEvent = async (eventId: string, remarks: string = "") => {
-    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) return;
-    
+    if (!window.confirm('Purge this event?')) return;
     try {
       const eventDoc = events.find(e => e.id === eventId) || (selectedEvent?.id === eventId ? selectedEvent : null);
       if (!eventDoc) return;
 
-      // Notify the creator if a Super Admin deleted it (and it's not the creator themselves)
       if (userData?.isSuperAdmin && eventDoc.createdBy !== currentUser?.uid) {
         await addDoc(collection(db, 'notifications'), {
           userId: eventDoc.createdBy,
-          title: `Event Deleted: ${eventDoc.title}`,
-          message: `Your event "${eventDoc.title}" has been deleted by a Super Admin.`,
-          remarks: remarks || "No specific reason provided.",
+          title: `Broadcast Terminated: ${eventDoc.title}`,
+          message: `Your event "${eventDoc.title}" has been purged by a Super Admin.`,
+          remarks: remarks || "Security Protocol.",
           type: 'event_deletion',
           createdAt: Date.now(),
           read: false
         });
       }
-
       await deleteDoc(doc(db, 'events', eventId));
-      toast.success('Event deleted successfully');
+      toast.success('Event deleted');
       setEvents(prev => prev.filter(e => e.id !== eventId));
       setSelectedEvent(null);
     } catch (error) {
-      toast.error('Failed to delete event');
-      console.error(error);
+      toast.error('Delete failed');
     }
   };
 
   const now = Date.now();
-  const upcomingEvents = events.filter(e => e.date >= now - 24 * 60 * 60 * 1000); // include today's events
-  const pastEvents = events.filter(e => e.date < now - 24 * 60 * 60 * 1000);
+  const filteredEvents = useMemo(() => {
+    return events.filter(e => {
+      const matchesCategory = activeCategory === 'All' || e.category?.toLowerCase() === activeCategory.toLowerCase();
+      const matchesSearch = e.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           e.organizer.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [events, activeCategory, searchQuery]);
+
+  const upcomingEvents = filteredEvents.filter(e => e.date >= now - 24 * 60 * 60 * 1000);
+  const featuredEvent = upcomingEvents[0];
 
   if (loading) {
-    return <div className="animate-pulse space-y-4">
-      <div className="h-12 w-48 bg-card rounded-lg mb-6"></div>
-      <div className="h-40 bg-card rounded-xl"></div>
-      <div className="h-40 bg-card rounded-xl"></div>
-    </div>;
+    return (
+      <div className="animate-pulse space-y-12">
+        <div className="h-[400px] bg-card/20 rounded-[4rem] border border-white/5"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-96 bg-card/20 rounded-[3rem] border border-white/5"></div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Global Events</h1>
-          <p className="text-foreground/60">Discover and participate in platform-wide events</p>
+    <div className="space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-20">
+      {/* Featured Header / Hero */}
+      <div className="relative group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-accent/30 rounded-[4rem] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
+        <div className="relative overflow-hidden rounded-[4rem] bg-card/60 backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5" />
+          
+          <div className="relative z-10 flex flex-col lg:flex-row items-stretch min-h-[450px]">
+             {/* Left Info */}
+             <div className="flex-1 p-10 lg:p-16 flex flex-col justify-center space-y-8">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/20 text-primary shadow-inner">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary italic">Live Discovery</span>
+                </div>
+
+                <div className="space-y-4">
+                  <h1 className="text-4xl sm:text-6xl lg:text-8xl font-black tracking-tighter italic uppercase leading-[0.85] bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent pr-8">
+                    Events <br /> Hub
+                  </h1>
+                  <p className="text-sm font-medium text-foreground/40 max-w-sm leading-relaxed">
+                    Synchronizing academic, cultural, and competitive transmissions across the network.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-4">
+                  <Button onClick={() => setIsModalOpen(true)} className="h-16 px-10 rounded-[2rem] font-black uppercase tracking-widest italic shadow-2xl shadow-primary/20 group/btn">
+                    <Plus className="mr-3 h-5 w-5 group-hover:rotate-90 transition-transform" /> Host Event
+                  </Button>
+                  <div className="flex items-center gap-3 px-6 py-4 rounded-[2rem] bg-white/5 border border-white/5 backdrop-blur-xl">
+                    <Radio className="h-4 w-4 text-success animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-success">{events.length} Live Tracks</span>
+                  </div>
+                </div>
+             </div>
+
+             {/* Right Featured Card (if exists) */}
+             {featuredEvent && (
+                <div className="hidden lg:flex w-1/3 bg-white/5 border-l border-white/5 p-12 flex-col justify-center relative group/featured cursor-pointer" onClick={() => setSelectedEvent(featuredEvent)}>
+                   <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover/featured:opacity-100 transition-opacity" />
+                   <div className="relative space-y-6">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 italic flex items-center gap-2">
+                        <Zap className="h-4 w-4 fill-primary" /> Coming Up Next
+                      </p>
+                      <h3 className="text-4xl font-black italic uppercase tracking-tighter line-clamp-2 leading-tight">
+                        {featuredEvent.title}
+                      </h3>
+                      <div className="space-y-3">
+                         <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest opacity-40">
+                           <Calendar className="h-4 w-4 text-primary" /> 
+                           {new Date(featuredEvent.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
+                         </div>
+                         <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest opacity-40">
+                           <MapPin className="h-4 w-4 text-accent" /> {featuredEvent.venue}
+                         </div>
+                      </div>
+                      <div className="pt-4 flex items-center gap-2 text-[10px] font-black text-primary uppercase italic group-hover/featured:gap-4 transition-all">
+                        View Details <ArrowRight className="h-3 w-3" />
+                      </div>
+                   </div>
+                </div>
+             )}
+          </div>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Suggest Event
-        </Button>
       </div>
 
-      <div className="space-y-4 max-w-4xl">
+      {/* Discovery Toolbar */}
+      <div className="sticky top-4 z-40 flex flex-col md:flex-row gap-6 items-center justify-between p-4 bg-card/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] shadow-2xl">
+         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-2 w-full md:w-auto">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest italic transition-all whitespace-nowrap ${
+                  activeCategory === cat 
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105' 
+                    : 'text-foreground/30 hover:text-foreground hover:bg-white/5'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+         </div>
+         
+         <div className="relative w-full md:w-80 group">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 opacity-20 group-focus-within:opacity-100 transition-opacity" />
+            <input 
+              type="text" 
+              placeholder="Search database..."
+              className="w-full h-14 pl-14 pr-6 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-bold uppercase tracking-widest italic outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+         </div>
+      </div>
+
+      {/* Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {upcomingEvents.length === 0 ? (
-          <div className="text-center py-12 bg-card rounded-xl border border-border">
-            <Calendar className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
-            <h3 className="text-lg font-medium">No upcoming events</h3>
-            <p className="text-foreground/60 mt-1">Be the first to organize something for your class!</p>
+          <div className="col-span-full py-32 flex flex-col items-center justify-center rounded-[4rem] bg-card/20 border border-dashed border-white/10 text-center">
+            <div className="p-10 bg-white/5 rounded-[3rem] mb-8 relative">
+               <Activity className="h-16 w-16 opacity-10 animate-pulse" />
+               <div className="absolute inset-0 flex items-center justify-center">
+                  <Globe className="h-8 w-8 text-primary opacity-20" />
+               </div>
+            </div>
+            <h3 className="text-3xl font-black italic uppercase tracking-tighter mb-2">Matrix Silence</h3>
+            <p className="text-xs text-foreground/20 font-black uppercase tracking-[0.3em] max-w-xs">
+              No upcoming transmissions matching your current filter profile.
+            </p>
           </div>
         ) : (
           upcomingEvents.map(event => {
-            const isGoing = !!participations[event.id];
+            const eventDate = new Date(event.date);
             
             return (
-              <Card key={event.id} className="overflow-hidden border-border hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setSelectedEvent(event)}>
-                <CardContent className="p-0 sm:flex">
-                  {/* Date Block */}
-                  <div className="bg-primary/5 p-6 flex flex-col items-center justify-center sm:w-32 sm:border-r border-b sm:border-b-0 border-border">
-                    <span className="text-sm font-bold text-primary uppercase">{new Date(event.date).toLocaleString('default', { month: 'short' })}</span>
-                    <span className="text-3xl font-black">{new Date(event.date).getDate()}</span>
-                  </div>
-                  
-                  {/* Content Block */}
-                  <div className="p-6 flex-1">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-accent/10 text-accent">
-                            {event.category}
-                          </span>
-                          <span className="text-xs text-foreground/50">By {event.organizer}</span>
-                        </div>
-                        <h2 className="text-xl font-bold mb-2">{event.title}</h2>
-                        <p className="text-sm text-foreground/70 mb-4 whitespace-pre-wrap">{event.description}</p>
-                        
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-foreground/60 mb-4">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="h-4 w-4" />
-                            <span>{new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="h-4 w-4" />
-                            <span>{event.venue}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-primary font-medium">
-                            <Users className="h-4 w-4" />
-                            <span>{event.goingCount || 0} going</span>
-                          </div>
-                        </div>
-                        {/* Link indicators */}
-                        {(event.registrationLink || event.websiteLink) && (
-                          <div className="flex items-center gap-2 mt-1">
-                            {event.registrationLink && <span className="flex items-center gap-1 text-xs text-primary"><ExternalLink className="h-3 w-3" /> Register</span>}
-                            {event.websiteLink && <span className="flex items-center gap-1 text-xs text-accent"><Globe className="h-3 w-3" /> Website</span>}
-                          </div>
-                        )}
-                      </div>
+              <div 
+                key={event.id} 
+                className="group relative flex flex-col bg-card/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:border-primary/30 hover:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] cursor-pointer"
+                onClick={() => setSelectedEvent(event)}
+              >
+                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none group-hover:scale-150 transition-transform duration-1000">
+                  <Radio className="h-32 w-32" />
+                </div>
 
-                      <div className="shrink-0 flex items-center md:items-end flex-col justify-between">
-                        <Button 
-                          variant={isGoing ? "secondary" : "primary"} 
-                          className={`w-full md:w-32 ${isGoing ? 'bg-primary/20 hover:bg-danger/20 hover:text-danger text-primary' : ''}`}
-                          onClick={(e) => { e.stopPropagation(); toggleParticipation(event); }}
-                        >
-                          {isGoing ? 'Cancel' : 'I am Going'}
-                        </Button>
+                <div className="p-10 flex flex-col h-full space-y-6">
+                   <div className="flex justify-between items-start">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center font-black italic text-lg text-primary shadow-inner">
+                        {eventDate.getDate()}
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[9px] font-black uppercase tracking-widest italic opacity-40">
+                         {eventDate.toLocaleString('default', { month: 'short' })}
+                      </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary italic bg-primary/10 px-3 py-1 rounded-lg">
+                          {event.category}
+                        </span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-foreground/30 italic">
+                          {event.organizer}
+                        </span>
+                      </div>
+                      <h3 className="text-2xl font-black italic uppercase tracking-tighter leading-tight group-hover:text-primary transition-colors">
+                        {event.title}
+                      </h3>
+                      <p className="text-xs font-medium text-foreground/40 line-clamp-3 leading-relaxed">
+                        {event.description}
+                      </p>
+                   </div>
+
+                   <div className="pt-8 mt-auto border-t border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <MapPin className="h-4 w-4 text-primary opacity-30" />
+                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40 truncate max-w-[120px]">
+                           {event.venue}
+                         </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                         <Clock className="h-4 w-4 text-accent opacity-30" />
+                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                           {eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                         </span>
+                      </div>
+                   </div>
+                </div>
+              </div>
             );
           })
         )}
       </div>
-
-      {pastEvents.length > 0 && (
-        <div className="pt-8 max-w-4xl">
-          <h3 className="text-lg font-semibold mb-4 text-foreground/60">Past Events</h3>
-          <div className="space-y-4 opacity-60">
-            {pastEvents.map(event => (
-              <Card key={event.id}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center w-12">
-                      <span className="text-xs font-bold text-foreground/60 block">{new Date(event.date).toLocaleString('default', { month: 'short' })}</span>
-                      <span className="text-lg font-bold">{new Date(event.date).getDate()}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{event.title}</h4>
-                      <p className="text-xs text-foreground/60">{event.venue}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-medium bg-foreground/10 px-2.5 py-1 rounded-full">
-                    {event.goingCount || 0} attended
-                  </span>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
 
       <EventModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <EventDetailModal
@@ -252,8 +303,9 @@ export default function Events() {
         onClose={() => setSelectedEvent(null)}
         event={selectedEvent}
         isGoing={selectedEvent ? !!participations[selectedEvent.id] : false}
-        onToggleParticipation={(ev) => { toggleParticipation(ev); setSelectedEvent(null); }}
+        onToggleParticipation={() => { setSelectedEvent(null); }}
         onDelete={handleDeleteEvent}
+        isAdminView={false}
       />
     </div>
   );

@@ -14,8 +14,8 @@ export default defineConfig({
         enabled: true
       },
       manifest: {
-        name: 'RemindrX',
-        short_name: 'RemindrX',
+        name: 'Academic Platform',
+        short_name: 'Academic',
         description: 'Modern academic management system for college students',
         theme_color: '#0ea5e9',
         background_color: '#0f172a', // slate-900 for dark mode feel

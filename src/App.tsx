@@ -9,7 +9,7 @@ import SubjectDetails from './pages/SubjectDetails';
 import Timeline from './pages/Timeline';
 import Events from './pages/Events';
 import Profile from './pages/Profile';
-import AdminPanel from './pages/AdminPanel';
+import CRPanel from './pages/CRPanel';
 import SuperAdmin from './pages/SuperAdmin';
 import ClassUpdates from './pages/ClassUpdates';
 import Attendance from './pages/Attendance';
@@ -62,7 +62,18 @@ function App() {
   const { loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 p-8">
+        <div className="relative">
+          <div className="h-16 w-16 rounded-2xl bg-primary animate-pulse" />
+          <div className="absolute inset-0 h-16 w-16 border-4 border-primary/20 rounded-2xl animate-spin [animation-duration:3s]" />
+        </div>
+        <div className="space-y-2 text-center">
+          <h2 className="text-xl font-black italic tracking-tighter uppercase">Initializing Core</h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-20 animate-pulse">Syncing temporal nodes...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -96,14 +107,14 @@ function App() {
             <Route path="/updates" element={<ClassUpdates />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/cr-panel" element={<CRPanel />} />
             <Route path="/super-admin" element={<SuperAdmin />} />
             {/* Additional routes will be added here */}
           </Route>
 
           <Route path="/" element={<DefaultRoute />} />
         </Routes>
-        <Toaster position="top-center" />
+        <Toaster position="bottom-right" />
       </div>
     </Router>
   );

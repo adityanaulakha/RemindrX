@@ -14,11 +14,7 @@ export default function JoinClass() {
   const [loading, setLoading] = useState(false);
   const [classCode, setClassCode] = useState('');
   const [adminCode, setAdminCode] = useState('');
-  const [program, setProgram] = useState('');
-  const [branch, setBranch] = useState('');
-
-  const PROGRAMS = ['B.Tech', 'M.Tech', 'BCA', 'MCA'];
-  const BRANCHES = ['CSE Core', 'CSE Specialization', 'CSE Honors', 'ECE', 'ME', 'CE'];
+  const [dob, setDob] = useState(userData?.dob || '');
 
   // Redirect if already in a class
   useEffect(() => {
@@ -30,8 +26,8 @@ export default function JoinClass() {
   const handleJoinClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !userData) return;
-    if (!program || !branch) {
-      toast.error('Please select your Program and Branch');
+    if (!dob) {
+      toast.error('Please enter your Date of Birth');
       return;
     }
     
@@ -89,8 +85,11 @@ export default function JoinClass() {
       await updateDoc(userRef, {
         classId: classDoc.id,
         role: newRole,
-        program,
-        branch,
+        program: classData.program || '',
+        branch: classData.branch || '',
+        year: classData.year || '',
+        section: classData.section || '',
+        dob: dob
       });
 
       // Update local context
@@ -98,8 +97,11 @@ export default function JoinClass() {
         ...userData,
         classId: classDoc.id,
         role: newRole,
-        program,
-        branch,
+        program: classData.program || '',
+        branch: classData.branch || '',
+        year: classData.year || '',
+        section: classData.section || '',
+        dob: dob
       });
 
       navigate('/dashboard?firstTime=true');
@@ -121,32 +123,13 @@ export default function JoinClass() {
         </div>
 
         <form onSubmit={handleJoinClass} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1.5 text-foreground/80">Program *</label>
-              <select
-                className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                value={program}
-                onChange={(e) => setProgram(e.target.value)}
-                required
-              >
-                <option value="" disabled>Select</option>
-                {PROGRAMS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5 text-foreground/80">Branch *</label>
-              <select
-                className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                required
-              >
-                <option value="" disabled>Select</option>
-                {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
-            </div>
-          </div>
+          <Input
+            label="Date of Birth *"
+            type="date"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+            required
+          />
 
           <Input
             label="Section Code *"

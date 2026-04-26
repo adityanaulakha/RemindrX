@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { toast } from 'react-hot-toast';
-import type { ClassData } from '../types';
+import type { ClassData, Institute } from '../types';
 
 interface CreateSectionModalProps {
   isOpen: boolean;
@@ -26,6 +26,22 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
   const [adminCode, setAdminCode] = useState('');
   const [adminLimit, setAdminLimit] = useState(2);
   const [joinCode, setJoinCode] = useState('');
+  
+  const [institutes, setInstitutes] = useState<Institute[]>([]);
+  const [selectedInstituteId, setSelectedInstituteId] = useState('');
+
+  // Fetch institutes
+  useEffect(() => {
+    if (isOpen) {
+      const fetchInsts = async () => {
+        const snap = await getDocs(query(collection(db, 'institutes'), orderBy('name')));
+        const insts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Institute));
+        setInstitutes(insts);
+        if (insts.length > 0) setSelectedInstituteId(insts[0].id);
+      };
+      fetchInsts();
+    }
+  }, [isOpen]);
 
   // Auto-generate join code pattern
   useEffect(() => {
@@ -42,7 +58,7 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!section.trim() || !adminCode.trim() || adminLimit < 1) {
+    if (!section.trim() || !adminCode.trim() || adminLimit < 1 || !selectedInstituteId) {
       toast.error('Please fill all required fields correctly');
       return;
     }
@@ -67,7 +83,8 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
         joinCode,
         adminInviteCode: adminCode,
         adminCodeUses: adminLimit,
-        admins: []
+        admins: [],
+        instituteId: selectedInstituteId
       };
 
       await addDoc(collection(db, 'classes'), newSection);
@@ -85,6 +102,22 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Create New Section">
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1.5 text-foreground/80">Institute / College</label>
+          <select
+            className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            value={selectedInstituteId}
+            onChange={(e) => setSelectedInstituteId(e.target.value)}
+            required
+          >
+            <option value="" disabled>Select your college...</option>
+            {institutes.map(inst => (
+              <option key={inst.id} value={inst.id}>{inst.name}</option>
+            ))}
+          </select>
+          {institutes.length === 0 && <p className="text-[10px] text-danger mt-1">No institutes found. Create one in Super Admin first.</p>}
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1.5 text-foreground/80">Program</label>

@@ -31,6 +31,7 @@ interface EventDetailModalProps {
   onApprove?: (eventId: string, remarks: string) => void;
   onReject?: (eventId: string, remarks: string) => void;
   onDelete?: (eventId: string, remarks: string) => void;
+  isAdminView?: boolean;
 }
 
 export function EventDetailModal({ 
@@ -41,7 +42,8 @@ export function EventDetailModal({
   onToggleParticipation,
   onApprove,
   onReject,
-  onDelete
+  onDelete,
+  isAdminView = false
 }: EventDetailModalProps) {
   const { currentUser, userData } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -193,8 +195,8 @@ export function EventDetailModal({
             <Input label="Start Time" type="time" value={editTime} onChange={e => setEditTime(e.target.value)} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="End Date" type="date" value={editEndDate} onChange={e => setEditEndDate(e.target.value)} />
-            <Input label="End Time" type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} />
+            <Input label="End Date" type="date" value={editEndDate} onChange={e => setEditEndDate(e.target.value)} required />
+            <Input label="End Time" type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input label="Venue" value={editVenue} onChange={e => setEditVenue(e.target.value)} required />
@@ -213,27 +215,27 @@ export function EventDetailModal({
                 <option value="other">Other</option>
               </select>
             </div>
-            <Input label="Entry Fee" value={editEntryFee} onChange={e => setEditEntryFee(e.target.value)} placeholder="Free, ₹200" />
+            <Input label="Entry Fee" value={editEntryFee} onChange={e => setEditEntryFee(e.target.value)} placeholder="Free, ₹200" required />
           </div>
-          <Input label="Team Size" value={editTeamSize} onChange={e => setEditTeamSize(e.target.value)} placeholder="Solo, 2-4 members" />
+          <Input label="Team Size" value={editTeamSize} onChange={e => setEditTeamSize(e.target.value)} placeholder="Solo, 2-4 members" required />
 
           <div className="border-t border-border pt-4">
-            <p className="text-sm font-semibold mb-3 text-foreground/70">Links & Social</p>
+            <p className="text-sm font-semibold mb-3 text-foreground/70">Links & Support</p>
             <div className="space-y-3">
-              <Input label="Registration Link" value={editRegistrationLink} onChange={e => setEditRegistrationLink(e.target.value)} />
-              <Input label="Website" value={editWebsiteLink} onChange={e => setEditWebsiteLink(e.target.value)} />
+              <Input label="Registration Link" value={editRegistrationLink} onChange={e => setEditRegistrationLink(e.target.value)} required />
+              <Input label="Website" value={editWebsiteLink} onChange={e => setEditWebsiteLink(e.target.value)} required />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Instagram" value={editInstagramLink} onChange={e => setEditInstagramLink(e.target.value)} />
-                <Input label="LinkedIn" value={editLinkedinLink} onChange={e => setEditLinkedinLink(e.target.value)} />
+                <Input label="Instagram (optional)" value={editInstagramLink} onChange={e => setEditInstagramLink(e.target.value)} />
+                <Input label="LinkedIn (optional)" value={editLinkedinLink} onChange={e => setEditLinkedinLink(e.target.value)} />
               </div>
             </div>
           </div>
 
           <div className="border-t border-border pt-4">
-            <p className="text-sm font-semibold mb-3 text-foreground/70">Contact</p>
+            <p className="text-sm font-semibold mb-3 text-foreground/70">Contact Details</p>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Email" value={editContactEmail} onChange={e => setEditContactEmail(e.target.value)} />
-              <Input label="Phone" value={editContactPhone} onChange={e => setEditContactPhone(e.target.value)} />
+              <Input label="Email" value={editContactEmail} onChange={e => setEditContactEmail(e.target.value)} required />
+              <Input label="Phone" value={editContactPhone} onChange={e => setEditContactPhone(e.target.value)} required />
             </div>
           </div>
 
@@ -320,18 +322,9 @@ export function EventDetailModal({
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-tighter text-foreground/40">Venue</p>
               <p className="text-xs font-semibold truncate">{event.venue}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-tighter text-foreground/40">RSVPs</p>
-              <p className="text-xs font-semibold">{event.goingCount || 0} going</p>
-            </div>
           </div>
         </div>
+      </div>
 
         {/* Entry Fee & Team Size */}
         {(event.entryFee || event.teamSize) && (
@@ -413,7 +406,7 @@ export function EventDetailModal({
         {/* Actions */}
         <div className="flex flex-col gap-3 pt-4 border-t border-border">
           {/* Super Admin Moderation Actions */}
-          {isSuperAdmin && (
+          {isSuperAdmin && isAdminView && (
             <div className="flex flex-col gap-3 bg-muted/20 p-4 rounded-xl border border-border">
               <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">Moderation Panel</p>
               <textarea
@@ -455,17 +448,8 @@ export function EventDetailModal({
 
           {/* Regular User Actions */}
           <div className="flex items-center gap-3">
-            {onToggleParticipation && event.status === 'approved' && (
-              <Button
-                className={`flex-1 font-bold h-11 ${isGoing ? 'bg-primary/20 hover:bg-danger/20 hover:text-danger text-primary border-primary/20' : ''}`}
-                variant={isGoing ? 'secondary' : 'primary'}
-                onClick={() => onToggleParticipation(event)}
-              >
-                {isGoing ? 'Cancel RSVP' : "I'm Going!"}
-              </Button>
-            )}
             
-            {isCreator && !isSuperAdmin && onDelete && (
+            {isCreator && !isAdminView && onDelete && (
               <Button 
                 variant="ghost" 
                 className="h-11 flex items-center gap-2 font-semibold hover:bg-danger/10 text-danger" 
@@ -482,11 +466,11 @@ export function EventDetailModal({
                 if (navigator.share) {
                   navigator.share({
                     title: event.title,
-                    text: `Check out ${event.title} on RemindrX!`,
+                    text: `Check out ${event.title}!`,
                     url: window.location.href
                   });
                 } else {
-                  const text = `Check out this event: ${event.title}\n📅 ${new Date(event.date).toLocaleDateString()}\n📍 ${event.venue}\nOrganized by ${event.organizer}\n\nJoin RemindrX to see more details!`;
+                  const text = `Check out this event: ${event.title}\n📅 ${new Date(event.date).toLocaleDateString()}\n📍 ${event.venue}\nOrganized by ${event.organizer}\n\nJoin the community to see more details!`;
                   navigator.clipboard.writeText(text);
                   toast.success('Event info copied to clipboard!');
                 }

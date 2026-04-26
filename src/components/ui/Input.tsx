@@ -10,22 +10,22 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, ...props }, ref) => {
     return (
-      <div className="w-full">
+      <div className="w-full space-y-2">
         {label && (
-          <label className="block text-sm font-medium mb-1.5 text-foreground/80">
+          <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 ml-1 italic">
             {label}
           </label>
         )}
         <input
           ref={ref}
           className={cn(
-            'flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
-            error && 'border-danger focus-visible:ring-danger',
+            'flex h-14 w-full rounded-2xl border border-border/50 bg-card/50 backdrop-blur-md px-4 py-2 text-sm text-foreground placeholder:text-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-inner',
+            error && 'border-danger/50 focus-visible:ring-danger/40',
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-sm text-danger">{error}</p>}
+        {error && <p className="mt-1 text-[10px] font-bold text-danger uppercase tracking-wider ml-1">{error}</p>}
       </div>
     );
   }

@@ -13,6 +13,19 @@ export interface User {
   createdAt?: number;
   lastActive?: number;
   fcmTokens?: string[];
+  collegeId?: string; // Links to Institute
+  deadlinePreference?: number; // In days, default 2
+  dob?: string;
+  section?: string;
+  rollNo?: string;
+  year?: string;
+}
+
+export interface Institute {
+  id: string;
+  name: string;
+  domains: string[]; // List of allowed email domains e.g. ["gla.ac.in", "gla.in"]
+  createdAt: number;
 }
 
 export interface ClassData {
@@ -27,6 +40,7 @@ export interface ClassData {
   adminCodeUses: number;
   adminCodeExpiry?: number; // timestamp
   admins: string[]; // array of userIds
+  instituteId?: string; // Links to Institute
 }
 
 export interface Subject {
@@ -34,6 +48,7 @@ export interface Subject {
   name: string;
   code: string;
   type: 'theory' | 'lab';
+  credits?: number;
   classId: string;
   isActive: boolean;
   createdBy: 'system' | 'admin' | string;
@@ -50,6 +65,7 @@ export interface Task {
   deadline: number; // timestamp
   priority: Priority;
   createdBy: string;
+  completedBy?: string[]; // Array of user IDs who marked this as done
 }
 
 export type PostStatus = 'unverified' | 'likely' | 'verified';

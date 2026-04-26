@@ -10,22 +10,58 @@ import { useAuth } from '../../context/AuthContext';
 import {
   BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X,
   ShieldAlert, CalendarRange, MessageSquare, Activity, Bell, Download,
-  Sun, Moon, RotateCw, Monitor
+  Sun, Moon, RotateCw, Monitor, BellOff, Info
 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { GlobalFAB } from '../GlobalFAB';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { OfflineIndicator } from '../OfflineIndicator';
+import { AutoReminder } from '../AutoReminder';
+import { useNotifications } from '../../hooks/useNotifications';
 
 export default function Layout() {
   const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
   const { isInstallable, handleInstall } = usePWAInstall();
+  const { requestPermission } = useNotifications();
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationLimit, setNotificationLimit] = useState(10);
   const [hasMore, setHasMore] = useState(true);
+
+  const [refreshCooldown, setRefreshCooldown] = useState(0);
+
+  useEffect(() => {
+    // 1. Handle Refresh Cooldown
+    const lastRefresh = parseInt(localStorage.getItem('last_refresh') || '0');
+    const now = Date.now();
+    if (now - lastRefresh < 10000) {
+      setRefreshCooldown(Math.ceil((10000 - (now - lastRefresh)) / 1000));
+    }
+
+    // 2. Check if notifications are permitted
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        const timer = setTimeout(() => setShowNotificationPrompt(true), 5000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (refreshCooldown > 0) {
+      const interval = setInterval(() => setRefreshCooldown(prev => prev - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [refreshCooldown]);
+
+  const handleManualRefresh = () => {
+    if (refreshCooldown > 0) return;
+    localStorage.setItem('last_refresh', Date.now().toString());
+    setRefreshCooldown(10);
+    window.dispatchEvent(new CustomEvent('app-refresh'));
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -73,49 +109,15 @@ export default function Layout() {
     }
   };
 
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
-
+  // Theme is now hardcoded to Dark Mode
   useEffect(() => {
-    const root = document.documentElement;
-    
-    const applyTheme = (currentTheme: string) => {
-      if (currentTheme === 'system') {
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        root.classList.toggle('dark', systemTheme === 'dark');
-      } else {
-        root.classList.toggle('dark', currentTheme === 'dark');
-      }
-    };
-
-    applyTheme(theme);
-    localStorage.setItem('theme', theme);
-
-    // Listen for system theme changes if in system mode
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyTheme('system');
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-  }, [theme]);
-
-  const toggleTheme = () => {
-    const modes = ['light', 'dark', 'system'];
-    const currentIndex = modes.indexOf(theme);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setTheme(modes[nextIndex]);
-  };
-
-  const getThemeIcon = () => {
-    if (theme === 'light') return <Sun className="h-5 w-5" />;
-    if (theme === 'dark') return <Moon className="h-5 w-5" />;
-    return <Monitor className="h-5 w-5" />;
-  };
+    document.documentElement.classList.add('dark');
+  }, []);
 
   const navItems = [
-    { name: 'Global Events', path: '/events', icon: CalendarRange },
+    { name: 'Events', path: '/events', icon: CalendarRange },
   ];
-
+  
   if (userData?.classId) {
     navItems.unshift(
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -127,7 +129,7 @@ export default function Layout() {
   }
 
   if (userData?.role === 'admin' && userData?.classId) {
-    navItems.push({ name: 'Admin Panel', path: '/admin', icon: ShieldAlert });
+    navItems.push({ name: 'CR Panel', path: '/cr-panel', icon: ShieldAlert });
   }
 
   if (userData?.isSuperAdmin) {
@@ -135,302 +137,237 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Mobile Sidebar Overlay */}
+    <div className="flex h-screen overflow-hidden bg-background font-['Outfit'] selection:bg-primary/30 relative">
+      {/* Gen Z Grainy Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/20 rounded-full blur-[150px] animate-pulse opacity-50" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-success/10 rounded-full blur-[150px] animate-pulse opacity-50" style={{ animationDelay: '2s' }} />
+        <div className="absolute inset-0 opacity-[0.05] mix-blend-overlay pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.4\'/%3E%3C/svg%3E")' }} />
+      </div>
+
+      {/* Sidebar Overlay */}
       {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
+        <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-md lg:hidden animate-in fade-in duration-300" onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-border bg-card transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-      >
-        <div className="flex h-16 items-center justify-between px-6 border-b border-border">
-          <div className="flex items-center">
-            <img src="/Cropped.png" alt="Logo" className="h-8 w-auto" />
-          </div>
-          <button
-            className="lg:hidden text-foreground/60 hover:text-foreground"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <nav className="flex-1 space-y-1 p-4">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.path}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${isActive
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-foreground/70 hover:bg-border/50 hover:text-foreground'
-                }`
-              }
-            >
-              <item.icon className="h-5 w-5" />
-              {item.name}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="absolute bottom-0 w-full border-t border-border p-4 bg-card">
-          <div className="mb-4 flex items-center gap-3 px-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary font-bold">
-              {userData?.name?.charAt(0).toUpperCase() || 'U'}
+      <aside className={`fixed inset-y-0 left-0 z-[70] w-72 transform transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] lg:static lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 p-4' : '-translate-x-full lg:p-6'}`}>
+        <div className="flex h-full flex-col rounded-[3rem] border border-white/10 bg-card/60 backdrop-blur-3xl shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] overflow-hidden">
+          {/* Brand */}
+          <div className="flex h-28 items-center px-8">
+            <div className="flex items-center group cursor-pointer" onClick={() => navigate('/dashboard', { replace: true })}>
+              <div className="relative">
+                <img src="/Cropped.png" alt="Logo" className="h-16 w-auto group-hover:scale-110 transition-transform duration-500" />
+              </div>
             </div>
-            <div
-              className="flex flex-col flex-1 overflow-hidden cursor-pointer hover:opacity-80"
-              onClick={() => navigate('/profile')}
-            >
-              <span className="text-sm font-medium leading-none truncate">{userData?.name}</span>
-              <span className="text-xs text-foreground/50 mt-1 capitalize">{userData?.role}</span>
-            </div>
+            <button className="lg:hidden ml-auto p-3 rounded-2xl hover:bg-white/5 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
+              <X className="h-6 w-6 opacity-40" />
+            </button>
           </div>
 
-          <div className="space-y-2">
-            {isInstallable && (
-              <Button
-                variant="outline"
-                className="w-full justify-start border-primary/30 text-primary hover:bg-primary/5"
-                onClick={handleInstall}
+          {/* Navigation */}
+          <nav className="flex-1 space-y-1.5 px-4 overflow-y-auto no-scrollbar py-2">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.path}
+                replace={true}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-4 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all duration-300 group ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 translate-x-1'
+                      : 'text-foreground/40 hover:text-foreground hover:bg-white/5'
+                  }`
+                }
               >
-                <Download className="mr-2 h-4 w-4" />
-                Install App
+                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="tracking-wide uppercase text-[11px]">{item.name}</span>
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* User Section */}
+          <div className="p-6 border-t border-white/5 bg-white/5">
+            <div className="flex items-center gap-4 mb-6 group cursor-pointer" onClick={() => navigate('/profile', { replace: true })}>
+              <div className="relative">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black text-lg shadow-lg group-hover:scale-110 transition-transform">
+                  {userData?.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              </div>
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-sm font-black truncate tracking-tight">{userData?.name}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary italic">{userData?.role}</span>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              {isInstallable && (
+                <Button variant="glass" size="sm" className="w-full justify-start rounded-xl" onClick={handleInstall}>
+                  <Download className="mr-3 h-4 w-4" />
+                  Install App
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="w-full justify-start rounded-xl text-danger/60 hover:text-danger hover:bg-danger/10" onClick={handleLogout}>
+                <LogOut className="mr-3 h-4 w-4" />
+                Sign Out
               </Button>
-            )}
-            <Button variant="ghost" className="w-full justify-start text-danger hover:text-danger hover:bg-danger/10" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
+            </div>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
-          <div className="flex items-center gap-3">
-            <button
-              className="text-foreground/60 hover:text-foreground"
-              onClick={() => setIsMobileMenuOpen(true)}
-            >
-              <Menu className="h-6 w-6" />
+      {/* Content Area */}
+      <div className="flex flex-1 flex-col overflow-hidden relative z-50">
+        {/* Mobile Header */}
+        <header className="lg:hidden flex h-20 shrink-0 items-center justify-between px-6 z-50">
+          <button className="p-3 bg-card/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg" onClick={() => setIsMobileMenuOpen(true)}>
+            <Menu className="h-6 w-6" />
+          </button>
+          <img src="/Cropped.png" alt="Logo" className="h-8 w-auto" />
+          <div className="flex gap-2 relative">
+            <button className={`p-3 bg-card/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg transition-all ${refreshCooldown > 0 ? 'text-primary' : 'opacity-40 hover:opacity-100'}`} onClick={handleManualRefresh} disabled={refreshCooldown > 0}>
+              {refreshCooldown > 0 ? <span className="text-xs font-black">{refreshCooldown}</span> : <RotateCw className="h-5 w-5" />}
             </button>
-            <img src="/Cropped.png" alt="Logo" className="h-7 w-auto" />
-          </div>
+            <button className="p-3 bg-card/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg relative" onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}>
+              <Bell className="h-5 w-5" />
+              {notifications.some(n => !n.read) && <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-danger animate-ping"></span>}
+            </button>
 
-          <div className="flex items-center gap-1">
-            <button
-              className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
-              onClick={() => window.location.reload()}
-              title="Refresh App"
-            >
-              <RotateCw className="h-4.5 w-4.5" />
-            </button>
-            <button
-              className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
-              onClick={toggleTheme}
-              title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to toggle)`}
-            >
-              {getThemeIcon()}
-            </button>
-            {userData?.classId && (
-              <div className="relative">
-                <button
-                  className="relative p-2 text-foreground/60 hover:text-foreground"
-                  onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                >
-                  <Bell className="h-4.5 w-4.5" />
-                  {notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-danger"></span>}
-                </button>
-
-                {isNotificationsOpen && (
-                  <div className="fixed inset-x-4 top-16 mt-2 rounded-xl bg-card border border-border shadow-2xl z-[60] overflow-hidden lg:absolute lg:inset-auto lg:right-0 lg:w-80">
-                    <div className="p-4 border-b border-border bg-primary/5 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-sm">Notifications</h3>
-                        {notifications.some(n => !n.read) && (
-                          <button
-                            onClick={markAllAsRead}
-                            className="text-[10px] text-primary hover:underline font-bold uppercase tracking-wider"
-                          >
-                            Mark all read
-                          </button>
-                        )}
-                      </div>
-                      <button onClick={() => setIsNotificationsOpen(false)} className="lg:hidden text-foreground/40">
-                        <X className="h-4 w-4" />
-                      </button>
+            {isNotificationsOpen && (
+              <div className="absolute right-0 mt-16 w-[calc(100vw-3rem)] sm:w-96 rounded-[2.5rem] bg-card/90 backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] z-[999] overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                  <h3 className="font-black italic uppercase tracking-tighter text-lg pr-2">Inbox</h3>
+                  <button onClick={markAllAsRead} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Clear All</button>
+                </div>
+                <div className="max-h-[70vh] overflow-y-auto no-scrollbar">
+                  {notifications.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <BellOff className="h-10 w-10 mx-auto opacity-10 mb-4" />
+                      <p className="text-sm font-bold opacity-30 uppercase tracking-widest">Silence is Golden</p>
                     </div>
-                    <div className="max-h-[70vh] lg:max-h-96 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-12 text-center">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                            <Bell className="h-6 w-6 text-primary/40" />
+                  ) : (
+                    <div className="divide-y divide-white/5">
+                      {notifications.map(n => (
+                        <div
+                          key={n.id}
+                          className={`p-6 hover:bg-white/5 cursor-pointer transition-all border-l-4 ${n.read ? 'border-transparent' : 'border-primary bg-primary/5'}`}
+                          onClick={() => {
+                            setIsNotificationsOpen(false);
+                            if (!n.read) updateDoc(doc(db, 'notifications', n.id), { read: true });
+                            navigate(n.eventId ? '/events' : (n.link || '/dashboard'));
+                          }}
+                        >
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">{n.title}</span>
+                            {!n.read && <div className="h-2 w-2 bg-primary rounded-full" />}
                           </div>
-                          <p className="text-sm font-bold text-foreground/80">All Caught Up!</p>
-                          <p className="text-xs text-foreground/40 mt-1">No new alerts in the last 5 days.</p>
+                          <p className="text-sm text-foreground/70 font-medium leading-relaxed">{n.message}</p>
+                          <p className="text-[9px] font-bold opacity-20 uppercase tracking-widest mt-3">{new Date(n.createdAt).toLocaleTimeString()}</p>
                         </div>
-                      ) : (
-                        <div className="divide-y divide-border">
-                          {notifications.map(n => (
-                            <div
-                              key={n.id}
-                              className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors border-l-4 ${n.read ? 'border-transparent' : 'border-primary bg-primary/5'}`}
-                              onClick={async () => {
-                                setIsNotificationsOpen(false);
-                                if (!n.read) {
-                                  try {
-                                    await updateDoc(doc(db, 'notifications', n.id), { read: true });
-                                  } catch (e) { console.error(e); }
-                                }
-                                navigate(n.eventId ? '/events' : (n.link || '/dashboard'));
-                              }}
-                            >
-                              <div className="flex justify-between items-start mb-1">
-                                <p className={`text-xs font-bold ${n.type === 'event_rejection' ? 'text-danger' : 'text-primary'}`}>{n.title}</p>
-                                {!n.read && <span className="text-[9px] bg-primary text-white px-1.5 py-0.5 rounded-full font-black">NEW</span>}
-                              </div>
-                              <p className="text-[11px] text-foreground/70 leading-relaxed">{n.message}</p>
-                              {n.remarks && (
-                                <div className="mt-2 p-2 bg-background/50 rounded border border-border/50 text-xs italic">
-                                  "{n.remarks}"
-                                </div>
-                              )}
-                              <p className="text-[9px] text-foreground/40 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
-                            </div>
-                          ))}
-                          {hasMore && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setNotificationLimit(prev => prev + 10); }}
-                              className="w-full py-3 text-xs font-bold text-primary hover:bg-primary/5 transition-colors"
-                            >
-                              Load Older Notifications
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </div>
         </header>
 
-        {/* Desktop Header */}
-        <header className="hidden lg:flex h-16 shrink-0 items-center justify-end border-b border-border bg-card px-8 gap-2">
-          <button
-            className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
-            onClick={() => window.location.reload()}
-            title="Refresh App"
-          >
-            <RotateCw className="h-5 w-5" />
-          </button>
-          <button
-            className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
-            onClick={toggleTheme}
-            title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to toggle)`}
-          >
-            {getThemeIcon()}
-          </button>
+        {/* Desktop Header Actions */}
+        <header className="hidden lg:flex h-24 shrink-0 items-center justify-between px-10 z-50">
+          <div className="flex items-center gap-4">
+             <div className="h-1 w-12 bg-primary/30 rounded-full" />
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 italic">Academic Intelligence System v1.0</span>
+          </div>
 
-          {userData?.classId && (
-            <div className="relative">
-              <button
-                className="relative p-2 text-foreground/60 hover:text-foreground rounded-full hover:bg-border transition-colors"
-                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-              >
-                <Bell className="h-5 w-5" />
-                {notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-danger border-2 border-card"></span>}
+          <div className="flex items-center gap-4 p-2 bg-card/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-xl">
+            <div className="flex items-center gap-1 px-2">
+              <button className={`p-2.5 rounded-xl transition-all ${refreshCooldown > 0 ? 'text-primary' : 'hover:bg-white/5 opacity-40 hover:opacity-100'}`} onClick={handleManualRefresh} disabled={refreshCooldown > 0}>
+                {refreshCooldown > 0 ? <span className="text-xs font-black">{refreshCooldown}</span> : <RotateCw className="h-4.5 w-4.5" />}
+              </button>
+            </div>
+
+            <div className="h-6 w-px bg-white/10" />
+
+            <div className="relative px-2">
+              <button className="p-2.5 rounded-xl hover:bg-white/5 transition-all opacity-40 hover:opacity-100 relative group" onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}>
+                <Bell className="h-4.5 w-4.5" />
+                {notifications.some(n => !n.read) && <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-danger"></span>}
               </button>
 
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-xl bg-card border border-border shadow-xl z-50 overflow-hidden">
-                  <div className="p-4 border-b border-border bg-primary/5 flex justify-between items-center">
-                    <h3 className="font-bold">Notifications</h3>
-                    {notifications.some(n => !n.read) && (
-                      <button
-                        onClick={markAllAsRead}
-                        className="text-[10px] text-primary hover:underline font-bold uppercase tracking-wider"
-                      >
-                        Mark all read
-                      </button>
-                    )}
+                <div className="absolute right-0 mt-6 w-96 rounded-[2.5rem] bg-card/90 backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] z-[999] overflow-hidden animate-in zoom-in-95 duration-200">
+                  <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
+                    <h3 className="font-black italic uppercase tracking-tighter text-xl">Inbox</h3>
+                    <button onClick={markAllAsRead} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Clear All</button>
                   </div>
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-[32rem] overflow-y-auto no-scrollbar">
                     {notifications.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center p-8 text-center">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                          <Bell className="h-5 w-5 text-primary/40" />
-                        </div>
-                        <p className="text-xs font-bold text-foreground/80">No Notifications</p>
-                        <p className="text-[10px] text-foreground/40">No New Notifications!</p>
+                      <div className="p-16 text-center">
+                        <BellOff className="h-12 w-12 mx-auto opacity-10 mb-4" />
+                        <p className="text-sm font-bold opacity-30 uppercase tracking-widest">Silence is Golden</p>
                       </div>
                     ) : (
-                      <div className="divide-y divide-border">
+                      <div className="divide-y divide-white/5">
                         {notifications.map(n => (
                           <div
                             key={n.id}
-                            className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors border-l-4 ${n.read ? 'border-transparent' : 'border-primary bg-primary/5'}`}
-                            onClick={async () => {
+                            className={`p-6 hover:bg-white/5 cursor-pointer transition-all border-l-4 ${n.read ? 'border-transparent' : 'border-primary bg-primary/5'}`}
+                            onClick={() => {
                               setIsNotificationsOpen(false);
-                              if (!n.read) {
-                                try {
-                                  await updateDoc(doc(db, 'notifications', n.id), { read: true });
-                                } catch (e) { console.error(e); }
-                              }
+                              if (!n.read) updateDoc(doc(db, 'notifications', n.id), { read: true });
                               navigate(n.eventId ? '/events' : (n.link || '/dashboard'));
                             }}
                           >
-                            <div className="flex justify-between items-start mb-1">
-                              <p className={`text-sm font-bold ${n.type === 'event_rejection' ? 'text-danger' : 'text-primary'}`}>{n.title}</p>
-                              {!n.read && <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded-full font-black">NEW</span>}
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-primary">{n.title}</span>
+                              {!n.read && <div className="h-2 w-2 bg-primary rounded-full" />}
                             </div>
-                            <p className="text-xs text-foreground/70 leading-relaxed">{n.message}</p>
-                            {n.remarks && (
-                              <div className="mt-2 p-2 bg-background/50 rounded border border-border/50">
-                                <p className="text-[10px] font-bold uppercase tracking-tight text-foreground/40 mb-1">Moderator Remarks:</p>
-                                <p className="text-xs italic text-foreground/80">"{n.remarks}"</p>
-                              </div>
-                            )}
-                            <p className="text-[10px] text-foreground/40 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
+                            <p className="text-sm text-foreground/70 font-medium leading-relaxed">{n.message}</p>
+                            <p className="text-[9px] font-bold opacity-20 uppercase tracking-widest mt-3">{new Date(n.createdAt).toLocaleTimeString()}</p>
                           </div>
                         ))}
-                        {hasMore && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setNotificationLimit(prev => prev + 10); }}
-                            className="w-full py-3 text-xs font-bold text-primary hover:bg-primary/5 transition-colors border-t border-border"
-                          >
-                            Load Older Notifications
-                          </button>
-                        )}
                       </div>
                     )}
                   </div>
                 </div>
               )}
             </div>
-          )}
+          </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8 pb-safe pt-safe">
-          <div className="mx-auto max-w-5xl pb-12">
+        <main className="flex-1 overflow-y-auto no-scrollbar p-6 lg:p-10">
+          <div className="mx-auto max-w-6xl">
             <Outlet />
           </div>
         </main>
       </div>
 
-      {/* Global Floating Action Button */}
-      {userData?.classId && <GlobalFAB />}
       <OfflineIndicator />
+      <AutoReminder />
+
+      {/* Notification Prompt Refactored */}
+      {showNotificationPrompt && (
+        <div className="fixed bottom-10 right-10 z-[100] w-96 animate-in slide-in-from-right-8 duration-500">
+          <div className="bg-primary/20 backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl overflow-hidden relative group">
+            <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative flex flex-col items-center text-center gap-6">
+              <div className="h-20 w-20 bg-primary/20 rounded-[2rem] flex items-center justify-center shadow-inner">
+                <Bell className="h-10 w-10 text-primary animate-bounce" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-2xl font-black italic uppercase tracking-tighter">Stay Connected</h4>
+                <p className="text-sm opacity-60 font-medium">Get instant alerts for assignments, events, and class updates.</p>
+              </div>
+              <div className="flex gap-3 w-full">
+                <Button className="flex-1 rounded-2xl" onClick={() => { requestPermission(); setShowNotificationPrompt(false); }}>Enable Now</Button>
+                <Button variant="ghost" className="flex-1 rounded-2xl" onClick={() => setShowNotificationPrompt(false)}>Later</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

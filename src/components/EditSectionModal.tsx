@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { toast } from 'react-hot-toast';
-import type { ClassData } from '../types';
+import type { ClassData, Institute } from '../types';
 
 interface EditSectionModalProps {
   isOpen: boolean;
@@ -19,12 +19,25 @@ export function EditSectionModal({ isOpen, onClose, section, onSectionUpdated }:
   const [adminCode, setAdminCode] = useState('');
   const [adminLimit, setAdminLimit] = useState(2);
   const [name, setName] = useState('');
+  const [institutes, setInstitutes] = useState<Institute[]>([]);
+  const [selectedInstituteId, setSelectedInstituteId] = useState('');
+  const [year, setYear] = useState('');
+  const [sectionTag, setSectionTag] = useState('');
 
   useEffect(() => {
     if (isOpen && section) {
       setAdminCode(section.adminInviteCode || '');
       setAdminLimit(section.adminCodeUses || 2);
       setName(section.name || '');
+      setSelectedInstituteId(section.instituteId || '');
+      setYear(section.year || '');
+      setSectionTag(section.section || '');
+      
+      const fetchInsts = async () => {
+        const snap = await getDocs(query(collection(db, 'institutes'), orderBy('name')));
+        setInstitutes(snap.docs.map(d => ({ id: d.id, ...d.data() } as Institute)));
+      };
+      fetchInsts();
     }
   }, [isOpen, section]);
 
@@ -40,7 +53,10 @@ export function EditSectionModal({ isOpen, onClose, section, onSectionUpdated }:
       await updateDoc(doc(db, 'classes', section.id), {
         name,
         adminInviteCode: adminCode,
-        adminCodeUses: adminLimit
+        adminCodeUses: adminLimit,
+        instituteId: selectedInstituteId,
+        year,
+        section: sectionTag
       });
       toast.success('Section updated successfully!');
       
@@ -59,7 +75,22 @@ export function EditSectionModal({ isOpen, onClose, section, onSectionUpdated }:
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Section Settings">
       <form onSubmit={handleSubmit} className="space-y-4">
         
-        <div className="p-3 bg-accent/5 rounded-lg border border-accent/20 mb-4">
+        <div className="space-y-4">
+          <label className="block text-sm font-bold text-foreground/80">Associated Institute</label>
+          <select
+            className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            value={selectedInstituteId}
+            onChange={(e) => setSelectedInstituteId(e.target.value)}
+            required
+          >
+            <option value="" disabled>Select Institute...</option>
+            {institutes.map(inst => (
+              <option key={inst.id} value={inst.id}>{inst.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="p-3 bg-accent/5 rounded-lg border border-accent/20 my-4">
           <p className="text-xs text-foreground/50 uppercase tracking-wider mb-1 font-bold">Section Code (Immutable)</p>
           <p className="font-mono text-lg font-bold text-accent">{section.joinCode}</p>
           <p className="text-[10px] text-foreground/50 mt-1">To change the taxonomy or join code, please delete and recreate the section.</p>
@@ -72,6 +103,30 @@ export function EditSectionModal({ isOpen, onClose, section, onSectionUpdated }:
           onChange={(e) => setName(e.target.value)}
           required
         />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-bold text-foreground/80 mb-1.5">Academic Year</label>
+            <select
+              className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              required
+            >
+              <option value="1">Year 1</option>
+              <option value="2">Year 2</option>
+              <option value="3">Year 3</option>
+              <option value="4">Year 4</option>
+            </select>
+          </div>
+          <Input
+            label="Section Tag"
+            value={sectionTag}
+            onChange={(e) => setSectionTag(e.target.value.toUpperCase())}
+            placeholder="e.g. A"
+            required
+          />
+        </div>
 
         <div className="grid grid-cols-3 gap-4 mt-4">
           <div className="col-span-2">

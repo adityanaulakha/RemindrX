@@ -139,8 +139,8 @@ export function EventModal({ isOpen, onClose, onEventAdded }: EventModalProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Input label="End Date (optional)" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          <Input label="End Time (optional)" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+          <Input label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+          <Input label="End Time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -165,30 +165,30 @@ export function EventModal({ isOpen, onClose, onEventAdded }: EventModalProps) {
               <option value="other">Other</option>
             </select>
           </div>
-          <Input label="Entry Fee" value={entryFee} onChange={(e) => setEntryFee(e.target.value)} placeholder="e.g. Free, ₹200" />
+          <Input label="Entry Fee" value={entryFee} onChange={(e) => setEntryFee(e.target.value)} placeholder="e.g. Free, ₹200" required />
         </div>
 
-        <Input label="Team Size" value={teamSize} onChange={(e) => setTeamSize(e.target.value)} placeholder="e.g. Solo, 2-4 members" />
+        <Input label="Team Size" value={teamSize} onChange={(e) => setTeamSize(e.target.value)} placeholder="e.g. Solo, 2-4 members" required />
 
         {/* Links Section */}
         <div className="border-t border-border pt-4 mt-4">
-          <p className="text-sm font-semibold mb-3 text-foreground/70">Links & Social (optional)</p>
+          <p className="text-sm font-semibold mb-3 text-foreground/70">Links & Support</p>
           <div className="space-y-3">
-            <Input label="Registration Link" value={registrationLink} onChange={(e) => setRegistrationLink(e.target.value)} placeholder="https://forms.google.com/..." />
-            <Input label="Website" value={websiteLink} onChange={(e) => setWebsiteLink(e.target.value)} placeholder="https://techfest.college.edu" />
+            <Input label="Registration Link" value={registrationLink} onChange={(e) => setRegistrationLink(e.target.value)} placeholder="https://forms.google.com/..." required />
+            <Input label="Website" value={websiteLink} onChange={(e) => setWebsiteLink(e.target.value)} placeholder="https://techfest.college.edu" required />
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Instagram" value={instagramLink} onChange={(e) => setInstagramLink(e.target.value)} placeholder="https://instagram.com/..." />
-              <Input label="LinkedIn" value={linkedinLink} onChange={(e) => setLinkedinLink(e.target.value)} placeholder="https://linkedin.com/..." />
+              <Input label="Instagram (optional)" value={instagramLink} onChange={(e) => setInstagramLink(e.target.value)} placeholder="https://instagram.com/..." />
+              <Input label="LinkedIn (optional)" value={linkedinLink} onChange={(e) => setLinkedinLink(e.target.value)} placeholder="https://linkedin.com/..." />
             </div>
           </div>
         </div>
 
         {/* Contact Section */}
         <div className="border-t border-border pt-4">
-          <p className="text-sm font-semibold mb-3 text-foreground/70">Contact Info (optional)</p>
+          <p className="text-sm font-semibold mb-3 text-foreground/70">Contact Details</p>
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Email" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="club@college.edu" />
-            <Input label="Phone" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="+91 98765 43210" />
+            <Input label="Email" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="club@college.edu" required />
+            <Input label="Phone" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="+91 98765 43210" required />
           </div>
         </div>
 

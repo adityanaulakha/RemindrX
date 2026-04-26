@@ -30,7 +30,8 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.auth.uid == userId;
       // Super admins can update other users (e.g. changing classId)
       allow update: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
-      allow delete: if false; // Never hard delete
+      // Users can only delete their own document.
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
 
     // Classes Collection
@@ -55,7 +56,11 @@ service cloud.firestore {
       // Anyone in the class can read and create tasks
       allow read: if isAuthenticated(); // Simplified: should strictly check subject's classId
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (request.auth.uid == resource.data.createdBy || isClassAdmin(getUserData().classId));
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.createdBy || 
+        isClassAdmin(resource.data.classId) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedBy']))
+      );
       allow delete: if false;
     }
 
@@ -99,9 +104,15 @@ service cloud.firestore {
     // Notifications Collection
     match /notifications/{notificationId} {
       allow read: if isAuthenticated() && (isSuperAdmin() || request.auth.uid == resource.data.userId);
-      allow create: if isAuthenticated() && isSuperAdmin();
+      allow create: if isAuthenticated() && (isSuperAdmin() || request.auth.uid == request.resource.data.userId);
       allow update: if isAuthenticated() && request.auth.uid == resource.data.userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
       allow delete: if false;
+    }
+
+    // Institutes Collection
+    match /institutes/{instituteId} {
+      allow read: if true; // Public read needed for signup dropdown
+      allow write: if isSuperAdmin();
     }
   }
 }

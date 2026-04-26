@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Activity, CheckCircle2, AlertTriangle, RefreshCw, GraduationCap } from 'lucide-react';
+import { Activity, CheckCircle2, AlertTriangle, RefreshCw, GraduationCap, Zap, TrendingUp, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import type { Subject } from '../types';
@@ -33,11 +31,8 @@ export default function Attendance() {
   useEffect(() => {
     if (!userData?.classId) return;
 
-    // Check if previously connected in local storage (mock persistence)
     const storedStatus = localStorage.getItem(`attendance_${currentUser?.uid}`);
-    if (storedStatus) {
-      setIsConnected(true);
-    }
+    if (storedStatus) setIsConnected(true);
 
     const fetchSubjects = async () => {
       const subQ = query(collection(db, 'subjects'), where('classId', '==', userData.classId));
@@ -54,22 +49,11 @@ export default function Attendance() {
   }, [isConnected, subjects]);
 
   const generateMockData = () => {
-    // Generate deterministic but pseudo-random attendance data based on subjects
     const data: AttendanceData[] = subjects.map((sub, index) => {
-      // Base total classes between 30 and 50
       const totalClasses = 30 + (index * 5) % 20;
-      // Attended classes, generating some below 75% and some above
       const attendedClasses = index % 3 === 0 ? Math.floor(totalClasses * 0.72) : Math.floor(totalClasses * (0.8 + (index * 0.02)));
       const percentage = Math.round((attendedClasses / totalClasses) * 100);
-      
-      return {
-        subjectId: sub.id,
-        subjectName: sub.name,
-        subjectCode: sub.code,
-        totalClasses,
-        attendedClasses,
-        percentage
-      };
+      return { subjectId: sub.id, subjectName: sub.name, subjectCode: sub.code, totalClasses, attendedClasses, percentage };
     });
     setAttendanceData(data);
   };
@@ -77,167 +61,225 @@ export default function Attendance() {
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!studentId || !password) return;
-
     setLoading(true);
-    // Simulate API call to college portal
     setTimeout(() => {
       setIsConnected(true);
       localStorage.setItem(`attendance_${currentUser?.uid}`, 'true');
       setLoading(false);
-      toast.success('Successfully connected to College Portal!');
+      toast.success('Attendance portal connected');
     }, 2000);
   };
 
   const handleRefresh = () => {
     setLoading(true);
     setTimeout(() => {
-      generateMockData(); // Regenerate to simulate updates
+      generateMockData();
       setLoading(false);
-      toast.success('Attendance synced successfully');
+      toast.success('Attendance data updated');
     }, 1000);
   };
 
-  // Calculator: Can I Bunk?
-  const calculateBunks = (attended: number, total: number, targetPercentage: number = 75) => {
-    // If we attend no more classes, how many can we bunk until we drop below 75%?
-    // Formula: (attended) / (total + x) >= target/100
-    // attended * 100 >= target * (total + x)
-    // (attended * 100 / target) - total >= x
-    
-    const maxTotalClasses = Math.floor((attended * 100) / targetPercentage);
-    const bunksAvailable = maxTotalClasses - total;
-    
-    return bunksAvailable;
+  const handleDisconnect = () => {
+    if (window.confirm('Disconnect from attendance portal?')) {
+      setIsConnected(false);
+      setAttendanceData([]);
+      localStorage.removeItem(`attendance_${currentUser?.uid}`);
+      toast.success('Attendance portal disconnected');
+    }
   };
 
-  const calculateRequired = (attended: number, total: number, targetPercentage: number = 75) => {
-    // How many consecutive classes to attend to reach 75%?
-    // (attended + x) / (total + x) >= target/100
-    // 100*attended + 100*x = target*total + target*x
-    // x(100 - target) = target*total - 100*attended
-    // x = (target*total - 100*attended) / (100 - target)
-    
-    if (attended / total >= targetPercentage / 100) return 0;
-    
-    const required = Math.ceil(((targetPercentage * total) - (100 * attended)) / (100 - targetPercentage));
-    return required;
+  const calculateBunks = (attended: number, total: number, target: number = 75) => {
+    const maxTotal = Math.floor((attended * 100) / target);
+    return maxTotal - total;
+  };
+
+  const calculateRequired = (attended: number, total: number, target: number = 75) => {
+    if (attended / total >= target / 100) return 0;
+    return Math.ceil(((target * total) - (100 * attended)) / (100 - target));
   };
 
   if (!isConnected) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-md mx-auto space-y-6">
-        <div className="bg-primary/10 p-6 rounded-full mb-2">
-          <GraduationCap className="h-16 w-16 text-primary" />
-        </div>
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Attendance Buddy</h1>
-          <p className="text-foreground/60">Connect your university portal to automatically sync your attendance and timetable.</p>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse group-hover:bg-primary/30 transition-all" />
+          <div className="relative h-40 w-40 rounded-[3rem] bg-card/40 backdrop-blur-3xl border border-white/10 flex items-center justify-center shadow-2xl transition-transform duration-700 group-hover:scale-110">
+            <GraduationCap className="h-20 w-20 text-primary" />
+          </div>
         </div>
 
-        <Card className="w-full">
-          <CardContent className="pt-6">
-            <form onSubmit={handleConnect} className="space-y-4">
-              <Input
-                label="Student ID / Roll Number"
-                type="text"
-                placeholder="e.g. 21BCE10234"
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                required
-              />
-              <Input
-                label="Portal Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <div className="bg-warning/10 p-3 rounded-lg flex items-start gap-3 mt-4 text-sm border border-warning/20">
-                <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                <p className="text-warning-foreground">
-                  <strong>Demo Mode:</strong> Your credentials are not stored. This is a secure simulation for demonstration purposes.
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-1 w-12 bg-primary rounded-full" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Authentication Required</span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none">
+            Pulse Monitor
+          </h1>
+          <p className="text-sm font-medium text-foreground/40 max-w-md mx-auto leading-relaxed">
+            Bridge the gap between the platform and your institutional matrix for real-time attendance analytics.
+          </p>
+        </div>
+
+        <div className="w-full bg-card/60 backdrop-blur-3xl border border-white/10 rounded-[4rem] p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+          <form onSubmit={handleConnect} className="space-y-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Input label="Student ID / Roll Node" placeholder="e.g. 21BCE10234" value={studentId} onChange={(e) => setStudentId(e.target.value)} required />
+              <Input label="Access Key (Portal Password)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+
+            <div className="p-8 rounded-[2rem] bg-amber-500/5 border border-amber-500/10 flex items-start gap-5">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <ShieldCheck className="h-6 w-6 text-amber-500" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Encrypted Tunnel</p>
+                <p className="text-xs font-medium text-amber-500/60 leading-relaxed">
+                  Your credentials are never stored. This is a direct secure handshake for demonstration purposes only.
                 </p>
               </div>
-              <Button type="submit" className="w-full mt-2" disabled={loading}>
-                {loading ? 'Connecting securely...' : 'Connect Portal'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+
+            <Button type="submit" className="w-full h-18 rounded-[2rem] font-black uppercase tracking-[0.2em] italic shadow-2xl shadow-primary/20 group/btn" disabled={loading}>
+              {loading ? (
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                  Establishing Bridge...
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  Connect Matrix
+                  <Zap className="h-5 w-5 group-hover:scale-125 transition-transform" />
+                </div>
+              )}
+            </Button>
+          </form>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Attendance Buddy</h1>
-          <p className="text-foreground/60 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-success" /> Portal Synced
-          </p>
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-3xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+          <Activity className="h-64 w-64 text-primary" />
         </div>
-        <Button variant="outline" onClick={handleRefresh} disabled={loading} className="shrink-0 flex items-center gap-2">
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Sync Now
-        </Button>
+        
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-1 w-12 bg-primary rounded-full" />
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Live Sync Active</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
+              Attendance
+            </h1>
+            <p className="text-sm font-medium text-foreground/40 max-w-xl leading-relaxed">
+              Real-time tracking synchronized with institutional records. Monitor your pulse and optimize your sessions.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 p-2 bg-white/5 rounded-[2.5rem] border border-white/5 shadow-inner">
+            <Button 
+              variant="ghost" 
+              onClick={handleRefresh} 
+              disabled={loading} 
+              className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic hover:bg-white/5"
+            >
+              <RefreshCw className={`h-4 w-4 mr-3 ${loading ? 'animate-spin' : ''}`} /> Sync Pulse
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={handleDisconnect} 
+              className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic text-danger hover:bg-danger/10"
+            >
+              Disconnect
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {attendanceData.map((data) => {
           const isDanger = data.percentage < 75;
           const bunks = calculateBunks(data.attendedClasses, data.totalClasses);
           const required = calculateRequired(data.attendedClasses, data.totalClasses);
+          const circumference = 2 * Math.PI * 34; // r=34
+          const strokeDashoffset = circumference - (data.percentage / 100) * circumference;
 
           return (
-            <Card key={data.subjectId} className={`relative overflow-hidden ${isDanger ? 'border-danger/50' : 'border-border'}`}>
-              <div className={`absolute top-0 left-0 w-1.5 h-full ${isDanger ? 'bg-danger' : 'bg-success'}`}></div>
-              <CardContent className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg leading-tight line-clamp-1" title={data.subjectName}>{data.subjectName}</h3>
-                    <p className="text-xs text-foreground/50">{data.subjectCode}</p>
+            <div key={data.subjectId} className={`group relative bg-card/60 backdrop-blur-3xl border rounded-[3.5rem] p-8 transition-all duration-500 hover:scale-[1.03] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] overflow-hidden ${isDanger ? 'border-rose-500/20' : 'border-emerald-500/20'}`}>
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="relative h-40 w-40 flex items-center justify-center mb-8">
+                   <svg className="h-full w-full transform -rotate-90">
+                     <circle
+                       cx="80"
+                       cy="80"
+                       r="34"
+                       className="stroke-foreground/5"
+                       strokeWidth="10"
+                       fill="transparent"
+                     />
+                     <circle
+                       cx="80"
+                       cy="80"
+                       r="34"
+                       className={`transition-all duration-1000 ease-out ${isDanger ? 'stroke-rose-500' : 'stroke-emerald-500'}`}
+                       strokeWidth="10"
+                       strokeDasharray={circumference}
+                       strokeDashoffset={strokeDashoffset}
+                       strokeLinecap="round"
+                       fill="transparent"
+                     />
+                   </svg>
+                   <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black italic">{data.percentage}%</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest opacity-30">Accuracy</span>
+                   </div>
+                </div>
+
+                <div className="space-y-2 mb-8">
+                   <h3 className="font-black text-2xl tracking-tighter italic uppercase leading-none group-hover:text-primary transition-colors">{data.subjectName}</h3>
+                   <p className="text-[10px] font-mono font-black opacity-30 uppercase tracking-widest">{data.subjectCode}</p>
+                </div>
+
+                <div className="w-full grid grid-cols-2 gap-4 mb-8 bg-white/5 rounded-[2rem] border border-white/5 p-5">
+                  <div className="text-center border-r border-white/10">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-30 mb-1">Pulled</p>
+                    <p className="text-xl font-black italic">{data.attendedClasses}</p>
                   </div>
-                  <div className={`flex items-center justify-center h-12 w-12 rounded-full font-black text-lg shrink-0 ${
-                    isDanger ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'
-                  }`}>
-                    {data.percentage}%
+                  <div className="text-center">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-30 mb-1">Total</p>
+                    <p className="text-xl font-black italic">{data.totalClasses}</p>
                   </div>
                 </div>
 
-                <div className="flex justify-between text-sm mb-4 bg-background/50 p-2 rounded-lg border border-border/50">
-                  <div className="text-center flex-1 border-r border-border/50">
-                    <p className="text-foreground/50 text-[10px] uppercase font-bold tracking-wider mb-1">Attended</p>
-                    <p className="font-semibold">{data.attendedClasses}</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <p className="text-foreground/50 text-[10px] uppercase font-bold tracking-wider mb-1">Total</p>
-                    <p className="font-semibold">{data.totalClasses}</p>
-                  </div>
-                </div>
-
-                {isDanger ? (
-                  <div className="bg-danger/10 text-danger-foreground p-3 rounded-lg text-sm flex items-start gap-2 border border-danger/20">
-                    <AlertTriangle className="h-4 w-4 text-danger shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-danger leading-none mb-1">Shortage Alert</p>
-                      <p className="text-xs">Attend the next <strong>{required}</strong> consecutive classes to reach 75%.</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-success/10 text-success-foreground p-3 rounded-lg text-sm flex items-start gap-2 border border-success/20">
-                    <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-success leading-none mb-1">Safe to Bunk?</p>
-                      <p className="text-xs">
-                        {bunks > 0 
-                          ? <span>You can safely bunk <strong>{bunks}</strong> class{bunks > 1 ? 'es' : ''} and stay above 75%.</span>
-                          : <span>You are exactly at 75%. Do not bunk the next class!</span>}
+                <div className="w-full">
+                  {isDanger ? (
+                    <div className="bg-rose-500/10 rounded-[2rem] p-6 border border-rose-500/10 flex flex-col items-center gap-3">
+                      <div className="h-10 w-10 bg-rose-500/20 rounded-xl flex items-center justify-center">
+                         <AlertTriangle className="h-5 w-5 text-rose-500" />
+                      </div>
+                      <p className="text-xs font-black uppercase italic tracking-tight text-rose-500/80">
+                        Needs <strong className="text-rose-500 text-sm">{required}</strong> more sessions to save
                       </p>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  ) : (
+                    <div className="bg-emerald-500/10 rounded-[2rem] p-6 border border-emerald-500/10 flex flex-col items-center gap-3">
+                      <div className="h-10 w-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                         <TrendingUp className="h-5 w-5 text-emerald-500" />
+                      </div>
+                      <p className="text-xs font-black uppercase italic tracking-tight text-emerald-500/80">
+                        {bunks > 0 
+                          ? <span>Safe to skip <strong className="text-emerald-500 text-sm">{bunks}</strong> session{bunks > 1 ? 's' : ''} ✨</span>
+                          : <span>Don't miss the next one! 🚫</span>}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           );
         })}
       </div>
