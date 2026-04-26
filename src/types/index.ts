@@ -93,9 +93,14 @@ export interface Resource {
 export interface ClassChangeRequest {
   id: string;
   userId: string;
+  userName?: string;
   currentClassId: string | null;
+  currentClassName?: string;
   requestedClassId: string;
+  requestedClassCode?: string;
+  requestedClassName?: string;
   status: 'pending' | 'approved' | 'rejected';
+  createdAt: number;
 }
 
 export interface Event {

@@ -243,17 +243,28 @@ export default function Profile() {
         return;
       }
 
-      await addDoc(collection(db, 'class_change_requests'), {
-        userId: currentUser.uid,
-        userName: userData.name,
-        currentClassId: userData.classId,
-        requestedClassId: targetClass.id,
-        requestedClassCode: targetClass.data().joinCode,
-        requestedClassName: targetClass.data().name,
-        status: 'pending',
-        createdAt: Date.now()
-      });
+        let currentClassName = 'Unassigned';
+        if (userData.classId) {
+          try {
+            const currentClassSnap = await getDocs(query(collection(db, 'classes'), where('__name__', '==', userData.classId)));
+            if (!currentClassSnap.empty) {
+              currentClassName = currentClassSnap.docs[0].data().name;
+            }
+          } catch (e) {
+            console.error('Failed to get current class name', e);
+          }
+        }
 
+        await addDoc(collection(db, 'class_change_requests'), {
+          userId: currentUser.uid,
+          userName: userData.name,
+          currentClassId: userData.classId,
+          currentClassName: currentClassName,            requestedClassId: targetClass.id,
+            requestedClassCode: targetClass.data().joinCode,
+            requestedClassName: targetClass.data().name,
+            status: 'pending',
+            createdAt: Date.now()
+          });
       toast.success('Transfer request queued');
       setIsClassChangeModalOpen(false);
       setNewClassCode('');

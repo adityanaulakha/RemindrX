@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, getDocs, getCountFromServer, addDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, getDocs, getCountFromServer, addDoc, orderBy, limit, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Event, ClassData, User, Subject, Institute } from '../types';
@@ -24,6 +24,7 @@ interface ClassChangeRequest {
   userId: string;
   userName: string;
   currentClassId: string;
+  currentClassName?: string;
   requestedClassId: string;
   requestedClassCode: string;
   requestedClassName: string;
@@ -36,8 +37,6 @@ interface Analytics {
   totalClasses: number;
   totalEvents: number;
   totalSubjects: number;
-  totalTasks: number;
-  totalPosts: number;
 }
 
 export default function SuperAdmin() {
@@ -46,7 +45,7 @@ export default function SuperAdmin() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [crMap, setCrMap] = useState<Record<string, string>>({}); // userId -> name
   const [analytics, setAnalytics] = useState<Analytics>({ 
-    totalUsers: 0, totalClasses: 0, totalEvents: 0, totalSubjects: 0, totalTasks: 0, totalPosts: 0 
+    totalUsers: 0, totalClasses: 0, totalEvents: 0, totalSubjects: 0 
   });
   const [topUsers, setTopUsers] = useState<User[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -110,29 +109,25 @@ export default function SuperAdmin() {
 
     try {
       // 1. Fetch Stats (Cheap Aggregations)
-      const [uCount, cCount, eCount, sCount, tCount, pCount] = await Promise.all([
+      const [uCount, cCount, eCount, sCount] = await Promise.all([
         getCountFromServer(collection(db, 'users')),
         getCountFromServer(collection(db, 'classes')),
         getCountFromServer(collection(db, 'events')),
-        getCountFromServer(collection(db, 'subjects')),
-        getCountFromServer(collection(db, 'tasks')),
-        getCountFromServer(collection(db, 'posts')),
+        getCountFromServer(collection(db, 'subjects'))
       ]);
 
       setAnalytics({
         totalUsers: uCount.data().count,
         totalClasses: cCount.data().count,
         totalEvents: eCount.data().count,
-        totalSubjects: sCount.data().count,
-        totalTasks: tCount.data().count,
-        totalPosts: pCount.data().count
+        totalSubjects: sCount.data().count
       });
 
       // 2. Fetch Active Lists based on current view or basic needs
       const [instSnap, pendingEventsSnap, changeReqSnap, usersSnap, eventsSnap, subjectsSnap] = await Promise.all([
         getDocs(query(collection(db, 'institutes'), orderBy('name', 'asc'))),
         getDocs(query(collection(db, 'events'), where('status', '==', 'pending'))),
-        getDocs(collection(db, 'class_change_requests')),
+        getDocs(query(collection(db, 'class_change_requests'), where('status', '==', 'pending'))),
         getDocs(collection(db, 'users')),
         getDocs(query(collection(db, 'events'), orderBy('date', 'desc'), limit(100))),
         getDocs(collection(db, 'subjects'))
@@ -254,8 +249,6 @@ export default function SuperAdmin() {
       { name: 'Users', count: allUsers.length, fill: '#3b82f6' },
       { name: 'Events', count: allEvents.length, fill: '#10b981' },
       { name: 'Subjects', count: allSubjects.length, fill: '#f59e0b' },
-      { name: 'Tasks', count: analytics.totalTasks, fill: '#ef4444' },
-      { name: 'Posts', count: analytics.totalPosts, fill: '#8b5cf6' },
     ];
 
     // 6. User Retention
@@ -276,13 +269,16 @@ export default function SuperAdmin() {
       userGrowth,
       retentionData
     });
-  }, [allUsers, allEvents, allSubjects, analytics.totalTasks, analytics.totalPosts]);
+  }, [allUsers, allEvents, allSubjects]);
 
   const handleAction = async (eventId: string, status: 'approved' | 'rejected', remarks: string) => {
     try {
       const eventRef = doc(db, 'events', eventId);
-      const eventDoc = allEvents.find(e => e.id === eventId);
-      if (!eventDoc) return;
+      const eventDoc = allEvents.find(e => e.id === eventId) || pendingEvents.find(e => e.id === eventId);
+      if (!eventDoc) {
+        toast.error('Event not found.');
+        return;
+      }
 
       const isModification = !!eventDoc.pendingUpdate;
       const updates: Record<string, any> = { 
@@ -310,6 +306,16 @@ export default function SuperAdmin() {
         eventId: eventId,
         createdAt: Date.now(),
         read: false
+      });
+
+      // Update local state without waiting for Firestore re-fetch
+      setPendingEvents(prev => prev.filter(e => e.id !== eventId));
+      setAllEvents(prev => {
+        const existing = prev.find(e => e.id === eventId);
+        if (existing) {
+          return prev.map(e => e.id === eventId ? { ...e, ...updates } : e);
+        }
+        return [{ ...eventDoc, ...updates } as Event, ...prev]; // Add to front if approved from pending and wasn't in allEvents
       });
 
       toast.success(`Event ${status}!`);
@@ -393,15 +399,45 @@ export default function SuperAdmin() {
 
   const handleApproveChangeRequest = async (req: ClassChangeRequest) => {
     try {
-      // 1. Update user document
+      // 1. Fetch class data
+      const classRef = doc(db, 'classes', req.requestedClassId);
+      const classSnap = await getDoc(classRef);
+
+      if (!classSnap.exists()) {
+        toast.error('The requested class no longer exists.');
+        return;
+      }
+      const classData = classSnap.data();
+
+      // 2. Update user document
       await updateDoc(doc(db, 'users', req.userId), {
-        classId: req.requestedClassId
+        classId: req.requestedClassId,
+        role: 'student', // Reset role to student on transfer
+        program: classData.program || '',
+        branch: classData.branch || '',
+        year: classData.year || '',
+        section: classData.section || ''
       });
-      // 2. Update request status
+
+      // 3. Update request status
       await updateDoc(doc(db, 'class_change_requests', req.id), {
         status: 'approved',
         resolvedAt: Date.now()
       });
+
+      // 4. Update UI automatically
+      setChangeRequests(prev => prev.filter(r => r.id !== req.id));
+
+      // Notification
+      await addDoc(collection(db, 'notifications'), {
+        userId: req.userId,
+        title: 'Transfer Approved',
+        message: `Your transfer to ${classData.name} has been approved!`,
+        type: 'system',
+        createdAt: Date.now(),
+        read: false
+      });
+
       toast.success(`Approved transfer for ${req.userName}`);
     } catch (error: any) {
       console.error("Approval error:", error);
@@ -415,6 +451,20 @@ export default function SuperAdmin() {
         status: 'rejected',
         resolvedAt: Date.now()
       });
+
+      // Update UI automatically
+      setChangeRequests(prev => prev.filter(r => r.id !== req.id));
+
+      // Notification
+      await addDoc(collection(db, 'notifications'), {
+        userId: req.userId,
+        title: 'Transfer Rejected',
+        message: `Your transfer request to a new class has been rejected.`,
+        type: 'system',
+        createdAt: Date.now(),
+        read: false
+      });
+
       toast.success(`Rejected transfer for ${req.userName}`);
     } catch (error: any) {
       console.error("Rejection error:", error);
@@ -568,15 +618,13 @@ export default function SuperAdmin() {
           {activeTab === 'analytics' && (
             <div className="space-y-12 animate-in fade-in slide-in-from-top-4 duration-1000">
               {/* Platform Statistics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 {[
                   { id: 'institutes', label: 'Institutes', count: institutes.length, icon: School, color: 'text-blue-400', bg: 'bg-blue-400/10' },
                   { id: 'users', label: 'Users', count: analytics.totalUsers, icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
                   { id: 'classes', label: 'Classes', count: analytics.totalClasses, icon: LayoutDashboard, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
                   { id: 'events', label: 'Events', count: analytics.totalEvents, icon: Calendar, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-                  { id: 'subjects', label: 'Subjects', count: analytics.totalSubjects, icon: BookOpen, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-                  { id: 'tasks', label: 'Tasks', count: analytics.totalTasks, icon: ListTodo, color: 'text-rose-400', bg: 'bg-rose-400/10' },
-                  { id: 'posts', label: 'Updates', count: analytics.totalPosts, icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-400/10' }
+                  { id: 'subjects', label: 'Subjects', count: analytics.totalSubjects, icon: BookOpen, color: 'text-orange-400', bg: 'bg-orange-400/10' }
                 ].map(stat => (
                   <div 
                     key={stat.id} 
@@ -652,13 +700,44 @@ export default function SuperAdmin() {
                           </div>
                         ))}
                         
-                        {/* Add more as needed, following the same premium pattern */}
-                        {['institutes', 'events', 'subjects'].includes(activeDetailTab) && (
-                          <div className="col-span-full py-20 text-center">
-                            <Activity className="h-16 w-16 mx-auto opacity-10 mb-4 animate-pulse" />
-                            <p className="text-xs font-black uppercase tracking-[0.4em] opacity-20 italic">Loading Data...</p>
+                        {activeDetailTab === 'institutes' && institutes.filter(i => !searchTerm || i.name?.toLowerCase().includes(searchTerm.toLowerCase())).map(i => (
+                          <div key={i.id} className="p-6 rounded-[2rem] bg-white/5 border border-white/10 group hover:border-blue-400/40 transition-all cursor-pointer">
+                            <div className="flex justify-between items-start mb-4">
+                              <p className="text-sm font-black italic truncate uppercase">{i.name}</p>
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {i.domains.map(d => (
+                                <span key={d} className="text-[10px] font-black bg-blue-400/20 text-blue-400 px-3 py-1 rounded-full">{d}</span>
+                              ))}
+                            </div>
                           </div>
-                        )}
+                        ))}
+
+                        {activeDetailTab === 'events' && allEvents.filter(e => !searchTerm || e.title?.toLowerCase().includes(searchTerm.toLowerCase())).map(e => (
+                          <div key={e.id} className="p-6 rounded-[2rem] bg-white/5 border border-white/10 group hover:border-purple-400/40 transition-all cursor-pointer" onClick={() => setSelectedEvent(e)}>
+                            <div className="flex justify-between items-start mb-4">
+                              <p className="text-sm font-black italic truncate uppercase">{e.title}</p>
+                              <span className={`text-[10px] font-black px-3 py-1 rounded-full ${e.status === 'approved' ? 'bg-emerald-400/20 text-emerald-400' : 'bg-rose-400/20 text-rose-400'}`}>{e.status}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Calendar className="h-4 w-4 opacity-20" />
+                              <span className="text-xs font-bold opacity-40 uppercase tracking-widest">{new Date(e.date).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        ))}
+
+                        {activeDetailTab === 'subjects' && allSubjects.filter(s => !searchTerm || s.code?.toLowerCase().includes(searchTerm.toLowerCase()) || s.name?.toLowerCase().includes(searchTerm.toLowerCase())).map(s => (
+                          <div key={s.id} className="p-6 rounded-[2rem] bg-white/5 border border-white/10 group hover:border-orange-400/40 transition-all cursor-pointer" onClick={() => { setIsEditingSubject(true); setSubjectForm(s); }}>
+                            <div className="flex justify-between items-start mb-4">
+                              <p className="text-sm font-black italic truncate uppercase">{s.name}</p>
+                              <span className="text-[10px] font-black bg-orange-400/20 text-orange-400 px-3 py-1 rounded-full">{s.code}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <BookOpen className="h-4 w-4 opacity-20" />
+                              <span className="text-xs font-bold opacity-40 uppercase tracking-widest font-mono">Cr: {s.credits} | {s.type}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                    </div>
                 </div>
@@ -721,7 +800,6 @@ export default function SuperAdmin() {
                             data={[
                               { name: 'Classes', value: analytics.totalClasses },
                               { name: 'Events', value: analytics.totalEvents },
-                              { name: 'Updates', value: analytics.totalPosts },
                               { name: 'Subjects', value: analytics.totalSubjects },
                             ]}
                             innerRadius={90}
@@ -952,19 +1030,18 @@ export default function SuperAdmin() {
                         <div className="flex items-center justify-between p-5 rounded-[2rem] bg-background/50 border border-border/50 mb-10 relative overflow-hidden group-hover:border-primary/30 transition-all">
                           <div className="text-center flex-1 relative z-10">
                             <p className="text-[9px] uppercase font-black text-foreground/30 mb-2 tracking-widest">Source</p>
-                            <p className="text-xs font-black text-rose-500 uppercase italic line-clamp-1">{req.requestedClassName ? 'Current' : 'None'}</p>
-                          </div>
-                          <div className="px-4 relative z-10">
-                            <div className="p-3 bg-primary/10 rounded-full animate-pulse">
-                              <Repeat className="h-5 w-5 text-primary" />
+                              <p className="text-[10px] font-black text-rose-500 uppercase italic line-clamp-1">{req.currentClassName || 'Unassigned'}</p>
+                            </div>
+                            <div className="px-4 relative z-10">
+                              <div className="p-3 bg-primary/10 rounded-full animate-pulse">
+                                <Repeat className="h-5 w-5 text-primary" />
+                              </div>
+                            </div>
+                            <div className="text-center flex-1 relative z-10">
+                              <p className="text-[9px] uppercase font-black text-foreground/30 mb-2 tracking-widest">Target</p>
+                              <p className="text-[10px] font-black text-emerald-500 uppercase italic line-clamp-1">{req.requestedClassName || 'Unknown'}</p>
                             </div>
                           </div>
-                          <div className="text-center flex-1 relative z-10">
-                            <p className="text-[9px] uppercase font-black text-foreground/30 mb-2 tracking-widest">Target</p>
-                            <p className="text-xs font-black text-emerald-500 uppercase italic line-clamp-1">{req.requestedClassName}</p>
-                          </div>
-                        </div>
-
                         <div className="grid grid-cols-2 gap-4">
                           <Button 
                             className="rounded-2xl h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-black italic uppercase tracking-widest shadow-xl shadow-emerald-500/20"
