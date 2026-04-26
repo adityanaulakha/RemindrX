@@ -52,12 +52,9 @@ export default function Login() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-border bg-card p-8 shadow-xl">
-        <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="rounded-full bg-primary/10 p-3">
-            <BookOpen className="h-8 w-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">RemindrX</h1>
-          <p className="text-sm font-medium text-primary mt-2 uppercase tracking-widest">
+        <div className="flex flex-col items-center space-y-4 text-center">
+          <img src="/Cropped.png" alt="Logo" className="h-20 w-auto mb-2" />
+          <p className="text-sm font-medium text-primary uppercase tracking-widest">
             Never miss anything academic again
           </p>
           <p className="text-sm text-foreground/60 mt-4">

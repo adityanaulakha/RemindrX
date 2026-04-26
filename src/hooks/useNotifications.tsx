@@ -17,6 +17,11 @@ export function useNotifications() {
     if (!messaging || !currentUser) return;
 
     try {
+      if (VAPID_KEY === 'YOUR_PUBLIC_VAPID_KEY_HERE') {
+        toast.error('Developer Action Required: VAPID Key is missing in useNotifications.tsx');
+        console.error('VAPID Key not configured. Please see project documentation.');
+        return;
+      }
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });

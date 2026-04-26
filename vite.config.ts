@@ -25,19 +25,19 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'favicon.svg',
+            src: 'Logo.png',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
-            src: 'favicon.svg',
+            src: 'Logo.png',
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
-            src: 'favicon.svg',
+            src: 'Logo.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ],
@@ -45,12 +45,12 @@ export default defineConfig({
           {
             name: 'Events',
             url: '/events',
-            icons: [{ src: 'favicon.svg', sizes: '192x192' }]
+            icons: [{ src: 'Logo.png', sizes: '192x192' }]
           },
           {
             name: 'Timeline',
             url: '/timeline',
-            icons: [{ src: 'favicon.svg', sizes: '192x192' }]
+            icons: [{ src: 'Logo.png', sizes: '192x192' }]
           }
         ]
       }

@@ -177,26 +177,32 @@ export default function Profile() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4 mb-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 text-primary text-2xl font-bold">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8 p-6 bg-primary/5 rounded-2xl border border-primary/20">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary text-3xl font-bold shadow-inner">
                 {userData.name?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <div>
-                <h3 className="text-xl font-bold">{userData.name}</h3>
-                <p className="text-sm text-foreground/60">{userData.role === 'admin' ? 'Class Representative' : 'Student'}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <ShieldCheck className="h-4 w-4 text-accent" />
-                  <span className="text-xs font-semibold text-accent uppercase tracking-wider">Trust Score: {trustScore}</span>
+              <div className="flex-1 text-center sm:text-left space-y-2">
+                <div>
+                  <h3 className="text-2xl font-bold tracking-tight">{userData.name}</h3>
+                  <p className="text-sm font-medium text-foreground/60">{userData.role === 'admin' ? 'Class Representative' : 'Student'}</p>
+                </div>
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <div className="px-2.5 py-0.5 rounded-full bg-accent/10 border border-accent/20 flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+                    <span className="text-[10px] font-bold text-accent uppercase tracking-wider">Trust Score: {trustScore}</span>
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-9 text-xs flex items-center gap-2 border-primary/50 text-primary hover:bg-primary/10"
+                    onClick={() => setIsClassChangeModalOpen(true)}
+                  >
+                    <Repeat className="h-3.5 w-3.5" /> Change Class Section
+                  </Button>
                 </div>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-4 flex items-center gap-2 border-primary/50 text-primary hover:bg-primary/10"
-                onClick={() => setIsClassChangeModalOpen(true)}
-              >
-                <Repeat className="h-4 w-4" /> Request Class Change
-              </Button>
             </div>
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">

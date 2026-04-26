@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import {
+  collection, query, where, getDocs, onSnapshot, updateDoc, doc,
+  limit, orderBy, writeBatch
+} from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X, 
-  ShieldAlert, CalendarRange, MessageSquare, Activity, Bell, Download 
+import {
+  BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X,
+  ShieldAlert, CalendarRange, MessageSquare, Activity, Bell, Download,
+  Sun, Moon, RotateCw
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { GlobalFAB } from '../GlobalFAB';
@@ -20,32 +24,53 @@ export default function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationLimit, setNotificationLimit] = useState(10);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     if (!currentUser) return;
 
+    const fiveDaysAgo = Date.now() - (5 * 24 * 60 * 60 * 1000);
+
     const q = query(
-      collection(db, 'notifications'), 
-      where('userId', '==', currentUser.uid)
+      collection(db, 'notifications'),
+      where('userId', '==', currentUser.uid),
+      where('createdAt', '>=', fiveDaysAgo),
+      orderBy('createdAt', 'desc'),
+      limit(notificationLimit)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched = snapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data() 
+      const fetched = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       } as any));
-      
-      // Sort by createdAt desc
-      fetched.sort((a, b) => b.createdAt - a.createdAt);
       setNotifications(fetched);
+      setHasMore(fetched.length === notificationLimit);
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, notificationLimit]);
 
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/login');
+  };
+
+  const markAllAsRead = async () => {
+    const unread = notifications.filter(n => !n.read);
+    if (unread.length === 0) return;
+
+    const batch = writeBatch(db);
+    unread.forEach(n => {
+      batch.update(doc(db, 'notifications', n.id), { read: true });
+    });
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      console.error('Failed to mark all as read:', e);
+    }
   };
 
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
@@ -89,7 +114,7 @@ export default function Layout() {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -97,16 +122,12 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-border bg-card transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-border bg-card transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex h-16 items-center justify-between px-6 border-b border-border">
-          <div className="flex items-center gap-2">
-            <div className="rounded-md bg-primary/10 p-1.5">
-              <BookOpen className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">RemindrX</span>
+          <div className="flex items-center">
+            <img src="/Cropped.png" alt="Logo" className="h-8 w-auto" />
           </div>
           <button
             className="lg:hidden text-foreground/60 hover:text-foreground"
@@ -123,10 +144,9 @@ export default function Layout() {
               to={item.path}
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-foreground/70 hover:bg-border/50 hover:text-foreground'
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${isActive
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-foreground/70 hover:bg-border/50 hover:text-foreground'
                 }`
               }
             >
@@ -141,27 +161,20 @@ export default function Layout() {
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary font-bold">
               {userData?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div 
+            <div
               className="flex flex-col flex-1 overflow-hidden cursor-pointer hover:opacity-80"
               onClick={() => navigate('/profile')}
             >
               <span className="text-sm font-medium leading-none truncate">{userData?.name}</span>
               <span className="text-xs text-foreground/50 mt-1 capitalize">{userData?.role}</span>
             </div>
-            <button 
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
-              title="Toggle Theme"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-            </button>
           </div>
-          
+
           <div className="space-y-2">
             {isInstallable && (
-              <Button 
-                variant="outline" 
-                className="w-full justify-start border-primary/30 text-primary hover:bg-primary/5" 
+              <Button
+                variant="outline"
+                className="w-full justify-start border-primary/30 text-primary hover:bg-primary/5"
                 onClick={handleInstall}
               >
                 <Download className="mr-2 h-4 w-4" />
@@ -179,28 +192,135 @@ export default function Layout() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <button
               className="text-foreground/60 hover:text-foreground"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu className="h-6 w-6" />
             </button>
-            <span className="ml-4 text-lg font-bold">RemindrX</span>
+            <img src="/Cropped.png" alt="Logo" className="h-7 w-auto" />
           </div>
-          {userData?.classId && (
-            <button className="relative p-2 text-foreground/60 hover:text-foreground" onClick={() => setIsNotificationsOpen(true)}>
-              <Bell className="h-5 w-5" />
-              {notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-danger"></span>}
+
+          <div className="flex items-center gap-1">
+            <button
+              className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
+              onClick={() => window.location.reload()}
+              title="Refresh App"
+            >
+              <RotateCw className="h-4.5 w-4.5" />
             </button>
-          )}
+            <button
+              className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
+            </button>
+            {userData?.classId && (
+              <div className="relative">
+                <button
+                  className="relative p-2 text-foreground/60 hover:text-foreground"
+                  onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                >
+                  <Bell className="h-4.5 w-4.5" />
+                  {notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-danger"></span>}
+                </button>
+
+                {isNotificationsOpen && (
+                  <div className="fixed inset-x-4 top-16 mt-2 rounded-xl bg-card border border-border shadow-2xl z-[60] overflow-hidden lg:absolute lg:inset-auto lg:right-0 lg:w-80">
+                    <div className="p-4 border-b border-border bg-primary/5 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-sm">Notifications</h3>
+                        {notifications.some(n => !n.read) && (
+                          <button
+                            onClick={markAllAsRead}
+                            className="text-[10px] text-primary hover:underline font-bold uppercase tracking-wider"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+                      <button onClick={() => setIsNotificationsOpen(false)} className="lg:hidden text-foreground/40">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="max-h-[70vh] lg:max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center p-12 text-center">
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                            <Bell className="h-6 w-6 text-primary/40" />
+                          </div>
+                          <p className="text-sm font-bold text-foreground/80">All Caught Up!</p>
+                          <p className="text-xs text-foreground/40 mt-1">No new alerts in the last 5 days.</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border">
+                          {notifications.map(n => (
+                            <div
+                              key={n.id}
+                              className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors border-l-4 ${n.read ? 'border-transparent' : 'border-primary bg-primary/5'}`}
+                              onClick={async () => {
+                                setIsNotificationsOpen(false);
+                                if (!n.read) {
+                                  try {
+                                    await updateDoc(doc(db, 'notifications', n.id), { read: true });
+                                  } catch (e) { console.error(e); }
+                                }
+                                navigate(n.eventId ? '/events' : (n.link || '/dashboard'));
+                              }}
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <p className={`text-xs font-bold ${n.type === 'event_rejection' ? 'text-danger' : 'text-primary'}`}>{n.title}</p>
+                                {!n.read && <span className="text-[9px] bg-primary text-white px-1.5 py-0.5 rounded-full font-black">NEW</span>}
+                              </div>
+                              <p className="text-[11px] text-foreground/70 leading-relaxed">{n.message}</p>
+                              {n.remarks && (
+                                <div className="mt-2 p-2 bg-background/50 rounded border border-border/50 text-xs italic">
+                                  "{n.remarks}"
+                                </div>
+                              )}
+                              <p className="text-[9px] text-foreground/40 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
+                            </div>
+                          ))}
+                          {hasMore && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setNotificationLimit(prev => prev + 10); }}
+                              className="w-full py-3 text-xs font-bold text-primary hover:bg-primary/5 transition-colors"
+                            >
+                              Load Older Notifications
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Desktop Header */}
-        <header className="hidden lg:flex h-16 shrink-0 items-center justify-end border-b border-border bg-card px-8">
+        <header className="hidden lg:flex h-16 shrink-0 items-center justify-end border-b border-border bg-card px-8 gap-2">
+          <button
+            className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
+            onClick={() => window.location.reload()}
+            title="Refresh App"
+          >
+            <RotateCw className="h-5 w-5" />
+          </button>
+          <button
+            className="p-2 rounded-full hover:bg-border transition-colors text-foreground/60 hover:text-foreground"
+            onClick={toggleTheme}
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          </button>
+
           {userData?.classId && (
             <div className="relative">
-              <button 
+              <button
                 className="relative p-2 text-foreground/60 hover:text-foreground rounded-full hover:bg-border transition-colors"
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
               >
@@ -210,17 +330,31 @@ export default function Layout() {
 
               {isNotificationsOpen && (
                 <div className="absolute right-0 mt-2 w-80 rounded-xl bg-card border border-border shadow-xl z-50 overflow-hidden">
-                  <div className="p-4 border-b border-border bg-primary/5">
+                  <div className="p-4 border-b border-border bg-primary/5 flex justify-between items-center">
                     <h3 className="font-bold">Notifications</h3>
+                    {notifications.some(n => !n.read) && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-[10px] text-primary hover:underline font-bold uppercase tracking-wider"
+                      >
+                        Mark all read
+                      </button>
+                    )}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <p className="p-4 text-sm text-foreground/50 text-center">You're all caught up!</p>
+                      <div className="flex flex-col items-center justify-center p-8 text-center">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                          <Bell className="h-5 w-5 text-primary/40" />
+                        </div>
+                        <p className="text-xs font-bold text-foreground/80">No Notifications</p>
+                        <p className="text-[10px] text-foreground/40">No New Notifications!</p>
+                      </div>
                     ) : (
                       <div className="divide-y divide-border">
                         {notifications.map(n => (
-                          <div 
-                            key={n.id} 
+                          <div
+                            key={n.id}
                             className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors border-l-4 ${n.read ? 'border-transparent' : 'border-primary bg-primary/5'}`}
                             onClick={async () => {
                               setIsNotificationsOpen(false);
@@ -246,6 +380,14 @@ export default function Layout() {
                             <p className="text-[10px] text-foreground/40 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
                           </div>
                         ))}
+                        {hasMore && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setNotificationLimit(prev => prev + 10); }}
+                            className="w-full py-3 text-xs font-bold text-primary hover:bg-primary/5 transition-colors border-t border-border"
+                          >
+                            Load Older Notifications
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
