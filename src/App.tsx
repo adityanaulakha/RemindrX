@@ -13,6 +13,7 @@ import CRPanel from './pages/CRPanel';
 import SuperAdmin from './pages/SuperAdmin';
 import ClassUpdates from './pages/ClassUpdates';
 import Attendance from './pages/Attendance';
+import Landing from './pages/Landing';
 import Layout from './components/layout/Layout';
 import type { JSX } from 'react';
 
@@ -49,8 +50,10 @@ const JoinClassRoute = ({ children }: { children: JSX.Element }) => {
 
 // Default redirect component
 const DefaultRoute = () => {
-  const { userData, loading } = useAuth();
+  const { currentUser, userData, loading } = useAuth();
   if (loading) return null;
+
+  if (!currentUser) return <Landing />;
 
   if (userData?.isSuperAdmin && !userData?.classId) {
     return <Navigate to="/super-admin" replace />;
