@@ -2,9 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, CalendarDays, BellRing, BookOpen, Activity,
-  ListTodo, MessageSquare, CalendarRange
+  ListTodo, MessageSquare, CalendarRange, CheckCircle2, Clock
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { ThemeSwitch } from '../components/ui/ThemeSwitch';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { ProgressRing } from '../components/ui/ProgressRing';
+import { ProgressBar } from '../components/ui/ProgressBar';
 
 const features = [
   {
@@ -39,10 +44,101 @@ const features = [
   },
 ];
 
+function ProductPreview() {
+  return (
+    <div className="relative">
+      <div className="absolute -inset-6 rounded-[2rem] bg-primary/20 blur-3xl motion-glow" />
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-border bg-card/80 p-4 shadow-[var(--shadow-lg)] backdrop-blur-xl sm:p-5 motion-float">
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-danger/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-warning/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-success/80" />
+          </div>
+          <Badge tone="primary">Live workspace</Badge>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-2xl border border-border bg-surface-elevated/80 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Today</p>
+                <p className="text-sm font-semibold tracking-tight">Section overview</p>
+              </div>
+              <BellRing className="h-4 w-4 text-primary" />
+            </div>
+            <div className="mt-4 space-y-2.5">
+              {[
+                { title: 'Data Structures lab report', meta: 'Due Thu · Timeline', done: false },
+                { title: 'Tech fest orientation', meta: 'Fri 4:00 PM · Events', done: true },
+                { title: 'Class update: room change', meta: 'Confirmed by section', done: true },
+              ].map((item) => (
+                <div key={item.title} className="flex items-start gap-3 rounded-xl border border-border/70 bg-card/50 px-3 py-2.5">
+                  {item.done ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-success" />
+                  ) : (
+                    <Clock className="mt-0.5 h-4 w-4 text-warning" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{item.meta}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-border bg-surface-elevated/80 p-4">
+              <p className="text-xs text-muted-foreground">Attendance</p>
+              <div className="mt-3 flex items-center gap-3">
+                <ProgressRing value={82} size={72} stroke={7} label="Overall" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div>
+                    <div className="mb-1 flex justify-between text-[11px]">
+                      <span className="text-muted-foreground">DSA</span>
+                      <span className="font-medium">88%</span>
+                    </div>
+                    <ProgressBar value={88} />
+                  </div>
+                  <div>
+                    <div className="mb-1 flex justify-between text-[11px]">
+                      <span className="text-muted-foreground">OS Lab</span>
+                      <span className="font-medium">71%</span>
+                    </div>
+                    <ProgressBar value={71} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface-elevated/80 p-4">
+              <p className="text-xs text-muted-foreground">Timetable</p>
+              <div className="mt-3 space-y-2">
+                {[
+                  ['09:00', 'Operating Systems', 'LT-3'],
+                  ['11:00', 'DBMS Lab', 'Lab-2'],
+                ].map(([time, title, room]) => (
+                  <div key={title} className="flex items-center gap-3 rounded-xl bg-muted/60 px-3 py-2">
+                    <span className="text-xs font-semibold text-primary">{time}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{title}</p>
+                      <p className="text-[11px] text-muted-foreground">{room}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
-  useTheme();
+  const { preference, setPreference } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
@@ -52,13 +148,16 @@ export default function Landing() {
 
   return (
     <div className="app-canvas min-h-screen text-foreground">
-      <header className={`fixed inset-x-0 top-0 z-40 px-4 pt-safe transition-colors sm:px-6 ${scrolled ? 'border-b border-border bg-background/90 backdrop-blur-md' : ''}`}>
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between">
+      <header className={`fixed inset-x-0 top-0 z-40 px-4 pt-safe transition-all sm:px-6 ${scrolled ? 'border-b border-border bg-background/80 backdrop-blur-xl' : ''}`}>
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3">
           <button type="button" className="flex items-center gap-2.5" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <img src="/Logo.png" alt="" className="h-9 w-9 rounded-xl object-cover" />
+            <img src="/Logo.png" alt="" className="h-9 w-9 rounded-xl object-cover ring-1 ring-border" />
             <span className="text-base font-semibold tracking-tight">RemindrX</span>
           </button>
           <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              <ThemeSwitch preference={preference} onChange={setPreference} compact />
+            </div>
             <button
               type="button"
               onClick={() => navigate('/login')}
@@ -66,69 +165,41 @@ export default function Landing() {
             >
               Sign in
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-sm font-semibold text-primary-foreground"
-            >
+            <Button onClick={() => navigate('/login')} size="sm" className="h-10">
               Get started <ArrowRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 pb-20 pt-28 sm:px-6">
-        <section className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.16em] text-primary">For college sections</p>
-            <h1 className="mt-3 max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl sm:leading-[1.05]">
-              Your classes, deadlines, and section updates in one place.
+        <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+          <div className="page-enter">
+            <Badge tone="primary" className="mb-4">For college sections</Badge>
+            <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl sm:leading-[1.05]">
+              Your campus section, in one polished workspace.
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-              RemindrX is a campus workspace for your class: subjects, a shared timeline, attendance from the GLA portal, and events that need a real sign-in.
+              RemindrX keeps subjects, deadlines, GLA attendance, the timetable, class updates, and campus events together — after you verify your college email.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground"
-              >
+              <Button size="lg" onClick={() => navigate('/login')}>
                 Open RemindrX <ArrowRight className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="secondary"
+                size="lg"
                 onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-border bg-card px-5 text-sm font-semibold"
               >
                 See what’s included
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-border bg-card p-5 shadow-[var(--shadow)] sm:p-6">
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Today</p>
-                <p className="text-lg font-semibold tracking-tight">What the app keeps together</p>
-              </div>
-              <BellRing className="h-5 w-5 text-primary" />
-            </div>
-            <ul className="mt-4 space-y-3">
-              {[
-                ['Timeline', 'Tasks and joined events, sorted by time'],
-                ['Timetable', 'The selected day’s lectures, after portal login'],
-                ['Class updates', 'Posts your section can confirm or dispute'],
-              ].map(([title, body]) => (
-                <li key={title} className="rounded-2xl bg-muted px-4 py-3">
-                  <p className="text-sm font-semibold">{title}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{body}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <ProductPreview />
         </section>
 
-        <section id="features" className="mt-20 sm:mt-28">
+        <section id="features" className="mt-24 sm:mt-28">
           <div className="max-w-2xl">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Built around a real section, not a generic to-do list.</h2>
             <p className="mt-3 text-base leading-relaxed text-muted-foreground">
@@ -137,8 +208,8 @@ export default function Landing() {
           </div>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
-              <article key={feature.title} className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <article key={feature.title} className="group rounded-2xl border border-border bg-card/70 p-5 shadow-[var(--shadow)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[var(--shadow-lg)]">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft text-primary transition-transform duration-200 group-hover:scale-105">
                   <feature.icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-lg font-semibold tracking-tight">{feature.title}</h3>
@@ -148,18 +219,15 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="mt-16 rounded-3xl bg-primary px-6 py-10 text-primary-foreground sm:px-10">
-          <h2 className="max-w-xl text-3xl font-semibold tracking-tight">Sign in with your college email to join your section.</h2>
-          <p className="mt-3 max-w-lg text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
+        <section className="relative mt-16 overflow-hidden rounded-3xl border border-primary/25 bg-primary-soft px-6 py-10 sm:px-10">
+          <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-primary/25 blur-3xl" />
+          <h2 className="relative max-w-xl text-3xl font-semibold tracking-tight">Sign in with your college email to join your section.</h2>
+          <p className="relative mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
             New accounts need a verified institutional email. Class representatives use an invite code when they join.
           </p>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="mt-6 inline-flex h-12 items-center gap-2 rounded-xl bg-card px-5 text-sm font-semibold text-foreground"
-          >
+          <Button className="relative mt-6" size="lg" onClick={() => navigate('/login')}>
             Continue to sign in <ArrowRight className="h-4 w-4" />
-          </button>
+          </Button>
         </section>
       </main>
 

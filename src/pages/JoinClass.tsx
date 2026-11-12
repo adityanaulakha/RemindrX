@@ -6,6 +6,7 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
 import type { ClassData } from '../types';
 
 export default function JoinClass() {
@@ -16,7 +17,6 @@ export default function JoinClass() {
   const [adminCode, setAdminCode] = useState('');
   const [dob, setDob] = useState(userData?.dob || '');
 
-  // Redirect if already in a class
   useEffect(() => {
     if (userData?.classId) {
       navigate('/dashboard');
@@ -30,11 +30,10 @@ export default function JoinClass() {
       toast.error('Please enter your Date of Birth');
       return;
     }
-    
+
     setLoading(true);
 
     try {
-      // 1. Find the class with the given joinCode
       const q = query(collection(db, 'classes'), where('joinCode', '==', classCode.trim()));
       const querySnapshot = await getDocs(q);
 
@@ -48,19 +47,16 @@ export default function JoinClass() {
       const classData = classDoc.data() as ClassData;
       let newRole: 'student' | 'admin' = 'student';
 
-      // 2. Process Admin Code if provided
       if (adminCode.trim()) {
         if (classData.adminInviteCode === adminCode.trim()) {
           if (classData.adminCodeUses > 0) {
-            // Check expiry if it exists
             if (classData.adminCodeExpiry && classData.adminCodeExpiry < Date.now()) {
               toast.error('Admin invite code has expired.');
               setLoading(false);
               return;
             }
             newRole = 'admin';
-            
-            // Decrement uses and add admin to list
+
             await updateDoc(classDoc.ref, {
               adminCodeUses: increment(-1),
               admins: arrayUnion(currentUser.uid)
@@ -80,7 +76,6 @@ export default function JoinClass() {
         toast.success(`Successfully joined ${classData.name}!`);
       }
 
-      // 3. Update the User's document
       const userRef = doc(db, 'users', currentUser.uid);
       await updateDoc(userRef, {
         classId: classDoc.id,
@@ -92,7 +87,6 @@ export default function JoinClass() {
         dob: dob
       });
 
-      // Update local context
       setUserData({
         ...userData,
         classId: classDoc.id,
@@ -114,9 +108,9 @@ export default function JoinClass() {
 
   return (
     <div className="app-canvas flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6 rounded-3xl border border-border bg-card p-6 shadow-[var(--shadow)] sm:p-8">
+      <div className="w-full max-w-md space-y-6 rounded-3xl border border-border bg-card/80 p-6 shadow-[var(--shadow-lg)] backdrop-blur-xl sm:p-8 page-enter">
         <div className="space-y-2 text-center">
-          <p className="text-xs font-semibold tracking-[0.14em] text-primary">One last step</p>
+          <Badge tone="primary">One last step</Badge>
           <h1 className="text-3xl font-semibold tracking-tight">Join your section</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Enter the section code from your class representative. Class reps can also add their invite code.
@@ -131,7 +125,6 @@ export default function JoinClass() {
             onChange={(e) => setDob(e.target.value)}
             required
           />
-
           <Input
             label="Section Code *"
             type="text"
@@ -147,9 +140,8 @@ export default function JoinClass() {
             value={adminCode}
             onChange={(e) => setAdminCode(e.target.value)}
           />
-
-          <Button type="submit" className="w-full mt-6" disabled={loading} size="lg">
-            {loading ? 'Verifying...' : 'Join Class'}
+          <Button type="submit" className="mt-2 w-full" disabled={loading} size="lg">
+            {loading ? 'Verifying…' : 'Join class'}
           </Button>
         </form>
       </div>

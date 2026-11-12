@@ -10,14 +10,15 @@ import { useAuth } from '../../context/AuthContext';
 import {
   BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X,
   ShieldAlert, CalendarRange, MessageSquare, Activity, Bell, Download,
-  Sun, Moon, RotateCw, Monitor, BellOff, CalendarDays, MoreHorizontal
+  RotateCw, BellOff, CalendarDays, MoreHorizontal
 } from 'lucide-react';
 import { Button, cn } from '../ui/Button';
+import { ThemeSwitch } from '../ui/ThemeSwitch';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { OfflineIndicator } from '../OfflineIndicator';
 import { AutoReminder } from '../AutoReminder';
 import { useNotifications } from '../../hooks/useNotifications';
-import { useTheme, type ThemePreference } from '../../hooks/useTheme';
+import { useTheme } from '../../hooks/useTheme';
 
 type InboxNote = {
   id: string;
@@ -30,48 +31,6 @@ type InboxNote = {
 };
 
 type NavItem = { name: string; path: string; icon: typeof BookOpen };
-
-function ThemeSwitch({
-  preference,
-  onChange,
-  compact = false,
-}: {
-  preference: ThemePreference;
-  onChange: (value: ThemePreference) => void;
-  compact?: boolean;
-}) {
-  const options: { id: ThemePreference; icon: typeof Sun; label: string }[] = [
-    { id: 'light', icon: Sun, label: 'Light' },
-    { id: 'dark', icon: Moon, label: 'Dark' },
-    { id: 'system', icon: Monitor, label: 'System' },
-  ];
-
-  return (
-    <div className="flex rounded-xl bg-muted p-1" role="radiogroup" aria-label="Color theme">
-      {options.map((option) => {
-        const active = preference === option.id;
-        return (
-          <button
-            key={option.id}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            aria-label={option.label}
-            onClick={() => onChange(option.id)}
-            className={cn(
-              'flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors',
-              compact ? 'w-9 px-0' : 'flex-1',
-              active ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <option.icon className="h-3.5 w-3.5" />
-            {!compact && <span>{option.label}</span>}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function Layout() {
   const { currentUser, userData } = useAuth();
@@ -217,13 +176,13 @@ export default function Layout() {
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-foreground/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-[#050508]/55 backdrop-blur-sm lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(100%,18.5rem)] flex-col border-r border-border bg-card transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(100%,17.5rem)] flex-col border-r border-border bg-surface/90 backdrop-blur-xl transition-transform duration-200 lg:static lg:translate-x-0 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -236,7 +195,10 @@ export default function Layout() {
               navigate(userData?.isSuperAdmin && !userData?.classId ? '/super-admin' : '/dashboard');
             }}
           >
-            <img src="/Logo.png" alt="" className="h-9 w-9 rounded-xl object-cover" />
+            <span className="relative">
+              <span className="absolute inset-0 rounded-xl bg-primary/30 blur-md" />
+              <img src="/Logo.png" alt="" className="relative h-9 w-9 rounded-xl object-cover ring-1 ring-border" />
+            </span>
             <span className="truncate text-base font-semibold tracking-tight">RemindrX</span>
           </button>
           <button
@@ -258,9 +220,9 @@ export default function Layout() {
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                  'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-primary-soft text-primary'
+                    ? 'bg-primary-soft text-primary glow-ring'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )
               }
@@ -275,13 +237,13 @@ export default function Layout() {
           <ThemeSwitch preference={preference} onChange={setPreference} />
           <button
             type="button"
-            className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-muted"
+            className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-muted"
             onClick={() => {
               setIsMobileMenuOpen(false);
               navigate('/profile');
             }}
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-[0_0_24px_-8px_var(--glow)]">
               {userData?.name?.charAt(0).toUpperCase() || 'U'}
             </span>
             <span className="min-w-0">
@@ -305,7 +267,7 @@ export default function Layout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/85 px-3 backdrop-blur-md pt-safe sm:px-5">
+        <header className="z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/70 px-3 backdrop-blur-xl pt-safe sm:px-5">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -327,7 +289,7 @@ export default function Layout() {
             </div>
             <button
               type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-60"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-60"
               onClick={handleManualRefresh}
               disabled={refreshCooldown > 0}
               aria-label={refreshCooldown > 0 ? `Refresh available in ${refreshCooldown} seconds` : 'Refresh'}
@@ -337,16 +299,16 @@ export default function Layout() {
             <div className="relative">
               <button
                 type="button"
-                className="relative flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 onClick={() => setIsNotificationsOpen((open) => !open)}
                 aria-label="Notifications"
                 aria-expanded={isNotificationsOpen}
               >
                 <Bell className="h-4 w-4" />
-                {unread && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />}
+                {unread && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger shadow-[0_0_0_3px_var(--background)]" />}
               </button>
               {isNotificationsOpen && (
-                <div className="absolute right-0 z-[70] mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow)]">
+                <div className="absolute right-0 z-[70] mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-surface-elevated shadow-[var(--shadow-lg)] page-enter">
                   <div className="flex items-center justify-between border-b border-border px-4 py-3">
                     <h2 className="text-sm font-semibold">Inbox</h2>
                     <button type="button" onClick={markAllAsRead} className="text-xs font-medium text-primary hover:underline">
@@ -365,7 +327,7 @@ export default function Layout() {
                           <li key={n.id}>
                             <button
                               type="button"
-                              className={`w-full border-l-2 px-4 py-3 text-left hover:bg-muted ${n.read ? 'border-transparent' : 'border-primary bg-primary-soft/60'}`}
+                              className={`w-full border-l-2 px-4 py-3 text-left transition-colors hover:bg-muted ${n.read ? 'border-transparent' : 'border-primary bg-primary-soft/50'}`}
                               onClick={() => openNotification(n)}
                             >
                               <span className="flex items-center justify-between gap-3">
@@ -396,13 +358,13 @@ export default function Layout() {
         </header>
 
         <main id="main" className="flex-1 overflow-y-auto px-4 py-5 pb-28 sm:px-6 lg:px-8 lg:py-8 lg:pb-10">
-          <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-6xl page-enter">
             <Outlet />
           </div>
         </main>
 
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-safe backdrop-blur-md lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/90 pb-safe backdrop-blur-xl lg:hidden"
           aria-label="Mobile"
         >
           <div className="grid" style={{ gridTemplateColumns: `repeat(${mobilePrimary.length + 1}, minmax(0, 1fr))` }}>
@@ -413,13 +375,19 @@ export default function Layout() {
                 replace
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-1 px-1 py-2 text-[11px] font-medium',
+                    'flex flex-col items-center gap-1 px-1 py-2 text-[11px] font-medium transition-colors',
                     isActive ? 'text-primary' : 'text-muted-foreground'
                   )
                 }
               >
-                <item.icon className="h-5 w-5" />
-                {item.name}
+                {({ isActive }) => (
+                  <>
+                    <span className={cn('rounded-xl p-1', isActive && 'bg-primary-soft')}>
+                      <item.icon className="h-5 w-5" />
+                    </span>
+                    {item.name}
+                  </>
+                )}
               </NavLink>
             ))}
             <button
@@ -430,7 +398,9 @@ export default function Layout() {
                 moreActive || isMobileMenuOpen ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              <MoreHorizontal className="h-5 w-5" />
+              <span className={cn('rounded-xl p-1', (moreActive || isMobileMenuOpen) && 'bg-primary-soft')}>
+                <MoreHorizontal className="h-5 w-5" />
+              </span>
               More
             </button>
           </div>
@@ -441,8 +411,8 @@ export default function Layout() {
       <AutoReminder />
 
       {showNotificationPrompt && (
-        <div className="fixed bottom-24 right-4 z-[60] w-[min(22rem,calc(100vw-2rem))] lg:bottom-6 lg:right-6">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]">
+        <div className="fixed bottom-24 right-4 z-[60] w-[min(22rem,calc(100vw-2rem))] lg:bottom-6 lg:right-6 page-enter">
+          <div className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-[var(--shadow-lg)]">
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
               <Bell className="h-5 w-5" />
             </div>

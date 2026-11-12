@@ -6,12 +6,16 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
+import { ThemeSwitch } from '../components/ui/ThemeSwitch';
+import { useTheme } from '../hooks/useTheme';
 import { BookOpen, School, Mail, ShieldCheck } from 'lucide-react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import type { Institute } from '../types';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { preference, setPreference } = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
@@ -120,15 +124,15 @@ export default function Login() {
   if (verificationSent) {
     return (
       <div className="app-canvas flex min-h-screen items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-[var(--shadow)]">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+        <div className="w-full max-w-md rounded-3xl border border-border bg-card/80 p-8 text-center shadow-[var(--shadow-lg)] backdrop-blur-xl page-enter">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary glow-ring">
             <Mail className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Check your email</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             We sent a verification link to <span className="font-medium text-foreground">{email}</span>.
           </p>
-          <div className="mt-6 flex items-start gap-3 rounded-2xl bg-muted p-4 text-left">
+          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-border bg-muted/60 p-4 text-left">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <p className="text-sm leading-relaxed text-muted-foreground">
               Look in spam or promotions if it is not in your inbox within a minute.
@@ -144,28 +148,39 @@ export default function Login() {
 
   return (
     <div className="app-canvas min-h-screen lg:grid lg:grid-cols-2">
-      <aside className="hidden flex-col justify-between border-r border-border bg-card px-12 py-10 lg:flex">
-        <button type="button" onClick={() => navigate('/')} className="flex items-center gap-3 text-left">
-          <img src="/Logo.png" alt="" className="h-11 w-11 rounded-2xl object-cover" />
-          <span className="text-lg font-semibold tracking-tight">RemindrX</span>
-        </button>
-        <div>
-          <h1 className="max-w-md text-4xl font-semibold tracking-tight">A quieter way to keep up with your section.</h1>
+      <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-surface/70 px-12 py-10 backdrop-blur-xl lg:flex">
+        <div className="pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/15 blur-3xl" />
+        <div className="relative z-10 flex items-center justify-between">
+          <button type="button" onClick={() => navigate('/')} className="flex items-center gap-3 text-left">
+            <img src="/Logo.png" alt="" className="h-11 w-11 rounded-2xl object-cover ring-1 ring-border" />
+            <span className="text-lg font-semibold tracking-tight">RemindrX</span>
+          </button>
+          <ThemeSwitch preference={preference} onChange={setPreference} compact />
+        </div>
+        <div className="relative z-10">
+          <Badge tone="primary" className="mb-4">Campus workspace</Badge>
+          <h1 className="max-w-md text-4xl font-semibold tracking-tight">
+            {isLogin ? 'Welcome back to your section.' : 'Create your campus account.'}
+          </h1>
           <p className="mt-4 max-w-sm text-base leading-relaxed text-muted-foreground">
-            Subjects, deadlines, the GLA timetable, and class updates — after you verify your college email.
+            Subjects, deadlines, the GLA timetable, attendance, and class updates — after you verify your college email.
           </p>
         </div>
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <BookOpen className="h-4 w-4" /> Campus workspace
+        <p className="relative z-10 flex items-center gap-2 text-sm text-muted-foreground">
+          <BookOpen className="h-4 w-4 text-primary" /> Built for college sections
         </p>
       </aside>
 
       <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md">
-          <button type="button" onClick={() => navigate('/')} className="mb-8 flex items-center gap-2 lg:hidden">
-            <img src="/Logo.png" alt="" className="h-9 w-9 rounded-xl object-cover" />
-            <span className="text-base font-semibold tracking-tight">RemindrX</span>
-          </button>
+        <div className="w-full max-w-md page-enter">
+          <div className="mb-8 flex items-center justify-between lg:hidden">
+            <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2">
+              <img src="/Logo.png" alt="" className="h-9 w-9 rounded-xl object-cover ring-1 ring-border" />
+              <span className="text-base font-semibold tracking-tight">RemindrX</span>
+            </button>
+            <ThemeSwitch preference={preference} onChange={setPreference} compact />
+          </div>
           <p className="text-sm font-medium text-primary">{isLogin ? 'Welcome back' : 'Create your account'}</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">
             {isLogin ? 'Sign in' : 'Join your campus'}
@@ -174,7 +189,7 @@ export default function Login() {
             {isLogin ? 'Use the college email you signed up with.' : 'Use an email from your institution. We’ll send a verification link.'}
           </p>
 
-          <form onSubmit={handleAuth} className="mt-8 space-y-4">
+          <form onSubmit={handleAuth} className="mt-8 space-y-4 rounded-3xl border border-border bg-card/70 p-5 shadow-[var(--shadow)] backdrop-blur-xl sm:p-6">
             {!isLogin && (
               <>
                 <Input label="Full name" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -193,7 +208,7 @@ export default function Login() {
                   <School className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <select
                     id="college"
-                    className="h-11 w-full appearance-none rounded-xl border border-border bg-card pl-10 pr-3 text-sm text-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    className="control appearance-none pl-10"
                     value={selectedCollege}
                     onChange={(e) => setSelectedCollege(e.target.value)}
                     required
