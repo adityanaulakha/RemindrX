@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const publicDir = join(root, 'public');
-const shotsDir = '/tmp/remindrx-shots';
+const shotsDir = '/tmp/remindrx-shots2';
 
 const markSvg = await readFile(join(publicDir, 'logo-mark.svg'));
 
@@ -34,15 +34,20 @@ async function renderFavicon() {
   console.log('wrote favicon.png');
 }
 
-/** Lockup PNG for shots (dark wordmark on transparent) */
+/** Lockup PNG for shots (light wordmark on dark-friendly transparent) */
 async function renderLockupShot() {
   await mkdir(shotsDir, { recursive: true });
   const lockup = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1120" height="256" viewBox="0 0 560 128">
+  <rect width="560" height="128" fill="#1A1A1A"/>
   <rect x="0" y="8" width="112" height="112" rx="24" fill="#1A1A1A"/>
   <g transform="translate(8 16) scale(0.1875)">
-    <path fill="#FF5B1F" fill-rule="evenodd" d="M150 130H318C392 130 430 168 430 222C430 270 402 304 348 314L400 382H322L278 326H206V420H150V130ZM206 182V274H310C342 274 368 256 368 222C368 188 342 182 310 182H206Z"/>
-    <circle cx="420" cy="412" r="26" fill="#FF5B1F"/>
+    <g fill="#FF5B1F">
+      <path d="M256 138 L422 258 L256 348 L90 258 Z"/>
+      <path d="M170 368H342C360 368 374 382 374 400C374 424 340 442 256 442C172 442 138 424 138 400C138 382 152 368 170 368Z"/>
+      <rect x="404" y="258" width="18" height="152" rx="9"/>
+    </g>
+    <circle cx="413" cy="428" r="26" fill="#FFF3E3"/>
   </g>
   <text x="140" y="82" fill="#F2F2F2" font-family="Sora, ui-sans-serif, system-ui, sans-serif" font-size="52" font-weight="600" letter-spacing="-0.03em">RemindrX</text>
 </svg>`;

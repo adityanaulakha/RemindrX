@@ -6,7 +6,7 @@ type BrandMarkProps = {
   alt?: string;
 };
 
-/** App logo mark — geometric R on graphite tile. */
+/** App logo mark — geometric mortarboard on graphite tile. */
 export function BrandMark({ className, size = 36, alt = 'RemindrX' }: BrandMarkProps) {
   return (
     <img
