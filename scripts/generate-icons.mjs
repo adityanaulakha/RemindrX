@@ -41,8 +41,8 @@ async function renderLockupShot() {
 <svg xmlns="http://www.w3.org/2000/svg" width="1120" height="256" viewBox="0 0 560 128">
   <rect x="0" y="8" width="112" height="112" rx="24" fill="#1A1A1A"/>
   <g transform="translate(8 16) scale(0.1875)">
-    <path fill="#FF5B1F" fill-rule="evenodd" d="M150 130H318C392 130 430 168 430 222C430 270 402 304 348 314L430 420H352L278 326H206V420H150V130ZM206 182V274H310C342 274 368 256 368 222C368 188 342 182 310 182H206Z"/>
-    <circle cx="412" cy="412" r="24" fill="#FF5B1F"/>
+    <path fill="#FF5B1F" fill-rule="evenodd" d="M150 130H318C392 130 430 168 430 222C430 270 402 304 348 314L400 382H322L278 326H206V420H150V130ZM206 182V274H310C342 274 368 256 368 222C368 188 342 182 310 182H206Z"/>
+    <circle cx="420" cy="412" r="26" fill="#FF5B1F"/>
   </g>
   <text x="140" y="82" fill="#F2F2F2" font-family="Sora, ui-sans-serif, system-ui, sans-serif" font-size="52" font-weight="600" letter-spacing="-0.03em">RemindrX</text>
 </svg>`;

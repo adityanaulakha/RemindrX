@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RemindrX">
   <rect width="512" height="512" rx="108" fill="#1A1A1A"/>
-  <!-- Solid geometric R (evenodd counter for the bowl only) -->
+  <!-- Solid geometric R — bowl counter via evenodd; leg stops short of the pip -->
   <path
     fill="#FF5B1F"
     fill-rule="evenodd"
@@ -9,8 +9,8 @@
       H318
       C392 130 430 168 430 222
       C430 270 402 304 348 314
-      L430 420
-      H352
+      L400 382
+      H322
       L278 326
       H206
       V420
@@ -26,6 +26,6 @@
       Z
     "
   />
-  <!-- Notification pip, clear of the letter -->
-  <circle cx="412" cy="412" r="24" fill="#FF5B1F"/>
+  <!-- Notification pip — separate from the letterform -->
+  <circle cx="420" cy="412" r="26" fill="#FF5B1F"/>
 </svg>
