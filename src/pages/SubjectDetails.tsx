@@ -9,7 +9,7 @@ import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { Badge } from '../components/ui/Badge';
-import { MessageSquare, ThumbsUp, ThumbsDown, ShieldCheck, ArrowLeft, CheckSquare, FileText, Calendar, Clock, AlertTriangle, Activity } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, ShieldCheck, ArrowLeft, CheckSquare, Calendar, Clock, AlertTriangle, Activity } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function SubjectDetails() {
@@ -22,7 +22,7 @@ export default function SubjectDetails() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'resources' | 'updates'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'updates'>('tasks');
   const [visiblePosts, setVisiblePosts] = useState(10);
 
   useEffect(() => {
@@ -167,7 +167,6 @@ export default function SubjectDetails() {
       <div className="flex max-w-full gap-2 overflow-x-auto rounded-2xl border border-border bg-muted/60 p-1.5 no-scrollbar">
         {[
           { id: 'tasks', icon: CheckSquare, label: 'Tasks' },
-          { id: 'resources', icon: FileText, label: 'Resources' },
           { id: 'updates', icon: MessageSquare, label: 'Updates' }
         ].map((tab) => (
           <button
@@ -242,14 +241,6 @@ export default function SubjectDetails() {
                 </div>
               ))
             )}
-          </div>
-        )}
-
-        {activeTab === 'resources' && (
-          <div className="flex flex-col items-center justify-center rounded-3xl bg-card/20 border border-dashed border-border p-24 text-center opacity-50">
-            <FileText className="mb-8 h-20 w-20 opacity-20" />
-            <h3 className="text-2xl font-semibold tracking-tight mb-2">No files here</h3>
-            <p className="text-sm text-muted-foreground font-medium tracking-normal">Subject files are not part of RemindrX yet.</p>
           </div>
         )}
 

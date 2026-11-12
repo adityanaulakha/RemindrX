@@ -36,6 +36,8 @@ export interface PortalDashboard {
 export interface PortalProfile {
   roll: string;
   name: string;
+  dob?: string | null;
+  course?: string | null;
   program?: string | null;
   branch?: string | null;
   year?: string | null;
@@ -160,6 +162,36 @@ export async function portalProfile(roll: string): Promise<PortalProfile | null>
   if (!res.ok) return null;
   const data = await parseJson<{ success?: boolean; profile?: PortalProfile; error?: string }>(res);
   return data.profile || null;
+}
+
+/** Sync Firestore user + subjects from live portal jar (requires Firebase ID token). */
+export async function refreshPortalProvision(idToken: string): Promise<{
+  success: boolean;
+  error?: string;
+  subjectUpserts?: number;
+  profile?: PortalProfile;
+}> {
+  const res = await fetch('/api/gla/refresh', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as {
+      success: boolean;
+      error?: string;
+      subjectUpserts?: number;
+      profile?: PortalProfile;
+    };
+  } catch {
+    return {
+      success: false,
+      error: text?.trim() || `Refresh failed (${res.status})`,
+    };
+  }
 }
 
 export async function portalTimetable(

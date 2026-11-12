@@ -5,9 +5,7 @@ import { db, messaging } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
-// IMPORTANT: Replace this with your actual VAPID key from Firebase Console
-// Project Settings -> Cloud Messaging -> Web configuration -> Web Push certificates
-const VAPID_KEY = 'YOUR_PUBLIC_VAPID_KEY_HERE';
+const VAPID_KEY = (import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined)?.trim() || '';
 
 export function useNotifications() {
   const { currentUser } = useAuth();
@@ -17,9 +15,8 @@ export function useNotifications() {
     if (!messaging || !currentUser) return;
 
     try {
-      if (VAPID_KEY === 'YOUR_PUBLIC_VAPID_KEY_HERE') {
-        toast.error('Developer Action Required: VAPID Key is missing in useNotifications.tsx');
-        console.error('VAPID Key not configured. Please see project documentation.');
+      if (!VAPID_KEY) {
+        console.warn('VITE_FIREBASE_VAPID_KEY not set — skipping FCM token registration');
         return;
       }
       const permission = await Notification.requestPermission();
@@ -27,10 +24,9 @@ export function useNotifications() {
         const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
         if (currentToken) {
           setToken(currentToken);
-          // Save token to user document
           const userRef = doc(db, 'users', currentUser.uid);
           await updateDoc(userRef, {
-            fcmTokens: arrayUnion(currentToken)
+            fcmTokens: arrayUnion(currentToken),
           });
           console.log('Notification token registered');
         }

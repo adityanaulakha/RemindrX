@@ -11,16 +11,19 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { BookOpen, Edit2, Plus, Trash2, GraduationCap, Layers, Zap, Search } from 'lucide-react';
+import { BookOpen, Edit2, Plus, Trash2, GraduationCap, Layers, Zap, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { refreshPortalProvision } from '../services/gla/portal';
 
 export default function Subjects() {
   const { userData, currentUser } = useAuth();
   const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const isPortalUser = userData?.authProvider === 'gla_portal' || currentUser?.uid.startsWith('gla_');
   
   // Form State
   const [name, setName] = useState('');
@@ -51,6 +54,29 @@ export default function Subjects() {
       toast.error('Sync failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefreshFromPortal = async () => {
+    if (!currentUser || !isPortalUser) return;
+    setRefreshing(true);
+    try {
+      const idToken = await currentUser.getIdToken();
+      const result = await refreshPortalProvision(idToken);
+      if (!result.success) {
+        toast.error(result.error || 'Portal refresh failed');
+        return;
+      }
+      toast.success(
+        result.subjectUpserts
+          ? `Synced from portal (${result.subjectUpserts} subject updates)`
+          : 'Portal profile refreshed'
+      );
+      await fetchSubjects(true);
+    } catch {
+      toast.error('Portal refresh failed');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -114,6 +140,12 @@ export default function Subjects() {
                 className="control h-11 w-52 pl-9 sm:w-64"
               />
             </div>
+            {isPortalUser && (
+              <Button variant="secondary" onClick={() => void handleRefreshFromPortal()} disabled={refreshing}>
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Syncing…' : 'Refresh from portal'}
+              </Button>
+            )}
             {userData?.role === 'admin' && (
               <Button onClick={() => setShowAddForm(!showAddForm)}>
                 {showAddForm ? 'Close' : <><Plus className="h-4 w-4" /> Add subject</>}

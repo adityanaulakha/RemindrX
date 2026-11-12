@@ -35,6 +35,8 @@ interface PortalSubjectIn {
 interface PortalProfileIn {
   roll: string;
   name: string;
+  dob?: string | null;
+  course?: string | null;
   program?: string | null;
   branch?: string | null;
   year?: string | null;
@@ -337,10 +339,13 @@ async function upsertPortalUser(
     name: profile.name,
     email: snap.exists ? (snap.data()?.email ?? '') : '',
     rollNo: profile.roll,
-    program: profile.program || null,
+    dob: profile.dob || null,
+    course: profile.course || profile.program || null,
+    program: profile.program || profile.course || null,
     branch: profile.branch || null,
     year: profile.year ? String(profile.year) : null,
     section: profile.section ? String(profile.section).toUpperCase() : null,
+    semester: profile.semester || null,
     collegeId: 'gla',
     classId,
     authProvider: 'gla_portal',
@@ -468,10 +473,13 @@ export default async function handler(req: Req, res: Res) {
       profile: {
         roll: mapped.roll,
         name: mapped.name,
+        dob: mapped.dob,
+        course: mapped.course,
         program: mapped.program,
         branch: mapped.branch,
         year: mapped.year,
         section: mapped.section,
+        semester: mapped.semester,
         portalCohortKey: mapped.portalCohortKey,
         classDisplayName: mapped.classDisplayName,
         summary: mapped.summary,

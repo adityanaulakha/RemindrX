@@ -5,7 +5,7 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Task, Subject, Event, EventParticipation } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Calendar, BookOpen, PartyPopper, Activity, ArrowRight, CheckCircle2, ShieldAlert, Clock, Circle } from 'lucide-react';
+import { Calendar, BookOpen, PartyPopper, Activity, ArrowRight, CheckCircle2, ShieldAlert, Clock, Circle, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -14,10 +14,12 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { Badge } from '../components/ui/Badge';
 import { toast } from 'react-hot-toast';
+import { usePortalSession } from '../hooks/usePortalSession';
 
 export default function Dashboard() {
   const { userData, currentUser } = useAuth();
   const navigate = useNavigate();
+  const portal = usePortalSession();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -137,6 +139,49 @@ export default function Dashboard() {
         <StatCard label="Active tasks" value={activeTasks} icon={Clock} tone="warning" onClick={() => navigate('/timeline')} />
         <StatCard label="Upcoming events" value={upcomingEvents} icon={Calendar} tone="accent" onClick={() => navigate('/events')} />
       </div>
+
+      {(portal.summary.overall !== '--' || portal.waking || portal.stale) && (
+        <Card elevated className="overflow-hidden">
+          <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                <Activity className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold tracking-tight">GLA attendance</p>
+                  {portal.live ? (
+                    <Badge tone="primary">Live</Badge>
+                  ) : portal.waking ? (
+                    <Badge>Waking portal…</Badge>
+                  ) : portal.stale ? (
+                    <Badge tone="warning">Stale</Badge>
+                  ) : (
+                    <Badge>Cached</Badge>
+                  )}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Overall {portal.summary.overall}% · CPI {portal.summary.cpi}
+                  {portal.lastSyncedAt
+                    ? ` · synced ${new Date(portal.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : ''}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => void portal.refresh()}
+                disabled={portal.waking}
+              >
+                <RefreshCw className={`h-4 w-4 ${portal.waking ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button onClick={() => navigate('/attendance')}>Open attendance</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {dangerZoneTasks.length > 0 && (
         <Card className="overflow-hidden border-danger/30 bg-danger/5" elevated>

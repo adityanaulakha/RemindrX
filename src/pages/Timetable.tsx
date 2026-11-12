@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   CircleDashed,
+  Download,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Button } from '../components/ui/Button';
@@ -32,6 +33,7 @@ import {
   toInputDateValue,
 } from '../services/gla/client';
 import { loadMeta, loadTimetableSnapshot } from '../services/gla/session';
+import { downloadIcs, lecturesToIcs } from '../services/gla/ics';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -244,6 +246,24 @@ export default function Timetable() {
         description={`${roll ? `Schedule for ${roll}` : 'Schedule for the selected date'} — current month only, with Present / Absent per lecture (same as the GLA app).`}
         actions={
           <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const all = Object.values(grouped).flat();
+                if (all.length === 0) {
+                  toast.error('No lectures to export yet — Sync first');
+                  return;
+                }
+                downloadIcs(
+                  `remindrx-timetable-${roll || 'schedule'}.ics`,
+                  lecturesToIcs(all, `RemindrX · ${roll || 'Timetable'}`)
+                );
+                toast.success('Calendar file downloaded');
+              }}
+              disabled={Object.keys(grouped).length === 0}
+            >
+              <Download className="h-4 w-4" /> ICS
+            </Button>
             <Button
               variant="secondary"
               onClick={() => void syncSelected()}

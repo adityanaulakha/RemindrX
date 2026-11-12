@@ -21,6 +21,8 @@ export interface User {
   section?: string;
   rollNo?: string;
   year?: string;
+  course?: string;
+  semester?: string;
   authProvider?: AuthProvider;
   portalSyncedAt?: number;
   portalSummary?: { overall?: string; cpi?: string } | null;

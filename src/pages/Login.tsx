@@ -17,6 +17,11 @@ import { BookOpen, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import { BrandLockup } from '../components/BrandMark';
 import { fetchCaptchaBlob, portalEnroll } from '../services/gla/portal';
 import { markConnected, saveSnapshot } from '../services/gla/session';
+import {
+  canLoadCaptcha,
+  captchaCooldownSecondsLeft,
+  markCaptchaRequested,
+} from '../services/gla/captchaGate';
 
 type Mode = 'portal' | 'staff';
 
@@ -31,11 +36,22 @@ export default function Login() {
   const [portalPassword, setPortalPassword] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [captchaUrl, setCaptchaUrl] = useState('');
+  const [captchaCooldown, setCaptchaCooldown] = useState(0);
 
   // Staff / super-admin email
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [verificationSent, setVerificationSent] = useState(false);
+
+  useEffect(() => {
+    if (captchaCooldown <= 0) return;
+    const t = window.setInterval(() => {
+      const left = captchaCooldownSecondsLeft();
+      setCaptchaCooldown(left);
+      if (left <= 0) window.clearInterval(t);
+    }, 250);
+    return () => window.clearInterval(t);
+  }, [captchaCooldown]);
 
   const loadCaptcha = async (forRoll?: string) => {
     const r = (forRoll ?? roll).trim();
@@ -43,13 +59,23 @@ export default function Login() {
       toast.error('Enter your roll number first, then load captcha');
       return;
     }
+    if (!canLoadCaptcha()) {
+      toast.error(`Wait ${captchaCooldownSecondsLeft()}s before loading captcha again`);
+      return;
+    }
+    markCaptchaRequested();
+    setCaptchaCooldown(captchaCooldownSecondsLeft());
+    toast.loading('Loading captcha… portal may take a few seconds to wake', { id: 'captcha-load' });
     try {
       if (captchaUrl) URL.revokeObjectURL(captchaUrl);
       const blob = await fetchCaptchaBlob(r);
       setCaptchaUrl(URL.createObjectURL(blob));
       setCaptcha('');
+      toast.success('Captcha ready', { id: 'captcha-load' });
     } catch {
-      toast.error('Could not load captcha (backend may be waking up — retry in a few seconds)');
+      toast.error('Could not load captcha (backend may be waking up — retry in a few seconds)', {
+        id: 'captcha-load',
+      });
     }
   };
 
@@ -241,10 +267,15 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => loadCaptcha()}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    disabled={captchaCooldown > 0}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
-                    {captchaUrl ? 'Refresh' : 'Load captcha'}
+                    {captchaCooldown > 0
+                      ? `Wait ${captchaCooldown}s`
+                      : captchaUrl
+                        ? 'Refresh'
+                        : 'Load captcha'}
                   </button>
                 </div>
                 {captchaUrl ? (

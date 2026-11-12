@@ -91,8 +91,10 @@ VITE_FIREBASE_STORAGE_BUCKET="your_project.firebasestorage.app"
 VITE_FIREBASE_MESSAGING_SENDER_ID="your_sender_id"
 VITE_FIREBASE_APP_ID="your_app_id"
 VITE_FIREBASE_MEASUREMENT_ID="your_measurement_id"
+# Optional — Web Push (Firebase Console → Cloud Messaging → Web Push certificates)
+VITE_FIREBASE_VAPID_KEY="your_web_push_vapid_key"
 
-# Server-only (Vercel /api/gla/enroll) — never expose in VITE_*
+# Server-only (Vercel /api/gla/enroll + /api/gla/refresh) — never expose in VITE_*
 FIREBASE_PROJECT_ID="your_project_id"
 FIREBASE_CLIENT_EMAIL="firebase-adminsdk@….iam.gserviceaccount.com"
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----\n"

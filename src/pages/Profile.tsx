@@ -62,6 +62,8 @@ export default function Profile() {
   const [year, setYear] = useState('');
   const [program, setProgram] = useState('');
   const [branch, setBranch] = useState('');
+  const [course, setCourse] = useState('');
+  const [semester, setSemester] = useState('');
 
   const [crInviteCode, setCrInviteCode] = useState('');
   const [crLoading, setCrLoading] = useState(false);
@@ -86,6 +88,8 @@ export default function Profile() {
         setYear(userData.year || '');
         setProgram(userData.program || '');
         setBranch(userData.branch || '');
+        setCourse(userData.course || userData.program || '');
+        setSemester(userData.semester || '');
         calculateTrustScore(currentUser.uid).then(setTrustScore);
 
         if (userData.classId) {
@@ -187,7 +191,7 @@ export default function Profile() {
       }
 
       const updates: Record<string, unknown> = {};
-      if (name !== userData.name) {
+      if (!isPortalUser && name !== userData.name) {
         await updateProfile(currentUser, { displayName: name });
         updates.name = name;
         newUserData.name = name;
@@ -198,7 +202,7 @@ export default function Profile() {
         newUserData.deadlinePreference = deadlinePreference;
         requiresContextUpdate = true;
       }
-      if (dob !== userData.dob) {
+      if (!isPortalUser && dob !== userData.dob) {
         updates.dob = dob;
         newUserData.dob = dob;
         requiresContextUpdate = true;
@@ -329,7 +333,15 @@ export default function Profile() {
                   <UserCircle className="h-3 w-3" /> Your details
                 </h3>
                 <div className="space-y-6">
-                  <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+                  <Input
+                    label="Full Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    required
+                    disabled={isPortalUser}
+                    className={isPortalUser ? 'cursor-not-allowed bg-muted/5 opacity-70' : undefined}
+                  />
                   {!isPortalUser ? (
                     <Input label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="College email" required />
                   ) : (
@@ -344,19 +356,33 @@ export default function Profile() {
                     disabled={isPortalUser}
                     className={isPortalUser ? 'cursor-not-allowed bg-muted/5 opacity-70' : undefined}
                   />
-                  <Input label="Date of Birth" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                  <Input
+                    label="Date of Birth"
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                    disabled={isPortalUser}
+                    className={isPortalUser ? 'cursor-not-allowed bg-muted/5 opacity-70' : undefined}
+                  />
                 </div>
               </div>
 
               <div className="space-y-8">
                 <h3 className="flex items-center gap-2 text-xs font-semibold tracking-normal text-muted-foreground">
                   <GraduationCap className="h-3 w-3" /> Academic Details
+                  {isPortalUser && (
+                    <span className="font-normal normal-case tracking-normal text-[10px] text-muted-foreground/80">
+                      from GLA portal
+                    </span>
+                  )}
                 </h3>
                 <div className="space-y-6">
-                  <Input label="Academic Year" value={year} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
-                  <Input label="Assigned Section" value={section} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
-                  <Input label="Program" value={program} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
-                  <Input label="Branch" value={branch} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Course" value={course || program || '—'} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Academic Year" value={year || '—'} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Semester" value={semester || '—'} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Assigned Section" value={section || '—'} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Program" value={program || '—'} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Branch" value={branch || '—'} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
                 </div>
               </div>
             </div>

@@ -22,6 +22,11 @@ import {
 import { toast } from 'react-hot-toast';
 import { fetchCaptchaBlob, type PortalSubject, type PortalSummary } from '../services/gla/portal';
 import {
+  canLoadCaptcha,
+  captchaCooldownSecondsLeft,
+  markCaptchaRequested,
+} from '../services/gla/captchaGate';
+import {
   hasLocalPin,
   isSessionUnlocked,
   loadMeta,
@@ -54,6 +59,7 @@ export default function Attendance() {
   const [password, setPassword] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [captchaUrl, setCaptchaUrl] = useState('');
+  const [captchaCooldown, setCaptchaCooldown] = useState(0);
   const [pin, setPin] = useState('');
   const [pinConfirm, setPinConfirm] = useState('');
 
@@ -61,19 +67,39 @@ export default function Attendance() {
   const [subjects, setSubjects] = useState<PortalSubject[]>([]);
   const [sessionLabel, setSessionLabel] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (captchaCooldown <= 0) return;
+    const t = window.setInterval(() => {
+      const left = captchaCooldownSecondsLeft();
+      setCaptchaCooldown(left);
+      if (left <= 0) window.clearInterval(t);
+    }, 250);
+    return () => window.clearInterval(t);
+  }, [captchaCooldown]);
+
   const loadCaptcha = async (forRoll?: string) => {
     const r = (forRoll ?? roll).trim();
     if (!r) {
       toast.error('Enter roll number before loading captcha');
       return;
     }
+    if (!canLoadCaptcha()) {
+      toast.error(`Wait ${captchaCooldownSecondsLeft()}s before loading captcha again`);
+      return;
+    }
+    markCaptchaRequested();
+    setCaptchaCooldown(captchaCooldownSecondsLeft());
+    toast.loading('Loading captcha… portal may take a few seconds to wake', { id: 'captcha-load' });
     try {
       if (captchaUrl) URL.revokeObjectURL(captchaUrl);
       const blob = await fetchCaptchaBlob(r);
       setCaptchaUrl(URL.createObjectURL(blob));
       setCaptcha('');
+      toast.success('Captcha ready', { id: 'captcha-load' });
     } catch {
-      toast.error('Could not load captcha (backend may be waking up — retry in a few seconds)');
+      toast.error('Could not load captcha (backend may be waking up — retry in a few seconds)', {
+        id: 'captcha-load',
+      });
     }
   };
 
@@ -350,8 +376,18 @@ export default function Attendance() {
                     Enter roll, then load captcha
                   </div>
                 )}
-                <Button type="button" variant="secondary" onClick={() => loadCaptcha()}>
-                  <RefreshCw className="h-4 w-4" /> {captchaUrl ? 'Refresh' : 'Load'}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => loadCaptcha()}
+                  disabled={captchaCooldown > 0}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  {captchaCooldown > 0
+                    ? `Wait ${captchaCooldown}s`
+                    : captchaUrl
+                      ? 'Refresh'
+                      : 'Load'}
                 </Button>
               </div>
               <Input label="Enter Captcha" value={captcha} onChange={(e) => setCaptcha(e.target.value)} required />

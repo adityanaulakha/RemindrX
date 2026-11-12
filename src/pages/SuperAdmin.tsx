@@ -10,7 +10,7 @@ import { Input } from '../components/ui/Input';
 import { CreateSectionModal } from '../components/CreateSectionModal';
 import { EditSectionModal } from '../components/EditSectionModal';
 import { EventDetailModal } from '../components/EventDetailModal';
-import { Calendar, CheckCircle, XCircle, Users, BookOpen, LayoutDashboard, Search, ListTodo, MessageSquare, TrendingUp, Trophy, Plus, Edit2, Trash2, Repeat, Share2, School, Globe, Settings, ShieldAlert, Activity, RefreshCw, ShieldCheck, Copy } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, Users, BookOpen, LayoutDashboard, Search, ListTodo, MessageSquare, TrendingUp, Trophy, Plus, Edit2, Trash2, Share2, School, Globe, Settings, ShieldAlert, Activity, RefreshCw, ShieldCheck, Copy } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
@@ -18,19 +18,6 @@ import {
 } from 'recharts';
 
 const CHART_COLORS = ['#0F6B56', '#C45C26', '#B54708', '#1D4E89', '#067647'];
-
-interface ClassChangeRequest {
-  id: string;
-  userId: string;
-  userName: string;
-  currentClassId: string;
-  currentClassName?: string;
-  requestedClassId: string;
-  requestedClassCode: string;
-  requestedClassName: string;
-  status: string;
-  createdAt: number;
-}
 
 interface Analytics {
   totalUsers: number;
@@ -57,7 +44,7 @@ export default function SuperAdmin() {
   const [filterProgram, setFilterProgram] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
-  const [activeTab, setActiveTab] = useState<'analytics' | 'events' | 'classes' | 'institutes' | 'requests'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'events' | 'classes' | 'institutes'>('analytics');
 
   // Institute State
   const [institutes, setInstitutes] = useState<Institute[]>([]);
@@ -82,8 +69,6 @@ export default function SuperAdmin() {
   // Stats & Cooldown
   const [refreshTimer, setRefreshTimer] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [changeRequests, setChangeRequests] = useState<ClassChangeRequest[]>([]);
-
   // Chart Data State
   const [chartData, setChartData] = useState<{
     branchDist: { name: string, value: number }[];
@@ -124,10 +109,9 @@ export default function SuperAdmin() {
       });
 
       // 2. Fetch Active Lists based on current view or basic needs
-      const [instSnap, pendingEventsSnap, changeReqSnap, usersSnap, eventsSnap, subjectsSnap] = await Promise.all([
+      const [instSnap, pendingEventsSnap, usersSnap, eventsSnap, subjectsSnap] = await Promise.all([
         getDocs(query(collection(db, 'institutes'), orderBy('name', 'asc'))),
         getDocs(query(collection(db, 'events'), where('status', '==', 'pending'))),
-        getDocs(query(collection(db, 'class_change_requests'), where('status', '==', 'pending'))),
         getDocs(collection(db, 'users')),
         getDocs(query(collection(db, 'events'), orderBy('date', 'desc'), limit(100))),
         getDocs(collection(db, 'subjects'))
@@ -135,8 +119,7 @@ export default function SuperAdmin() {
 
       setInstitutes(instSnap.docs.map(d => ({ id: d.id, ...d.data() } as Institute)));
       setPendingEvents(pendingEventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Event)));
-      setChangeRequests(changeReqSnap.docs.map(d => ({ id: d.id, ...d.data() } as ClassChangeRequest)));
-      
+
       const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
       setAllUsers(users);
       setTopUsers([...users].sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0)).slice(0, 5));
@@ -397,81 +380,6 @@ export default function SuperAdmin() {
     }
   };
 
-  const handleApproveChangeRequest = async (req: ClassChangeRequest) => {
-    try {
-      // 1. Fetch class data
-      const classRef = doc(db, 'classes', req.requestedClassId);
-      const classSnap = await getDoc(classRef);
-
-      if (!classSnap.exists()) {
-        toast.error('The requested class no longer exists.');
-        return;
-      }
-      const classData = classSnap.data();
-
-      // 2. Update user document
-      await updateDoc(doc(db, 'users', req.userId), {
-        classId: req.requestedClassId,
-        role: 'student', // Reset role to student on transfer
-        program: classData.program || '',
-        branch: classData.branch || '',
-        year: classData.year || '',
-        section: classData.section || ''
-      });
-
-      // 3. Update request status
-      await updateDoc(doc(db, 'class_change_requests', req.id), {
-        status: 'approved',
-        resolvedAt: Date.now()
-      });
-
-      // 4. Update UI automatically
-      setChangeRequests(prev => prev.filter(r => r.id !== req.id));
-
-      // Notification
-      await addDoc(collection(db, 'notifications'), {
-        userId: req.userId,
-        title: 'Transfer Approved',
-        message: `Your transfer to ${classData.name} has been approved!`,
-        type: 'system',
-        createdAt: Date.now(),
-        read: false
-      });
-
-      toast.success(`Approved transfer for ${req.userName}`);
-    } catch (error: any) {
-      console.error("Approval error:", error);
-      toast.error(`Failed to approve request: ${error.message}`);
-    }
-  };
-
-  const handleRejectChangeRequest = async (req: ClassChangeRequest) => {
-    try {
-      await updateDoc(doc(db, 'class_change_requests', req.id), {
-        status: 'rejected',
-        resolvedAt: Date.now()
-      });
-
-      // Update UI automatically
-      setChangeRequests(prev => prev.filter(r => r.id !== req.id));
-
-      // Notification
-      await addDoc(collection(db, 'notifications'), {
-        userId: req.userId,
-        title: 'Transfer Rejected',
-        message: `Your transfer request to a new class has been rejected.`,
-        type: 'system',
-        createdAt: Date.now(),
-        read: false
-      });
-
-      toast.success(`Rejected transfer for ${req.userName}`);
-    } catch (error: any) {
-      console.error("Rejection error:", error);
-      toast.error(`Failed to reject request: ${error.message}`);
-    }
-  };
-
   const handleInstituteAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -574,7 +482,6 @@ export default function SuperAdmin() {
               { id: 'events', label: 'Events', icon: Calendar },
               { id: 'classes', label: 'Classes', icon: LayoutDashboard },
               { id: 'institutes', label: 'Institutes', icon: School },
-              { id: 'requests', label: 'Requests', icon: Repeat },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -990,72 +897,6 @@ export default function SuperAdmin() {
               </div>
             )}
 
-            {activeTab === 'requests' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-700">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-3xl font-semibold tracking-tight">Class transfers</h2>
-                    <p className="text-xs text-muted-foreground font-medium mt-1">Processing pending infrastructure requests</p>
-                  </div>
-                </div>
-
-                {changeRequests.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-24 border-2 border-dashed border-border/50 rounded-3xl bg-card/20 text-center">
-                    <div className="p-8 bg-primary/10 rounded-2xl mb-6">
-                      <Repeat className="h-16 w-16 text-primary opacity-40" />
-                    </div>
-                    <h3 className="text-2xl font-semibold tracking-tight mb-2">No open requests</h3>
-                    <p className="text-sm text-muted-foreground font-medium">No pending transfer requests or configuration logs.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    {changeRequests.map(req => (
-                      <div key={req.id} className="group bg-card/40 backdrop-blur-md border border-primary/20 rounded-3xl p-10 shadow-[var(--shadow)]">
-                        <div className="flex items-center gap-5 mb-8">
-                          <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl font-semibold text-primary border-2 border-primary/20">
-                            {req.userName?.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-xl font-semibold tracking-tight">{req.userName}</p>
-                            <p className="text-xs text-muted-foreground font-bold tracking-normal mt-1">{new Date(req.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-5 rounded-2xl bg-background/50 border border-border/50 mb-10 relative overflow-hidden group-hover:border-primary/30 transition-all">
-                          <div className="text-center flex-1 relative z-10">
-                            <p className="text-xs font-semibold text-muted-foreground mb-2 tracking-widest">Source</p>
-                              <p className="text-xs font-semibold text-danger line-clamp-1">{req.currentClassName || 'Unassigned'}</p>
-                            </div>
-                            <div className="px-4 relative z-10">
-                              <div className="p-3 bg-primary/10 rounded-full animate-pulse">
-                                <Repeat className="h-5 w-5 text-primary" />
-                              </div>
-                            </div>
-                            <div className="text-center flex-1 relative z-10">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2 tracking-widest">Target</p>
-                              <p className="text-xs font-semibold text-success line-clamp-1">{req.requestedClassName || 'Unknown'}</p>
-                            </div>
-                          </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <Button 
-                            className="rounded-2xl h-14 bg-success text-success-foreground hover:bg-success/90 font-medium shadow-xl shadow-success/20"
-                            onClick={() => handleApproveChangeRequest(req)}
-                          >
-                            Execute
-                          </Button>
-                          <Button 
-                            className="rounded-2xl h-14 border-2 border-danger/25 text-danger hover:bg-danger/10 font-medium"
-                            onClick={() => handleRejectChangeRequest(req)}
-                          >
-                            Decline
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 

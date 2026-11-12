@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, arrayRemove, addDoc, getCountFromServer } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { User, ClassData } from '../types';
@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
-import { ShieldAlert, Users, UserMinus, ShieldCheck, Search, ChevronLeft, ChevronRight, GraduationCap, LayoutGrid, Info, Copy } from 'lucide-react';
+import { ShieldAlert, Users, ShieldCheck, Search, ChevronLeft, ChevronRight, GraduationCap, LayoutGrid, Info, Copy, Bell, Activity } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
 
@@ -24,6 +24,10 @@ export default function CRPanel() {
   // Search and Pagination State
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [notifyTitle, setNotifyTitle] = useState('');
+  const [notifyMessage, setNotifyMessage] = useState('');
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [health, setHealth] = useState({ subjects: 0, openTasks: 0, avgTrust: 0 });
 
   useEffect(() => {
     fetchAdminData();
@@ -51,10 +55,67 @@ export default function CRPanel() {
         scores[student.id] = await calculateTrustScore(student.id);
       }));
       setTrustScores(scores);
+
+      const [subCount, taskSnap] = await Promise.all([
+        getCountFromServer(
+          query(collection(db, 'subjects'), where('classId', '==', userData.classId), where('isActive', '==', true))
+        ),
+        getDocs(query(collection(db, 'tasks'), where('classId', '==', userData.classId))),
+      ]);
+      const now = Date.now();
+      const openTasks = taskSnap.docs.filter((d) => {
+        const data = d.data() as { deadline?: number };
+        return (data.deadline || 0) > now;
+      }).length;
+      const avgTrust =
+        fetchedStudents.length === 0
+          ? 0
+          : Math.round(
+              Object.values(scores).reduce((a, b) => a + b, 0) / Math.max(1, Object.values(scores).length)
+            );
+      setHealth({
+        subjects: subCount.data().count,
+        openTasks,
+        avgTrust,
+      });
     } catch (error) {
       console.error("Error fetching CR panel data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNotifySection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userData?.classId || !currentUser) return;
+    const title = notifyTitle.trim();
+    const message = notifyMessage.trim();
+    if (!title || !message) {
+      toast.error('Title and message are required');
+      return;
+    }
+    setNotifyLoading(true);
+    try {
+      const batch = students.map((student) =>
+        addDoc(collection(db, 'notifications'), {
+          userId: student.id,
+          title,
+          message,
+          type: 'section_broadcast',
+          classId: userData.classId,
+          createdBy: currentUser.uid,
+          createdAt: Date.now(),
+          read: false,
+        })
+      );
+      await Promise.all(batch);
+      toast.success(`Notified ${students.length} classmates`);
+      setNotifyTitle('');
+      setNotifyMessage('');
+    } catch {
+      toast.error('Could not send section notice');
+    } finally {
+      setNotifyLoading(false);
     }
   };
 
@@ -145,6 +206,26 @@ export default function CRPanel() {
                 </div>
               </div>
 
+              <div className="pt-8 border-t border-border space-y-4">
+                <p className="text-xs font-medium opacity-40 mb-2 flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" /> Section health
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-border bg-muted/40 p-3 text-center">
+                    <p className="text-lg font-semibold">{health.subjects}</p>
+                    <p className="text-[10px] text-muted-foreground">Subjects</p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/40 p-3 text-center">
+                    <p className="text-lg font-semibold">{health.openTasks}</p>
+                    <p className="text-[10px] text-muted-foreground">Open tasks</p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/40 p-3 text-center">
+                    <p className="text-lg font-semibold">{health.avgTrust}</p>
+                    <p className="text-[10px] text-muted-foreground">Avg trust</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="pt-8 border-t border-border">
                 <p className="text-xs font-medium opacity-40 mb-4 flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-primary" /> Active CRs
@@ -158,6 +239,31 @@ export default function CRPanel() {
                 </div>
               </div>
             </CardContent>
+          </Card>
+
+          <Card className="rounded-3xl border border-border bg-card/40 p-8">
+            <form onSubmit={handleNotifySection} className="space-y-4">
+              <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Bell className="h-4 w-4" /> Notify section
+              </p>
+              <Input
+                label="Title"
+                value={notifyTitle}
+                onChange={(e) => setNotifyTitle(e.target.value)}
+                placeholder="e.g. Tomorrow’s lab cancelled"
+                required
+              />
+              <Input
+                label="Message"
+                value={notifyMessage}
+                onChange={(e) => setNotifyMessage(e.target.value)}
+                placeholder="Short notice for your section"
+                required
+              />
+              <Button type="submit" className="w-full" disabled={notifyLoading || students.length === 0}>
+                {notifyLoading ? 'Sending…' : `Notify ${students.length} members`}
+              </Button>
+            </form>
           </Card>
 
           <Card className="rounded-3xl border border-border bg-card/40 p-8">
