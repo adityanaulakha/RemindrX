@@ -1,5 +1,7 @@
 export type Role = 'student' | 'admin';
 
+export type AuthProvider = 'email' | 'gla_portal';
+
 export interface User {
   id: string;
   name: string;
@@ -19,6 +21,9 @@ export interface User {
   section?: string;
   rollNo?: string;
   year?: string;
+  authProvider?: AuthProvider;
+  portalSyncedAt?: number;
+  portalSummary?: { overall?: string; cpi?: string } | null;
 }
 
 export interface Institute {
@@ -41,6 +46,9 @@ export interface ClassData {
   adminCodeExpiry?: number; // timestamp
   admins: string[]; // array of userIds
   instituteId?: string; // Links to Institute
+  portalCohortKey?: string;
+  source?: 'portal' | 'manual';
+  createdAt?: number;
 }
 
 export interface Subject {
@@ -52,6 +60,7 @@ export interface Subject {
   classId: string;
   isActive: boolean;
   createdBy: 'system' | 'admin' | string;
+  portalCode?: string | null;
 }
 
 export type Priority = 'low' | 'medium' | 'critical';

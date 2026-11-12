@@ -1,9 +1,8 @@
 /**
- * Optional same-origin proxy for portal login.
- * Browser can also call https://portal-backend-z9ce.onrender.com directly (CORS *).
- * Kept for future cookie/session isolation per RemindrX user.
+ * Same-origin proxy for portal login (per-roll sessions).
+ * Prefer /api/gla/enroll for student signup; this remains for Attendance reconnect.
  */
-const UPSTREAM = 'https://portal-backend-z9ce.onrender.com/login';
+const UPSTREAM = process.env.PORTAL_BACKEND_URL || 'https://portal-backend-z9ce.onrender.com';
 
 export default async function handler(
   req: { method?: string; body?: { roll?: string; password?: string; captcha?: string } },
@@ -18,7 +17,7 @@ export default async function handler(
     return res.status(400).json({ success: false, error: 'roll, password, and captcha are required' });
   }
   try {
-    const upstream = await fetch(UPSTREAM, {
+    const upstream = await fetch(`${UPSTREAM}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roll, password, captcha }),

@@ -35,18 +35,19 @@ service cloud.firestore {
     }
 
     // Classes Collection
+    // Portal auto-provision creates classes via Admin SDK (bypasses rules).
+    // Client create remains Super Admin only.
     match /classes/{classId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isSuperAdmin(); // Created by Super Admin
-      // Only students joining can update adminCodeUses and admins array, or admins can update
+      allow create: if isAuthenticated() && isSuperAdmin();
       allow update: if isAuthenticated();
       allow delete: if isAuthenticated() && isSuperAdmin();
     }
 
     // Subjects Collection
+    // Portal subject sync writes via Admin SDK; CRs can still manage subjects in-app.
     match /subjects/{subjectId} {
       allow read: if isAuthenticated() && (getUserData().classId == resource.data.classId || isSuperAdmin());
-      // Only admins of the class can create or update subjects
       allow create, update: if isAuthenticated() && isClassAdmin(request.resource.data.classId);
       allow delete: if false;
     }

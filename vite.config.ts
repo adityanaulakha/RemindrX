@@ -1,13 +1,65 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { pathToFileURL } from 'node:url'
+import path from 'node:path'
+
+/** Local-dev shim so `/api/gla/enroll` works without `vercel dev`. */
+function glaEnrollApiPlugin(): Plugin {
+  return {
+    name: 'gla-enroll-api',
+    configureServer(server) {
+      server.middlewares.use('/api/gla/enroll', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Allow', 'POST')
+          res.end(JSON.stringify({ success: false, error: 'Method not allowed' }))
+          return
+        }
+        try {
+          const chunks: Buffer[] = []
+          for await (const chunk of req) chunks.push(Buffer.from(chunk))
+          const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
+          const modPath = pathToFileURL(
+            path.resolve(server.config.root, 'api/gla/enroll.ts')
+          ).href
+          const { default: handler } = await server.ssrLoadModule(modPath)
+          await handler(
+            { method: 'POST', body, headers: req.headers as Record<string, string> },
+            {
+              setHeader: (k: string, v: string) => res.setHeader(k, v),
+              status: (n: number) => ({
+                json: (b: unknown) => {
+                  res.statusCode = n
+                  res.setHeader('Content-Type', 'application/json')
+                  res.end(JSON.stringify(b))
+                },
+              }),
+            }
+          )
+        } catch (err) {
+          console.error('[gla-enroll-api]', err)
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              success: false,
+              error: err instanceof Error ? err.message : 'Enroll failed',
+            })
+          )
+        }
+      })
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    glaEnrollApiPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: {

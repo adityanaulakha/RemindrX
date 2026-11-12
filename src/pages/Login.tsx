@@ -1,122 +1,141 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signOut } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  signInWithCustomToken,
+  signOut,
+} from 'firebase/auth';
 import { toast } from 'react-hot-toast';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { ThemeSwitch } from '../components/ui/ThemeSwitch';
 import { useTheme } from '../hooks/useTheme';
-import { BookOpen, School, Mail, ShieldCheck } from 'lucide-react';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import type { Institute } from '../types';
+import { BookOpen, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import { BrandLockup } from '../components/BrandMark';
+import { fetchCaptchaBlob, portalEnroll } from '../services/gla/portal';
+import { markConnected, saveSnapshot } from '../services/gla/session';
+
+type Mode = 'portal' | 'staff';
 
 export default function Login() {
   const navigate = useNavigate();
   const { preference, setPreference } = useTheme();
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<Mode>('portal');
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState('');
+
+  // Portal enroll
+  const [roll, setRoll] = useState('');
+  const [portalPassword, setPortalPassword] = useState('');
+  const [captcha, setCaptcha] = useState('');
+  const [captchaUrl, setCaptchaUrl] = useState('');
+
+  // Staff / super-admin email
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rollNo, setRollNo] = useState('');
-  const [dob, setDob] = useState('');
-  const [selectedCollege, setSelectedCollege] = useState('');
-  const [institutes, setInstitutes] = useState<Institute[]>([]);
   const [verificationSent, setVerificationSent] = useState(false);
 
-  useEffect(() => {
-    const fetchInstitutes = async () => {
-      const snap = await getDocs(query(collection(db, 'institutes'), orderBy('name')));
-      setInstitutes(snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Institute)));
-    };
-    fetchInstitutes();
-  }, []);
+  const loadCaptcha = async (forRoll?: string) => {
+    const r = (forRoll ?? roll).trim();
+    if (!r) {
+      toast.error('Enter your roll number first, then load captcha');
+      return;
+    }
+    try {
+      if (captchaUrl) URL.revokeObjectURL(captchaUrl);
+      const blob = await fetchCaptchaBlob(r);
+      setCaptchaUrl(URL.createObjectURL(blob));
+      setCaptcha('');
+    } catch {
+      toast.error('Could not load captcha (backend may be waking up — retry in a few seconds)');
+    }
+  };
 
-  const handleAuth = async (e: React.FormEvent) => {
+  useEffect(() => {
+    return () => {
+      if (captchaUrl) URL.revokeObjectURL(captchaUrl);
+    };
+  }, [captchaUrl]);
+
+  const handlePortalEnroll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roll.trim() || !portalPassword || !captcha.trim()) {
+      toast.error('Roll, password, and captcha are required');
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await portalEnroll(roll.trim(), portalPassword, captcha.trim());
+      if (!result.success || !result.customToken) {
+        toast.error(result.error || 'Portal enroll failed');
+        await loadCaptcha();
+        return;
+      }
+
+      await signInWithCustomToken(auth, result.customToken);
+
+      // Keep local portal session meta so Attendance/Timetable reuse the live jar
+      markConnected(result.profile?.roll || roll.trim());
+      if (result.profile?.summary && result.profile.subjects) {
+        saveSnapshot({
+          summary: {
+            overall: result.profile.summary.overall ?? '--',
+            cpi: result.profile.summary.cpi ?? '--',
+          },
+          subjects: (result.profile.subjects || []).map((s) => ({
+            name: s.name || 'Subject',
+            attendance: (s as { attendance?: string | number }).attendance ?? '--',
+            code: s.code,
+            type: s.type,
+          })),
+        });
+      }
+
+      setPortalPassword('');
+      setCaptcha('');
+      toast.success(
+        result.classCreated
+          ? 'Enrolled — your section was created from the portal'
+          : 'Signed in with GLA portal'
+      );
+      navigate(result.classId ? '/dashboard' : '/join');
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : 'Enroll failed');
+      await loadCaptcha();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStaffAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      if (isLogin) {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-        if (!user.emailVerified) {
-          await signOut(auth);
-
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const createdAt = userDoc.data()?.createdAt || 0;
-          const isExpired = Date.now() - createdAt > 24 * 60 * 60 * 1000;
-
-          if (isExpired) {
-            toast.error('Verification link expired. Your unverified account has been deactivated. Please sign up again.');
-          } else {
-            setVerificationSent(true);
-            toast.error('Please verify your email address first. Check your inbox!');
-          }
-          setLoading(false);
-          return;
-        }
-
-        navigate('/');
-      } else {
-        const college = institutes.find(c => c.id === selectedCollege);
-        const emailDomain = email.split('@')[1]?.toLowerCase();
-
-        if (!college || !college.domains.includes(emailDomain)) {
-          toast.error(`Invalid email. Please use your ${college?.name || 'institution'} email (Allowed: ${college?.domains.join(', ')})`);
-          setLoading(false);
-          return;
-        }
-
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        await sendEmailVerification(user);
-
-        await updateProfile(user, { displayName: name });
-        await setDoc(doc(db, 'users', user.uid), {
-          name,
-          rollNo,
-          dob,
-          collegeId: selectedCollege,
-          role: 'student',
-          trustScore: 100,
-          createdAt: Date.now(),
-          email: email
-        }, { merge: true });
-
+      if (!user.emailVerified) {
         await signOut(auth);
-        setVerificationSent(true);
-        toast.success('Account created! Verification email sent.');
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const createdAt = userDoc.data()?.createdAt || 0;
+        const isExpired = Date.now() - createdAt > 24 * 60 * 60 * 1000;
+        if (isExpired) {
+          toast.error('Verification link expired. Please contact an admin.');
+        } else {
+          setVerificationSent(true);
+          toast.error('Please verify your email address first.');
+        }
+        return;
       }
-    } catch (error: any) {
-      console.error("Auth Error:", error);
-      if (error.code === 'auth/email-already-in-use') {
-        toast((t) => (
-          <div className="flex flex-col gap-2">
-            <span className="font-semibold">Account already exists</span>
-            <span className="text-sm text-muted-foreground">This email is already registered. Sign in instead?</span>
-            <button
-              onClick={() => {
-                setIsLogin(true);
-                toast.dismiss(t.id);
-              }}
-              className="mt-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-            >
-              Switch to sign in
-            </button>
-          </div>
-        ), { duration: 6000, position: 'top-center' });
-      } else if (error.code === 'auth/operation-not-allowed') {
-        toast.error('Sign-up is currently disabled. Please enable Email/Password in Firebase Console.');
-      } else {
-        toast.error(error.message);
-      }
+
+      navigate('/');
+    } catch (error: unknown) {
+      console.error('Auth Error:', error);
+      const message = error instanceof Error ? error.message : 'Sign in failed';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -157,12 +176,14 @@ export default function Login() {
           <ThemeSwitch preference={preference} onChange={setPreference} compact />
         </div>
         <div className="relative z-10">
-          <Badge tone="primary" className="mb-4">Campus workspace</Badge>
+          <Badge tone="primary" className="mb-4">GLA portal enroll</Badge>
           <h1 className="max-w-md text-4xl font-semibold tracking-tight">
-            {isLogin ? 'Welcome back to your section.' : 'Create your campus account.'}
+            {mode === 'portal' ? 'Sign in with your Student Corner.' : 'Staff & admin email sign-in.'}
           </h1>
           <p className="mt-4 max-w-sm text-base leading-relaxed text-muted-foreground">
-            Subjects, deadlines, the GLA timetable, attendance, and class updates — after you verify your college email.
+            {mode === 'portal'
+              ? 'Use your GLA roll number and portal password. RemindrX maps your section and subjects automatically.'
+              : 'Email login is reserved for Super Admins and existing staff accounts.'}
           </p>
         </div>
         <p className="relative z-10 flex items-center gap-2 text-sm text-muted-foreground">
@@ -178,55 +199,114 @@ export default function Login() {
             </button>
             <ThemeSwitch preference={preference} onChange={setPreference} compact />
           </div>
-          <p className="text-sm font-medium text-primary">{isLogin ? 'Welcome back' : 'Create your account'}</p>
+
+          <p className="text-sm font-medium text-primary">
+            {mode === 'portal' ? 'Student enroll' : 'Staff sign in'}
+          </p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">
-            {isLogin ? 'Sign in' : 'Join your campus'}
+            {mode === 'portal' ? 'GLA portal' : 'Email account'}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {isLogin ? 'Use the college email you signed up with.' : 'Use an email from your institution. We’ll send a verification link.'}
+            {mode === 'portal'
+              ? 'Roll + portal password + captcha. No join code needed.'
+              : 'Use the college email for Super Admin / staff.'}
           </p>
 
-          <form onSubmit={handleAuth} className="mt-8 space-y-4 rounded-3xl border border-border bg-card/70 p-5 shadow-[var(--shadow)] backdrop-blur-xl sm:p-6">
-            {!isLogin && (
-              <>
-                <Input label="Full name" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} required />
-                <Input label="University roll number" placeholder="Roll number" value={rollNo} onChange={(e) => setRollNo(e.target.value)} required />
-                <Input label="Date of birth" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
-              </>
-            )}
+          {mode === 'portal' ? (
+            <form
+              onSubmit={handlePortalEnroll}
+              className="mt-8 space-y-4 rounded-3xl border border-border bg-card/70 p-5 shadow-[var(--shadow)] backdrop-blur-xl sm:p-6"
+            >
+              <Input
+                label="University roll number"
+                placeholder="e.g. 2215000000"
+                value={roll}
+                onChange={(e) => setRoll(e.target.value)}
+                required
+                autoComplete="username"
+              />
+              <Input
+                label="Portal password"
+                type="password"
+                placeholder="Student Corner password"
+                value={portalPassword}
+                onChange={(e) => setPortalPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
 
-            <Input label="Email" type="email" placeholder="College email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-            <Input label="Password" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={isLogin ? 'current-password' : 'new-password'} />
-
-            {!isLogin && (
-              <div className="space-y-1.5">
-                <label htmlFor="college" className="block text-sm font-medium">College</label>
-                <div className="relative">
-                  <School className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <select
-                    id="college"
-                    className="control appearance-none pl-10"
-                    value={selectedCollege}
-                    onChange={(e) => setSelectedCollege(e.target.value)}
-                    required
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="block text-sm font-medium">Captcha</label>
+                  <button
+                    type="button"
+                    onClick={() => loadCaptcha()}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
-                    <option value="">Choose your college</option>
-                    {institutes.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    {captchaUrl ? 'Refresh' : 'Load captcha'}
+                  </button>
                 </div>
+                {captchaUrl ? (
+                  <img
+                    src={captchaUrl}
+                    alt="GLA captcha"
+                    className="h-14 w-full rounded-xl border border-border bg-white object-contain"
+                  />
+                ) : (
+                  <div className="flex h-14 items-center justify-center rounded-xl border border-dashed border-border text-xs text-muted-foreground">
+                    Enter roll, then load captcha
+                  </div>
+                )}
+                <Input
+                  placeholder="Enter captcha text"
+                  value={captcha}
+                  onChange={(e) => setCaptcha(e.target.value)}
+                  required
+                  autoComplete="off"
+                />
               </div>
-            )}
 
-            <Button type="submit" size="lg" className="mt-2 w-full" disabled={loading}>
-              {loading ? 'Please wait…' : isLogin ? 'Sign in' : 'Create account'}
-            </Button>
-          </form>
+              <Button type="submit" size="lg" className="mt-2 w-full" disabled={loading}>
+                {loading ? 'Enrolling…' : 'Enroll with portal'}
+              </Button>
+            </form>
+          ) : (
+            <form
+              onSubmit={handleStaffAuth}
+              className="mt-8 space-y-4 rounded-3xl border border-border bg-card/70 p-5 shadow-[var(--shadow)] backdrop-blur-xl sm:p-6"
+            >
+              <Input
+                label="Email"
+                type="email"
+                placeholder="Staff email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+              <Input
+                label="Password"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+              <Button type="submit" size="lg" className="mt-2 w-full" disabled={loading}>
+                {loading ? 'Please wait…' : 'Sign in'}
+              </Button>
+            </form>
+          )}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            <button type="button" onClick={() => setIsLogin(!isLogin)} className="font-semibold text-primary hover:underline">
-              {isLogin ? 'Need an account? Sign up' : 'Already registered? Sign in'}
+            <button
+              type="button"
+              onClick={() => setMode(mode === 'portal' ? 'staff' : 'portal')}
+              className="font-semibold text-primary hover:underline"
+            >
+              {mode === 'portal' ? 'Staff / Super Admin email login' : 'Student portal enroll'}
             </button>
           </p>
         </div>

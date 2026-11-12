@@ -31,8 +31,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (loading) return <BootScreen />;
   if (!currentUser) return <Navigate to="/login" replace />;
 
-  // If user is logged in but hasn't joined a class, force them to join a class
-  // unless they are a Super Admin
+  // Portal-enrolled students already have classId from auto-map — skip Join Class.
+  // Legacy email students without a section still go to /join (fallback).
   if (userData && !userData.classId && !userData.isSuperAdmin) {
     return <Navigate to="/join" replace />;
   }
@@ -40,16 +40,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
-// Route wrapper for users who haven't joined a class yet
+// Route wrapper for users who haven't joined a class yet (legacy / non-portal fallback)
 const JoinClassRoute = ({ children }: { children: JSX.Element }) => {
   const { currentUser, userData, loading } = useAuth();
 
   if (loading) return <BootScreen />;
   if (!currentUser) return <Navigate to="/login" replace />;
 
-  // If they already have a class or are a super admin, they shouldn't be here
-  if (userData && (userData.classId || userData.isSuperAdmin)) {
-    return <Navigate to={userData.isSuperAdmin ? "/super-admin" : "/dashboard"} replace />;
+  // Portal users and anyone already mapped to a class shouldn't land here
+  if (userData && (userData.classId || userData.isSuperAdmin || userData.authProvider === 'gla_portal')) {
+    return (
+      <Navigate
+        to={userData.isSuperAdmin ? '/super-admin' : userData.classId ? '/dashboard' : '/login'}
+        replace
+      />
+    );
   }
 
   return children;

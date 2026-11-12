@@ -1,16 +1,14 @@
 /**
- * Client for https://portal-backend-z9ce.onrender.com
- * Source of truth: github.com/adityanaulakha/portal-frontend (src/App.jsx)
+ * Client for portal-backend (per-roll cookie sessions).
  *
  * Endpoints:
- *   GET  /captcha     → PNG
- *   POST /login       → { roll, password, captcha } → { success } | { success:false, error }
- *   GET  /dashboard   → { summary: { overall, cpi }, subjects: [{ name, attendance }] }
- *   GET  /timetable?date=… → day (or week) lecture rows; date = M/D/YYYY | DD.MM.YYYY | YYYY-MM-DD
- *        (mirrors GLA web POST /MyAccount/GetTimeTable `{ text }` / app DateFrom pick)
- *   POST /logout      → { success: true }
- *
- * CORS: Access-Control-Allow-Origin: * (browser can call directly).
+ *   GET  /captcha?roll=…     → PNG
+ *   POST /login              → { roll, password, captcha }
+ *   POST /enroll             → login + profile (used via RemindrX /api/gla/enroll)
+ *   GET  /dashboard?roll=…   → summary + subjects
+ *   GET  /timetable?roll=…&date=…
+ *   GET  /profile?roll=…
+ *   POST /logout             → { roll }
  */
 
 export const PORTAL_BASE = 'https://portal-backend-z9ce.onrender.com';
@@ -18,6 +16,11 @@ export const PORTAL_BASE = 'https://portal-backend-z9ce.onrender.com';
 export interface PortalSubject {
   name: string;
   attendance: string | number;
+  code?: string | null;
+  present?: string | number | null;
+  absent?: string | number | null;
+  held?: string | number | null;
+  type?: string | null;
 }
 
 export interface PortalSummary {
@@ -30,15 +33,26 @@ export interface PortalDashboard {
   subjects: PortalSubject[];
 }
 
+export interface PortalProfile {
+  roll: string;
+  name: string;
+  program?: string | null;
+  branch?: string | null;
+  year?: string | null;
+  section?: string | null;
+  semester?: string | null;
+  portalCohortKey?: string;
+  classDisplayName?: string;
+  subjects?: PortalSubject[];
+  summary?: PortalSummary;
+}
+
 export interface PortalLecture {
   LecDay?: string;
-  /** Portal date string, e.g. `28.10.2026` */
   LecDate?: string;
   LecNo?: string | number;
   LecType?: string;
-  /** Class lifecycle from web timetable: Pending | Completed (not the same as Present/Absent). */
   LecStatus?: string;
-  /** Student mark when portal provides it: Present | Absent | … */
   PresentStatus?: string;
   AttStatus?: string;
   AttendanceStatus?: string;
@@ -58,17 +72,40 @@ export interface PortalLecture {
   [key: string]: unknown;
 }
 
+export interface EnrollResponse {
+  success: boolean;
+  error?: string;
+  customToken?: string;
+  uid?: string;
+  classId?: string;
+  classCreated?: boolean;
+  subjectUpserts?: number;
+  profile?: PortalProfile;
+}
+
 async function parseJson<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function fetchCaptchaBlob(): Promise<Blob> {
-  const res = await fetch(`${PORTAL_BASE}/captcha`, { cache: 'no-store' });
+function withRoll(url: string, roll?: string | null): string {
+  if (!roll) return url;
+  const u = new URL(url);
+  u.searchParams.set('roll', roll.trim());
+  return u.toString();
+}
+
+export async function fetchCaptchaBlob(roll: string): Promise<Blob> {
+  if (!roll.trim()) throw new Error('Roll number required for captcha');
+  const res = await fetch(withRoll(`${PORTAL_BASE}/captcha`, roll), { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to load captcha');
   return res.blob();
 }
 
-export async function portalLogin(roll: string, password: string, captcha: string): Promise<{ success: boolean; error?: string }> {
+export async function portalLogin(
+  roll: string,
+  password: string,
+  captcha: string
+): Promise<{ success: boolean; error?: string }> {
   const res = await fetch(`${PORTAL_BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -79,8 +116,23 @@ export async function portalLogin(roll: string, password: string, captcha: strin
   return { success: false, error: data.error || 'Login failed' };
 }
 
-export async function portalDashboard(): Promise<PortalDashboard | null> {
-  const res = await fetch(`${PORTAL_BASE}/dashboard`);
+/** RemindrX trusted enroll: portal verify + Firebase custom token + class provision */
+export async function portalEnroll(
+  roll: string,
+  password: string,
+  captcha: string
+): Promise<EnrollResponse> {
+  const res = await fetch('/api/gla/enroll', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roll, password, captcha }),
+  });
+  return parseJson<EnrollResponse>(res);
+}
+
+export async function portalDashboard(roll?: string | null): Promise<PortalDashboard | null> {
+  const metaRoll = roll;
+  const res = await fetch(withRoll(`${PORTAL_BASE}/dashboard`, metaRoll));
   if (!res.ok) return null;
   const data = await parseJson<PortalDashboard & { error?: string }>(res);
   if (data.error) return null;
@@ -93,14 +145,19 @@ export async function portalDashboard(): Promise<PortalDashboard | null> {
   };
 }
 
-/**
- * Fetch timetable. Pass `date` (Date or portal/ISO string) to load that day
- * the same way the GLA app/web date picker does.
- */
+export async function portalProfile(roll: string): Promise<PortalProfile | null> {
+  const res = await fetch(withRoll(`${PORTAL_BASE}/profile`, roll));
+  if (!res.ok) return null;
+  const data = await parseJson<{ success?: boolean; profile?: PortalProfile; error?: string }>(res);
+  return data.profile || null;
+}
+
 export async function portalTimetable(
-  date?: Date | string | null
+  date?: Date | string | null,
+  roll?: string | null
 ): Promise<PortalLecture[] | Record<string, PortalLecture[]> | null> {
   const url = new URL(`${PORTAL_BASE}/timetable`);
+  if (roll) url.searchParams.set('roll', roll.trim());
   if (date instanceof Date && !Number.isNaN(date.getTime())) {
     url.searchParams.set('date', `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`);
   } else if (typeof date === 'string' && date.trim()) {
@@ -113,9 +170,13 @@ export async function portalTimetable(
   return data as PortalLecture[] | Record<string, PortalLecture[]>;
 }
 
-export async function portalLogout(): Promise<void> {
+export async function portalLogout(roll?: string | null): Promise<void> {
   try {
-    await fetch(`${PORTAL_BASE}/logout`, { method: 'POST' });
+    await fetch(`${PORTAL_BASE}/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roll: roll || undefined }),
+    });
   } catch {
     /* ignore */
   }
