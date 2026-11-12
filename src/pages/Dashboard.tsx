@@ -150,7 +150,7 @@ export default function Dashboard() {
             <div className="bg-danger/20 p-2 rounded-lg text-danger"><Activity className="h-5 w-5" /></div>
             <div>
               <p className="font-semibold text-sm">No Attendance Data Yet</p>
-              <p className="text-xs text-foreground/60">Connect portal (Coming soon).</p>
+              <p className="text-xs text-foreground/60">Open Attendance to connect your GLA portal.</p>
             </div>
           </div>
         </div>

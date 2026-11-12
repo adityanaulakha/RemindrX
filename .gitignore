@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# REA / APK extract artifacts (keep findings docs only)
+memory/rea-gla/extracted/
+memory/rea-gla/apk-unzip/
+memory/rea-gla/split/
+
+# Local reference packages (do not commit)
+*.xapk
+*.apk
+com.glauniversity.main_2.4.10.xapk
+
+# Temporary clones / scratch
+.tmp/
+.tmp-portal-frontend/
+.tmp-portal-backend/

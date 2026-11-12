@@ -13,6 +13,7 @@ import CRPanel from './pages/CRPanel';
 import SuperAdmin from './pages/SuperAdmin';
 import ClassUpdates from './pages/ClassUpdates';
 import Attendance from './pages/Attendance';
+import Timetable from './pages/Timetable';
 import Landing from './pages/Landing';
 import Layout from './components/layout/Layout';
 import type { JSX } from 'react';
@@ -109,6 +110,7 @@ function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/updates" element={<ClassUpdates />} />
             <Route path="/attendance" element={<Attendance />} />
+            <Route path="/timetable" element={<Timetable />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/cr-panel" element={<CRPanel />} />
             <Route path="/super-admin" element={<SuperAdmin />} />

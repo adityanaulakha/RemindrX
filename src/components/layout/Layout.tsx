@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   BookOpen, LayoutDashboard, ListTodo, LogOut, Menu, X,
   ShieldAlert, CalendarRange, MessageSquare, Activity, Bell, Download,
-  Sun, Moon, RotateCw, Monitor, BellOff, Info
+  Sun, Moon, RotateCw, Monitor, BellOff, Info, CalendarDays
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
@@ -123,6 +123,7 @@ export default function Layout() {
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       { name: 'Subjects', path: '/subjects', icon: BookOpen },
       { name: 'Attendance', path: '/attendance', icon: Activity },
+      { name: 'Timetable', path: '/timetable', icon: CalendarDays },
       { name: 'Timeline', path: '/timeline', icon: ListTodo },
       { name: 'Class Updates', path: '/updates', icon: MessageSquare }
     );
