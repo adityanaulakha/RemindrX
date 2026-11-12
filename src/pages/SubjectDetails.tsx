@@ -6,7 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import type { Subject, Post, Task } from '../types';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { MessageSquare, ThumbsUp, ThumbsDown, ShieldCheck, ArrowLeft, CheckSquare, FileText, Calendar, Clock, AlertTriangle, Zap, Activity, Layers } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { Badge } from '../components/ui/Badge';
+import { MessageSquare, ThumbsUp, ThumbsDown, ShieldCheck, ArrowLeft, CheckSquare, FileText, Calendar, Clock, AlertTriangle, Activity } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function SubjectDetails() {
@@ -138,52 +141,30 @@ export default function SubjectDetails() {
   const isPast = (deadline: number) => deadline < now;
   const isCritical = (deadline: number, priority: string) => !isPast(deadline) && (deadline <= now + 48 * 60 * 60 * 1000 || priority === 'critical');
 
-  if (loading || !subject) {
-    return (
-      <div className="animate-pulse space-y-12">
-        <div className="h-64 bg-card/20 rounded-3xl border border-border"></div>
-        <div className="h-48 bg-card/20 rounded-2xl border border-border"></div>
-      </div>
-    );
-  }
+  if (loading || !subject) return <PageSkeleton rows={3} />;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/subjects')} className="h-12 w-12 p-0 rounded-2xl bg-muted border border-border hover:bg-muted">
-          <ArrowLeft className="h-5 w-5" />
+    <div className="space-y-8">
+      <div className="flex items-center gap-3">
+        <Button variant="secondary" size="sm" className="h-10 w-10 p-0" onClick={() => navigate('/subjects')}>
+          <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="h-px flex-1 bg-muted" />
+        <div className="h-px flex-1 bg-border" />
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl bg-card/40 border border-border p-10 lg:p-16 shadow-sm">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          {subject.type === 'theory' ? <Layers className="h-64 w-64 text-primary" /> : <Zap className="h-64 w-64 text-accent" />}
-        </div>
-        
-        <div className="relative z-10 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className={`h-1 w-12 rounded-full ${subject.type === 'theory' ? 'bg-primary' : 'bg-accent'}`} />
-            <span className={`text-xs font-semibold tracking-normal  ${subject.type === 'theory' ? 'text-primary' : 'text-accent'}`}>
-              {subject.code.toUpperCase()} • {subject.type}
-            </span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none">
-            {subject.name}
-          </h1>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="px-4 py-2 rounded-xl bg-muted border border-border text-xs font-medium opacity-60">
-              {subject.credits || 0} Credits
-            </div>
-            <div className="px-4 py-2 rounded-xl bg-muted border border-border text-xs font-medium opacity-60">
-              {tasks.length} Active Tasks
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={`${subject.code.toUpperCase()} · ${subject.type}`}
+        title={subject.name}
+        description={`${subject.credits || 0} credits · ${tasks.length} active tasks`}
+        actions={
+          <>
+            <Badge tone={subject.type === 'theory' ? 'primary' : 'accent'}>{subject.type}</Badge>
+            <Badge>{subject.credits || 0} credits</Badge>
+          </>
+        }
+      />
 
-      {/* Modern Tabs */}
-      <div className="flex gap-4 p-2 bg-muted rounded-2xl border border-border overflow-x-auto no-scrollbar max-w-full">
+      <div className="flex max-w-full gap-2 overflow-x-auto rounded-2xl border border-border bg-muted/60 p-1.5 no-scrollbar">
         {[
           { id: 'tasks', icon: CheckSquare, label: 'Tasks' },
           { id: 'resources', icon: FileText, label: 'Resources' },
@@ -192,8 +173,8 @@ export default function SubjectDetails() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-3 px-8 py-4 pr-10 rounded-xl text-xs font-medium transition-all shrink-0 ${
-              activeTab === tab.id ? 'bg-primary text-primary-foreground shadow-2xl shadow-primary/20' : 'text-muted-foreground hover:text-foreground'
+            className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${
+              activeTab === tab.id ? 'bg-primary text-primary-foreground shadow-[0_0_24px_-10px_var(--glow)]' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <tab.icon className="h-4 w-4" />

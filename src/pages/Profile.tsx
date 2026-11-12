@@ -7,7 +7,9 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
-import { UserCircle, Lock, ShieldCheck, Repeat, Bell, Fingerprint, Mail, ShieldAlert } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Card } from '../components/ui/Card';
+import { UserCircle, Lock, ShieldCheck, Repeat, Bell, Mail, ShieldAlert, Fingerprint } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
 import { useNotifications } from '../hooks/useNotifications';
@@ -279,37 +281,26 @@ export default function Profile() {
 
   return (
     <>
-      <div className="space-y-12 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-card/40 border border-border p-5 sm:p-10 lg:p-16 shadow-sm">
-          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-            <Fingerprint className="h-64 w-64 text-primary" />
-          </div>
-          
-          <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-16">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-1.5 w-12 bg-primary rounded-full" />
-                  <span className="text-xs font-semibold tracking-normal text-primary">Account</span>
-                </div>
-                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
-                  Profile
-                </h1>
+      <div className="mx-auto max-w-5xl space-y-8">
+        <PageHeader
+          eyebrow="Account"
+          title="Profile"
+          description="Manage your details, notification preferences, and section membership."
+          actions={
+            <Card className="flex items-center gap-4 px-4 py-3">
+              <div className="text-right">
+                <p className="text-xs font-medium text-muted-foreground">Trust score</p>
+                <p className="text-2xl font-semibold text-primary">{trustScore}%</p>
               </div>
-
-              <div className="flex items-center gap-6 p-6 rounded-2xl bg-muted border border-border shadow-inner">
-                <div className="text-right">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Trust Score</p>
-                  <p className="text-3xl font-semibold text-primary">{trustScore}%</p>
-                </div>
-                <div className="h-12 w-px bg-muted" />
-                <div className="h-16 w-16 rounded-2xl bg-primary-soft flex items-center justify-center border border-border">
-                  <UserCircle className="h-8 w-8 text-primary" />
-                </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <UserCircle className="h-6 w-6" />
               </div>
-            </div>
+            </Card>
+          }
+        />
 
-            <form onSubmit={handleUpdateProfile} className="space-y-12">
+        <Card elevated className="p-5 sm:p-8">
+            <form onSubmit={handleUpdateProfile} className="space-y-10">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div className="space-y-8">
                   <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
@@ -384,18 +375,17 @@ export default function Profile() {
                   </div>
               </div>
             </form>
-          </div>
-        </div>
+        </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-          <div className="bg-card/40 border border-border rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-2xl">
-            <h2 className="text-2xl font-semibold tracking-tight mb-6 flex items-center gap-3">
-              <Bell className="h-6 w-6 text-primary" /> Notifications
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+          <Card className="p-6 sm:p-8">
+            <h2 className="mb-4 flex items-center gap-3 text-xl font-semibold tracking-tight">
+              <Bell className="h-5 w-5 text-primary" /> Notifications
             </h2>
-            <p className="text-sm font-medium text-muted-foreground leading-relaxed mb-8">
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
               Enable notifications for real-time updates on event approvals and class announcements.
             </p>
-            <div className="p-6 rounded-2xl bg-muted border border-border space-y-6">
+            <div className="space-y-4 rounded-2xl border border-border bg-muted/60 p-5">
                <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">Status</p>
@@ -403,42 +393,42 @@ export default function Profile() {
                       {Notification.permission === 'granted' ? 'Enabled' : 'Disabled'}
                     </p>
                   </div>
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${Notification.permission === 'granted' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${Notification.permission === 'granted' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
                     {Notification.permission === 'granted' ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
                   </div>
                </div>
-               <Button 
-                onClick={requestPermission} 
+               <Button
+                onClick={requestPermission}
                 disabled={Notification.permission === 'granted'}
-                className="w-full h-12 rounded-xl font-medium text-xs shadow-lg shadow-primary/10"
+                className="w-full"
                >
                  {Notification.permission === 'granted' ? 'Notifications Active' : 'Enable Notifications'}
                </Button>
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-card/40 border border-border rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-2xl flex flex-col justify-between">
-            <div className="space-y-6">
-              <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-3 text-danger">
-                <ShieldAlert className="h-6 w-6" /> Account Security
+          <Card className="flex flex-col justify-between border-danger/20 p-6 sm:p-8">
+            <div className="space-y-3">
+              <h2 className="flex items-center gap-3 text-xl font-semibold tracking-tight text-danger">
+                <ShieldAlert className="h-5 w-5" /> Account security
               </h2>
-              <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 Irreversible deletion of your account from the RemindrX platform.
               </p>
             </div>
-            <button 
+            <button
               onClick={() => setIsDeleteModalOpen(true)}
-              className="w-full group p-6 rounded-2xl bg-danger/5 border border-danger/10 hover:bg-danger/10 transition-all text-left mt-8"
+              className="group mt-8 w-full rounded-2xl border border-danger/15 bg-danger/5 p-5 text-left transition-all hover:bg-danger/10"
             >
               <div className="flex items-center justify-between">
                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-danger">Delete Account</p>
-                    <p className="text-xs font-medium opacity-40 tracking-normal">Permanent removal from the platform</p>
+                    <p className="text-sm font-semibold text-danger">Delete account</p>
+                    <p className="text-xs text-muted-foreground">Permanent removal from the platform</p>
                  </div>
-                 <ShieldAlert className="h-6 w-6 text-danger transition-transform" />
+                 <ShieldAlert className="h-5 w-5 text-danger" />
               </div>
             </button>
-          </div>
+          </Card>
         </div>
       </div>
 

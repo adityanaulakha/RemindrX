@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
@@ -19,6 +20,9 @@ import Layout from './components/layout/Layout';
 import { BootScreen } from './components/ui/BootScreen';
 import { useTheme } from './hooks/useTheme';
 import type { JSX } from 'react';
+
+const uiPreviewEnabled = import.meta.env.DEV && import.meta.env.VITE_UI_PREVIEW === '1';
+const UIPreview = uiPreviewEnabled ? lazy(() => import('./pages/UIPreview')) : null;
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -87,6 +91,17 @@ function App() {
             }
           />
 
+          {UIPreview && (
+            <Route
+              path="/dev/ui-preview"
+              element={
+                <Suspense fallback={<BootScreen label="Loading UI preview" />}>
+                  <UIPreview />
+                </Suspense>
+              }
+            />
+          )}
+
           {/* Main App Layout */}
           <Route
             element={
@@ -106,7 +121,6 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/cr-panel" element={<CRPanel />} />
             <Route path="/super-admin" element={<SuperAdmin />} />
-            {/* Additional routes will be added here */}
           </Route>
 
           <Route path="/" element={<DefaultRoute />} />

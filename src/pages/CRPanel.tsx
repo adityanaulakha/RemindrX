@@ -6,6 +6,8 @@ import type { User, ClassData } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { PageHeader } from '../components/ui/PageHeader';
+import { PageSkeleton } from '../components/ui/Skeleton';
 import { ShieldAlert, Users, UserMinus, ShieldCheck, Search, ChevronLeft, ChevronRight, GraduationCap, Hash, LayoutGrid, Info, Copy } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
@@ -97,35 +99,15 @@ export default function CRPanel() {
 
   const crs = students.filter(s => s.role === 'admin');
 
-  if (loading || !classData) {
-    return (
-      <div className="space-y-8 animate-pulse">
-        <div className="h-48 bg-card/20 rounded-3xl border border-border"></div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 h-64 bg-card/20 rounded-3xl"></div>
-          <div className="lg:col-span-2 h-96 bg-card/20 rounded-3xl"></div>
-        </div>
-      </div>
-    );
-  }
+  if (loading || !classData) return <PageSkeleton rows={4} />;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-card/60 border border-border p-10 lg:p-16 shadow-sm">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <ShieldAlert className="h-64 w-64 text-primary" />
-        </div>
-        
-        <div className="relative z-10 space-y-4">
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
-            CR Panel
-          </h1>
-          <p className="text-sm font-medium text-muted-foreground max-w-xl">
-            Management console for Class Representatives. Control class identity and verify members.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Class representative"
+        title="CR Panel"
+        description="Management console for Class Representatives. Control class identity and verify members."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Class Metadata */}

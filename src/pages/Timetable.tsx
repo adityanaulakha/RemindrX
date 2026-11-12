@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { Card } from '../components/ui/Card';
 import type { PortalLecture } from '../services/gla/portal';
 import {
   attendanceFromStatus,
@@ -216,79 +220,53 @@ export default function Timetable() {
   const pendingCount = dayLectures.filter((l) => attendanceFromStatus(lectureAttendanceStatus(l)).tone === 'pending').length;
   const heldCount = dayLectures.filter((l) => attendanceFromStatus(lectureAttendanceStatus(l)).tone === 'completed').length;
 
-  if (loading) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center gap-3 text-muted-foreground">
-        <RefreshCw className="h-5 w-5 animate-spin" />
-        <span className="text-xs font-medium">Fetching lectures for the selected date…</span>
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton rows={4} />;
 
   if (needsConnect && Object.keys(grouped).length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto text-center space-y-6">
-        <AlertTriangle className="h-12 w-12 text-warning" />
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Portal login required</h1>
-          <p className="text-sm text-muted-foreground">
-            Connect your GLA portal on the Attendance page first, then come back for My timetable.
-          </p>
-        </div>
-        <Link to="/attendance">
-          <Button className="rounded-2xl font-medium">Open Attendance</Button>
-        </Link>
-      </div>
+      <EmptyState
+        icon={AlertTriangle}
+        title="Portal login required"
+        description="Connect your GLA portal on the Attendance page first, then come back for My timetable."
+        action={
+          <Link to="/attendance">
+            <Button>Open Attendance</Button>
+          </Link>
+        }
+      />
     );
   }
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-3xl bg-card/60 border border-border p-10 lg:p-14 shadow-sm">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <CalendarDays className="h-64 w-64 text-primary" />
-        </div>
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-1 w-12 bg-primary rounded-full" />
-              <span className="text-xs font-semibold tracking-normal text-primary">
-                {cached ? 'Cached · My timetable' : 'Live · My timetable'}
-              </span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none">
-              Timetable
-            </h1>
-            <p className="text-sm font-medium text-muted-foreground max-w-xl">
-              {roll ? `Schedule for ${roll}` : 'Schedule for the selected date'} — current month only, with Present / Absent per lecture (same as the GLA app).
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow={cached ? 'Cached · My timetable' : 'Live · My timetable'}
+        title="Timetable"
+        description={`${roll ? `Schedule for ${roll}` : 'Schedule for the selected date'} — current month only, with Present / Absent per lecture (same as the GLA app).`}
+        actions={
+          <>
             <Button
-              variant="ghost"
+              variant="secondary"
               onClick={() => void syncSelected()}
               disabled={refreshing || dayLoading}
-              className="h-14 px-8 rounded-xl font-medium"
             >
-              <RefreshCw className={`h-4 w-4 mr-3 ${refreshing || dayLoading ? 'animate-spin' : ''}`} /> Sync
+              <RefreshCw className={`h-4 w-4 ${refreshing || dayLoading ? 'animate-spin' : ''}`} /> Sync
             </Button>
             <Link to="/attendance">
-              <Button variant="ghost" className="h-14 px-8 rounded-xl font-medium">
-                Attendance
-              </Button>
+              <Button variant="ghost">Attendance</Button>
             </Link>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {needsConnect && Object.keys(grouped).length > 0 && (
-        <div className="rounded-2xl border border-warning/30 bg-warning/10 px-5 py-4 text-xs text-warning/80 font-medium">
+        <div className="rounded-2xl border border-warning/30 bg-warning/10 px-5 py-4 text-sm font-medium text-warning/80">
           Showing cached timetable. Portal session may have expired — open Attendance to reconnect, then Sync.
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.2fr)] gap-6">
-        <section className="rounded-2xl border border-border bg-card/60 p-5 sm:p-6 space-y-5 shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.2fr)]">
+        <Card className="space-y-5 p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold tracking-normal text-primary">Switch to calendar</p>
@@ -357,13 +335,13 @@ export default function Timetable() {
                 if (!y || !m || !d) return;
                 void selectDate(new Date(y, m - 1, d));
               }}
-              className="h-11 rounded-2xl border border-border bg-background/40 px-4 text-sm font-semibold tracking-normal text-foreground normal-case outline-none focus:border-primary/40"
+              className="control h-11"
             />
           </label>
-        </section>
+        </Card>
 
-        <section className="rounded-2xl border border-border bg-card/60 overflow-hidden shadow-sm">
-          <header className="px-6 py-4 border-b border-border bg-muted flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Card className="overflow-hidden">
+          <header className="flex flex-col justify-between gap-3 border-b border-border bg-muted/70 px-6 py-4 sm:flex-row sm:items-center">
             <div>
               <p className="text-xs font-semibold tracking-normal text-primary">Schedule for the selected date</p>
               <h2 className="text-sm font-semibold tracking-normal text-foreground/70">{formatDisplayDate(selectedDate)}</h2>
@@ -464,7 +442,7 @@ export default function Timetable() {
               })}
             </div>
           )}
-        </section>
+        </Card>
       </div>
     </div>
   );

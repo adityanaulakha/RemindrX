@@ -6,7 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import type { Task, Event, EventParticipation } from '../types';
 import { TaskModal } from '../components/TaskModal';
 import { Button } from '../components/ui/Button';
-import { Plus, Clock, Calendar, AlertTriangle, PartyPopper, RefreshCw, MapPin, CheckCircle2, Circle } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { Plus, Clock, Calendar, AlertTriangle, MapPin, CheckCircle2, Circle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Card } from '../components/ui/Card';
 
@@ -96,58 +99,36 @@ export default function Timeline() {
   const isPast = (timestamp: number) => timestamp < now;
   const isCritical = (timestamp: number, priority?: string) => !isPast(timestamp) && (timestamp <= now + 48 * 60 * 60 * 1000 || priority === 'critical');
 
-  if (loading) {
-    return <div className="animate-pulse h-64 bg-card rounded-xl"></div>;
-  }
+  if (loading) return <PageSkeleton rows={4} />;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-card/60 border border-border p-6 sm:p-10 lg:p-16 shadow-sm">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <Clock className="h-64 w-64 text-primary" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-10">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-1 w-12 bg-primary rounded-full" />
-              <span className="text-xs font-semibold tracking-normal text-primary">Deadlines and events</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
-              Timeline
-            </h1>
-            <p className="text-sm font-medium text-muted-foreground max-w-xl leading-relaxed">
-              Tasks and the events you're going to, in time order.
-            </p>
-          </div>
-        
-          <div className="flex flex-wrap items-center gap-3 p-2 bg-muted rounded-2xl border border-border shadow-inner">
-            <Button 
-              variant="ghost" 
-              className="h-12 sm:h-14 px-5 sm:px-8 rounded-xl font-medium text-xs opacity-40 hover:opacity-100"
-              onClick={() => navigate('/profile')}
-            >
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Deadlines and events"
+        title="Timeline"
+        description="Tasks and the events you're going to, in time order."
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => navigate('/profile')}>
               Window {userData?.deadlinePreference || 2}D
             </Button>
-            <Button className="h-12 sm:h-14 px-6 sm:px-10 rounded-xl shadow-2xl shadow-primary/20 font-medium text-xs sm:text-xs" onClick={() => setIsModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Add task
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-4 w-4" /> Add task
             </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="relative ml-6 sm:ml-8 mt-12 pb-20">
-        {/* Glowing Timeline Axis */}
-        <div className="absolute left-0 top-4 bottom-0 w-0.5 sm:w-1 bg-gradient-to-b from-primary via-accent to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)] opacity-20" />
+      <div className="relative ml-4 pb-8 sm:ml-6">
+        <div className="absolute bottom-0 left-0 top-4 w-px bg-gradient-to-b from-primary via-accent/60 to-transparent opacity-40" />
 
         {timelineItems.length === 0 ? (
-          <div className="pl-12 py-24">
-             <div className="h-20 w-20 bg-muted rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-               <Clock className="h-10 w-10 opacity-10" />
-             </div>
-             <h3 className="text-2xl font-semibold tracking-tight opacity-40">Nothing scheduled</h3>
-             <p className="text-xs font-bold tracking-normal opacity-20 mt-2">Tasks and events you join will show up here.</p>
-          </div>
+          <EmptyState
+            icon={Clock}
+            title="Nothing scheduled"
+            description="Tasks and events you join will show up here."
+            className="ml-6"
+          />
         ) : (
           <div className="space-y-12">
             {timelineItems.map((item) => {

@@ -557,29 +557,19 @@ export default function SuperAdmin() {
   }
 
   return (
-    <div className="min-h-screen space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      {/* Cinematic Command Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-card/40 border border-border p-10 lg:p-16 shadow-sm">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <ShieldCheck className="h-64 w-64 text-primary" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-1 w-12 bg-primary rounded-full" />
-              <span className="text-xs font-semibold tracking-normal text-primary">Administration</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
-              Super Admin
-            </h1>
-            <p className="text-sm font-medium text-muted-foreground max-w-xl leading-relaxed">
-              Global platform management. Monitoring {analytics.totalUsers} users across {institutes.length} institutions. 
-              Real-time oversight and moderation active.
+    <div className="min-h-screen space-y-8">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-6 shadow-[var(--shadow)] backdrop-blur-xl sm:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
+        <div className="relative z-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Administration</p>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Super Admin</h1>
+            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Global platform management. Monitoring {analytics.totalUsers} users across {institutes.length} institutions.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 p-2 bg-muted rounded-2xl border border-border shadow-inner">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border bg-muted/60 p-1.5">
             {[
               { id: 'analytics', label: 'Analytics', icon: TrendingUp },
               { id: 'events', label: 'Events', icon: Calendar },
@@ -590,10 +580,10 @@ export default function SuperAdmin() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-3 px-6 py-4 rounded-xl text-xs font-semibold transition-all tracking-normal ${
-                  activeTab === tab.id 
-                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                className={`flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-primary text-primary-foreground shadow-[0_0_24px_-10px_var(--glow)]'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 <tab.icon className="h-4 w-4" />

@@ -4,7 +4,11 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Post, Subject } from '../types';
 import { Button } from '../components/ui/Button';
-import { ThumbsUp, ThumbsDown, MessageSquare, Plus, Edit2, Trash2, Clock, ShieldCheck, Activity } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { Card } from '../components/ui/Card';
+import { ThumbsUp, ThumbsDown, MessageSquare, Plus, Edit2, Trash2, Clock, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { PostModal } from '../components/PostModal';
 
@@ -79,49 +83,28 @@ export default function ClassUpdates() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="animate-pulse space-y-12">
-        <div className="h-64 bg-card/20 rounded-3xl border border-border"></div>
-        <div className="space-y-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-card/20 rounded-2xl border border-border"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton rows={4} />;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-3xl bg-card/60 border border-border p-10 lg:p-16 shadow-sm">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <MessageSquare className="h-64 w-64 text-primary" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-          <div className="space-y-4">
-            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
-              Class Updates
-            </h1>
-            <p className="text-sm font-medium text-muted-foreground max-w-xl">
-              Notes and announcements from your section.
-            </p>
-          </div>
-
-          <Button onClick={() => setIsModalOpen(true)} className="h-16 px-12 rounded-2xl font-medium shadow-2xl shadow-primary/20">
-            <Plus className="mr-2 h-5 w-5" /> Post an update
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Section feed"
+        title="Class Updates"
+        description="Notes and announcements from your section."
+        actions={
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4" /> Post an update
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="space-y-6 max-w-5xl">
+      <div className="max-w-5xl space-y-4">
         {posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl bg-card/20 border border-dashed border-border p-24 text-center">
-            <Activity className="mb-8 h-20 w-20 text-muted-foreground animate-pulse" />
-            <h3 className="text-2xl font-semibold tracking-tight mb-2">No updates yet</h3>
-            <p className="text-sm text-muted-foreground font-medium tracking-normal">Post something your class should know.</p>
-          </div>
+          <EmptyState
+            icon={MessageSquare}
+            title="No updates yet"
+            description="Post something your class should know."
+          />
         ) : (
           posts.slice(0, visibleCount).map(post => {
             const hasConfirmed = post.confirmations.includes(currentUser?.uid || '');
@@ -129,7 +112,7 @@ export default function ClassUpdates() {
             const subject = subjects[post.subjectId];
 
             return (
-              <div key={post.id} className="group relative bg-card/40 border border-border rounded-2xl p-8 transition-all duration-500 hover:border-primary/30 hover:shadow-2xl overflow-hidden">
+              <Card key={post.id} className="group overflow-hidden p-5 sm:p-6">
                 <div className="flex flex-col lg:flex-row justify-between gap-8">
                   <div className="flex-1 space-y-6">
                     <div className="flex flex-wrap items-center gap-4">
@@ -200,18 +183,14 @@ export default function ClassUpdates() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })
         )}
 
         {posts.length > visibleCount && (
-          <div className="flex justify-center pt-8">
-            <Button 
-              variant="ghost" 
-              onClick={() => setVisibleCount(prev => prev + 10)}
-              className="h-14 px-12 rounded-2xl font-medium border border-border hover:bg-muted"
-            >
+          <div className="flex justify-center pt-4">
+            <Button variant="secondary" onClick={() => setVisibleCount(prev => prev + 10)}>
               Show older updates
             </Button>
           </div>
