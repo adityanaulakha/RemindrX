@@ -5,8 +5,8 @@ export type ThemePreference = 'light' | 'dark' | 'system';
 const STORAGE_KEY = 'remindrx-theme';
 
 const THEME_COLORS = {
-  light: '#F4F2F8',
-  dark: '#07070B',
+  light: '#F3F2EF',
+  dark: '#111111',
 } as const;
 
 export function resolveTheme(preference: ThemePreference): 'light' | 'dark' {

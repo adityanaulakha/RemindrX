@@ -1,3 +1,5 @@
+import { BrandMark } from '../BrandMark';
+
 export function BootScreen({ label = 'Loading RemindrX' }: { label?: string }) {
   return (
     <div
@@ -5,11 +7,9 @@ export function BootScreen({ label = 'Loading RemindrX' }: { label?: string }) {
       role="status"
       aria-live="polite"
     >
-      <div className="relative">
-        <div className="absolute inset-0 rounded-2xl bg-primary/30 blur-xl motion-glow" />
-        <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card shadow-[var(--shadow-lg)] backdrop-blur-xl">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
-        </div>
+      <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card shadow-[var(--shadow)]">
+        <BrandMark size={40} alt="" className="rounded-[20%]" />
+        <span className="absolute -bottom-1 -right-1 h-4 w-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary bg-card" />
       </div>
       <div className="text-center">
         <p className="text-sm font-semibold tracking-tight">RemindrX</p>

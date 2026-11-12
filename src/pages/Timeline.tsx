@@ -145,7 +145,7 @@ export default function Timeline() {
                   <div key={key} className={`relative pl-8 sm:pl-12 group transition-all duration-500 ${isDone ? 'opacity-40' : isMissed ? 'opacity-80' : ''}`}>
                     {/* Simple Node for Past Tasks */}
                     <div className={`absolute -left-[10px] sm:-left-[14px] top-6 h-5 w-5 sm:h-7 sm:w-7 rounded-full border-[3px] sm:border-4 border-background flex items-center justify-center shadow-xl z-10 transition-transform group-hover:scale-125 ${
-                      isDone ? 'bg-success' : isMissed ? 'bg-foreground/20' : critical ? 'bg-danger animate-pulse shadow-danger/50' : 'bg-primary shadow-primary/50'
+                      isDone ? 'bg-success' : isMissed ? 'bg-foreground/20' : critical ? 'bg-danger animate-pulse shadow-danger/50' : 'bg-primary'
                     }`}>
                       {isDone ? <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-white" /> : <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 bg-white rounded-full" />}
                     </div>

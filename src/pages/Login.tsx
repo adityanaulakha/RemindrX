@@ -12,6 +12,7 @@ import { useTheme } from '../hooks/useTheme';
 import { BookOpen, School, Mail, ShieldCheck } from 'lucide-react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import type { Institute } from '../types';
+import { BrandLockup } from '../components/BrandMark';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -125,7 +126,7 @@ export default function Login() {
     return (
       <div className="app-canvas flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md rounded-3xl border border-border bg-card/80 p-8 text-center shadow-[var(--shadow-lg)] backdrop-blur-xl page-enter">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary glow-ring">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-primary-soft text-primary">
             <Mail className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Check your email</h1>
@@ -149,12 +150,9 @@ export default function Login() {
   return (
     <div className="app-canvas min-h-screen lg:grid lg:grid-cols-2">
       <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-border bg-surface/70 px-12 py-10 backdrop-blur-xl lg:flex">
-        <div className="pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/15 blur-3xl" />
         <div className="relative z-10 flex items-center justify-between">
-          <button type="button" onClick={() => navigate('/')} className="flex items-center gap-3 text-left">
-            <img src="/Logo.png" alt="" className="h-11 w-11 rounded-2xl object-cover ring-1 ring-border" />
-            <span className="text-lg font-semibold tracking-tight">RemindrX</span>
+          <button type="button" onClick={() => navigate('/')} className="flex items-center text-left">
+            <BrandLockup markSize={44} wordmarkClassName="text-lg" />
           </button>
           <ThemeSwitch preference={preference} onChange={setPreference} compact />
         </div>
@@ -175,9 +173,8 @@ export default function Login() {
       <main className="flex min-h-screen items-center justify-center px-4 py-10">
         <div className="w-full max-w-md page-enter">
           <div className="mb-8 flex items-center justify-between lg:hidden">
-            <button type="button" onClick={() => navigate('/')} className="flex items-center gap-2">
-              <img src="/Logo.png" alt="" className="h-9 w-9 rounded-xl object-cover ring-1 ring-border" />
-              <span className="text-base font-semibold tracking-tight">RemindrX</span>
+            <button type="button" onClick={() => navigate('/')} className="flex items-center">
+              <BrandLockup markSize={36} wordmarkClassName="text-base" />
             </button>
             <ThemeSwitch preference={preference} onChange={setPreference} compact />
           </div>

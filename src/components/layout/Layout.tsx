@@ -19,6 +19,7 @@ import { OfflineIndicator } from '../OfflineIndicator';
 import { AutoReminder } from '../AutoReminder';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useTheme } from '../../hooks/useTheme';
+import { BrandLockup } from '../BrandMark';
 
 type InboxNote = {
   id: string;
@@ -176,7 +177,7 @@ export default function Layout() {
         <button
           type="button"
           aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-[#050508]/55 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -195,11 +196,7 @@ export default function Layout() {
               navigate(userData?.isSuperAdmin && !userData?.classId ? '/super-admin' : '/dashboard');
             }}
           >
-            <span className="relative">
-              <span className="absolute inset-0 rounded-xl bg-primary/30 blur-md" />
-              <img src="/Logo.png" alt="" className="relative h-9 w-9 rounded-xl object-cover ring-1 ring-border" />
-            </span>
-            <span className="truncate text-base font-semibold tracking-tight">RemindrX</span>
+            <BrandLockup markSize={36} wordmarkClassName="truncate text-base" />
           </button>
           <button
             type="button"
@@ -222,8 +219,8 @@ export default function Layout() {
                 cn(
                   'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-primary-soft text-primary glow-ring'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'border border-primary/30 bg-primary-soft text-primary'
+                    : 'border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                 )
               }
             >
@@ -243,7 +240,7 @@ export default function Layout() {
               navigate('/profile');
             }}
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-[0_0_24px_-8px_var(--glow)]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground">
               {userData?.name?.charAt(0).toUpperCase() || 'U'}
             </span>
             <span className="min-w-0">

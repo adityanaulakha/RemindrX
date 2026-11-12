@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RemindrX">
+  <rect width="512" height="512" rx="108" fill="#1A1A1A"/>
+  <!-- Solid geometric R (evenodd counter for the bowl only) -->
+  <path
+    fill="#FF5B1F"
+    fill-rule="evenodd"
+    d="
+      M150 130
+      H318
+      C392 130 430 168 430 222
+      C430 270 402 304 348 314
+      L430 420
+      H352
+      L278 326
+      H206
+      V420
+      H150
+      V130
+      Z
+      M206 182
+      V274
+      H310
+      C342 274 368 256 368 222
+      C368 188 342 182 310 182
+      H206
+      Z
+    "
+  />
+  <!-- Notification pip, clear of the letter -->
+  <circle cx="412" cy="412" r="24" fill="#FF5B1F"/>
+</svg>

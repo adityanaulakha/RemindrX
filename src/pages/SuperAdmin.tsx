@@ -559,7 +559,6 @@ export default function SuperAdmin() {
   return (
     <div className="min-h-screen space-y-8">
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-6 shadow-[var(--shadow)] backdrop-blur-xl sm:p-8">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
         <div className="relative z-10 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div className="space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Administration</p>
@@ -582,7 +581,7 @@ export default function SuperAdmin() {
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all ${
                   activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground shadow-[0_0_24px_-10px_var(--glow)]'
+                    ? 'bg-primary text-primary-foreground '
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
@@ -610,11 +609,11 @@ export default function SuperAdmin() {
               {/* Platform Statistics */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 {[
-                  { id: 'institutes', label: 'Institutes', count: institutes.length, icon: School, color: 'text-primary', bg: 'bg-blue-400/10' },
-                  { id: 'users', label: 'Users', count: analytics.totalUsers, icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
-                  { id: 'classes', label: 'Classes', count: analytics.totalClasses, icon: LayoutDashboard, color: 'text-success', bg: 'bg-emerald-400/10' },
-                  { id: 'events', label: 'Events', count: analytics.totalEvents, icon: Calendar, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-                  { id: 'subjects', label: 'Subjects', count: analytics.totalSubjects, icon: BookOpen, color: 'text-accent', bg: 'bg-orange-400/10' }
+                  { id: 'institutes', label: 'Institutes', count: institutes.length, icon: School, color: 'text-primary', bg: 'bg-primary-soft' },
+                  { id: 'users', label: 'Users', count: analytics.totalUsers, icon: Users, color: 'text-foreground', bg: 'bg-muted' },
+                  { id: 'classes', label: 'Classes', count: analytics.totalClasses, icon: LayoutDashboard, color: 'text-success', bg: 'bg-success/10' },
+                  { id: 'events', label: 'Events', count: analytics.totalEvents, icon: Calendar, color: 'text-primary', bg: 'bg-primary-soft' },
+                  { id: 'subjects', label: 'Subjects', count: analytics.totalSubjects, icon: BookOpen, color: 'text-warning', bg: 'bg-warning/10' }
                 ].map(stat => (
                   <div 
                     key={stat.id} 
@@ -691,7 +690,7 @@ export default function SuperAdmin() {
                         ))}
                         
                         {activeDetailTab === 'institutes' && institutes.filter(i => !searchTerm || i.name?.toLowerCase().includes(searchTerm.toLowerCase())).map(i => (
-                          <div key={i.id} className="p-6 rounded-2xl bg-muted border border-border group hover:border-blue-400/40 transition-all cursor-pointer">
+                          <div key={i.id} className="p-6 rounded-2xl bg-muted border border-border group hover:border-primary/40 transition-all cursor-pointer">
                             <div className="flex justify-between items-start mb-4">
                               <p className="text-sm font-semibold truncate">{i.name}</p>
                             </div>
@@ -704,7 +703,7 @@ export default function SuperAdmin() {
                         ))}
 
                         {activeDetailTab === 'events' && allEvents.filter(e => !searchTerm || e.title?.toLowerCase().includes(searchTerm.toLowerCase())).map(e => (
-                          <div key={e.id} className="p-6 rounded-2xl bg-muted border border-border group hover:border-purple-400/40 transition-all cursor-pointer" onClick={() => setSelectedEvent(e)}>
+                          <div key={e.id} className="p-6 rounded-2xl bg-muted border border-border group hover:border-primary/40 transition-all cursor-pointer" onClick={() => setSelectedEvent(e)}>
                             <div className="flex justify-between items-start mb-4">
                               <p className="text-sm font-semibold truncate">{e.title}</p>
                               <span className={`text-xs font-semibold px-3 py-1 rounded-full ${e.status === 'approved' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}`}>{e.status}</span>
@@ -887,14 +886,14 @@ export default function SuperAdmin() {
                     <h2 className="text-3xl font-semibold tracking-tight">Colleges</h2>
                     <p className="text-xs text-muted-foreground font-medium mt-1">Colleges and the email domains that can sign up.</p>
                   </div>
-                  <Button onClick={() => setIsInstituteModalOpen(true)} className="gap-2 rounded-xl h-14 px-8 font-medium shadow-2xl shadow-primary/30">
+                  <Button onClick={() => setIsInstituteModalOpen(true)} className="gap-2 rounded-xl h-14 px-8 font-medium shadow-[var(--shadow-lg)]">
                     <Plus className="h-5 w-5" /> Onboard Campus
                   </Button>
                 </div>
 
                 <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                   {institutes.map(inst => (
-                    <div key={inst.id} className="group bg-card/40 backdrop-blur-md border border-border/50 rounded-3xl p-10 hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2">
+                    <div key={inst.id} className="group bg-card/40 backdrop-blur-md border border-border/50 rounded-3xl p-10 hover:border-primary/50 transition-all duration-500 hover:shadow-2xl  hover:-translate-y-2">
                       <div className="flex items-start justify-between mb-8">
                         <div className="p-5 bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-all group-hover:rotate-6">
                           <School className="h-10 w-10 text-primary" />
@@ -939,7 +938,7 @@ export default function SuperAdmin() {
                     <h2 className="text-3xl font-semibold tracking-tight">Sections</h2>
                     <p className="text-xs text-muted-foreground font-medium mt-1">Sections students can join, and who is in them.</p>
                   </div>
-                  <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2 rounded-xl h-14 px-8 font-medium shadow-2xl shadow-primary/30">
+                  <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2 rounded-xl h-14 px-8 font-medium shadow-[var(--shadow-lg)]">
                     <Plus className="h-5 w-5" /> New Section
                   </Button>
                 </div>
@@ -1007,7 +1006,7 @@ export default function SuperAdmin() {
                 ) : (
                   <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {changeRequests.map(req => (
-                      <div key={req.id} className="group bg-card/40 backdrop-blur-md border border-primary/20 rounded-3xl p-10 shadow-2xl shadow-primary/5">
+                      <div key={req.id} className="group bg-card/40 backdrop-blur-md border border-primary/20 rounded-3xl p-10 shadow-[var(--shadow)]">
                         <div className="flex items-center gap-5 mb-8">
                           <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl font-semibold text-primary border-2 border-primary/20">
                             {req.userName?.charAt(0)}
@@ -1211,7 +1210,7 @@ export default function SuperAdmin() {
           </div>
           <div className="pt-8 flex gap-4">
             <Button type="button" variant="ghost" className="flex-1 rounded-2xl h-14 font-medium" onClick={() => setIsInstituteModalOpen(false)}>Cancel</Button>
-            <Button type="submit" className="flex-1 rounded-2xl h-14 font-medium shadow-xl shadow-primary/20" disabled={loading}>
+            <Button type="submit" className="flex-1 rounded-2xl h-14 font-medium shadow-[var(--shadow)]" disabled={loading}>
               {editingInstitute ? 'Update Enclave' : 'Seal & Deploy'}
             </Button>
           </div>
@@ -1320,7 +1319,7 @@ export default function SuperAdmin() {
                 </div>
                 <div className="pt-6 flex gap-3">
                   <Button type="button" variant="ghost" className="flex-1" onClick={() => setIsEditingSubject(false)}>Cancel</Button>
-                  <Button type="submit" className="flex-1 shadow-xl shadow-primary/20">Save Unit</Button>
+                  <Button type="submit" className="flex-1 shadow-[var(--shadow)]">Save Unit</Button>
                 </div>
               </form>
             ) : (

@@ -33,7 +33,7 @@ export function ThemeSwitch({
               'flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-all duration-200',
               compact ? 'w-9 px-0' : 'flex-1',
               active
-                ? 'bg-surface-elevated text-foreground shadow-[var(--shadow)] glow-ring'
+                ? 'bg-surface-elevated text-foreground shadow-[var(--shadow)]'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >

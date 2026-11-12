@@ -369,7 +369,7 @@ export default function Profile() {
                     <Repeat className="mr-2 h-4 w-4" /> Transfer Class
                  </Button>
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <Button type="submit" disabled={loading} className="h-12 sm:h-14 px-8 sm:px-12 rounded-2xl font-medium shadow-xl shadow-primary/20 text-xs sm:text-xs">
+                    <Button type="submit" disabled={loading} className="h-12 sm:h-14 px-8 sm:px-12 rounded-2xl font-medium shadow-[var(--shadow)] text-xs sm:text-xs">
                       {loading ? 'Saving...' : 'Update Profile'}
                     </Button>
                   </div>
@@ -511,7 +511,7 @@ export default function Profile() {
           />
           <div className="pt-4 flex gap-4">
             <Button type="button" variant="ghost" className="flex-1 h-14 rounded-2xl font-medium" onClick={() => setIsClassChangeModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={classChangeLoading} className="flex-2 h-14 px-10 rounded-2xl font-medium shadow-xl shadow-primary/20">
+            <Button type="submit" disabled={classChangeLoading} className="flex-2 h-14 px-10 rounded-2xl font-medium shadow-[var(--shadow)]">
               {classChangeLoading ? 'Processing...' : 'Submit Transfer'}
             </Button>
           </div>

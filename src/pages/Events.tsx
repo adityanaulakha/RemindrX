@@ -159,7 +159,7 @@ export default function Events() {
               onClick={() => setActiveCategory(cat)}
               className={`whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition-all ${
                 activeCategory === cat
-                  ? 'bg-primary text-primary-foreground shadow-[0_0_24px_-10px_var(--glow)]'
+                  ? 'bg-primary text-primary-foreground '
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >

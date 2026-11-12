@@ -143,7 +143,7 @@ export function PostModal({ isOpen, onClose, onPostAdded, defaultSubjectId, edit
 
         <div className="pt-4 flex gap-4">
           <Button type="button" variant="ghost" className="flex-1 h-14 rounded-2xl font-medium" onClick={onClose}>Abort</Button>
-          <Button type="submit" className="flex-2 h-14 px-10 rounded-2xl font-medium shadow-xl shadow-primary/20" disabled={loading}>
+          <Button type="submit" className="flex-2 h-14 px-10 rounded-2xl font-medium shadow-[var(--shadow)]" disabled={loading}>
             {loading ? 'Posting…' : (editPost ? 'Save changes' : 'Post update')}
           </Button>
         </div>

@@ -174,7 +174,7 @@ export default function SubjectDetails() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${
-              activeTab === tab.id ? 'bg-primary text-primary-foreground shadow-[0_0_24px_-10px_var(--glow)]' : 'text-muted-foreground hover:text-foreground'
+              activeTab === tab.id ? 'bg-primary text-primary-foreground ' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <tab.icon className="h-4 w-4" />

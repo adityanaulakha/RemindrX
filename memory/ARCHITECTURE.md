@@ -53,7 +53,7 @@ Key types: `src/types/index.ts`. Rules: `firestore.rules`.
 ## PWA
 
 - Manifest in `vite.config.ts` (name still generic: "Academic Platform")
-- Icons: `public/Logo.png`
+- Icons: `public/logo-mark.svg`, `public/icon-192.png`, `public/icon-512.png`
 - SW: auto-update; FCM SW at `public/firebase-messaging-sw.js`
 - Offline: Firestore persistent local cache
 

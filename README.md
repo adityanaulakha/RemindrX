@@ -1,6 +1,6 @@
 # RemindrX | Intelligent Academic Platform
 
-![RemindrX Logo](public/Logo.png)
+![RemindrX Logo](public/logo-mark.svg)
 
 **RemindrX** is a professional, high-performance academic management platform designed to bridge the gap between students, class representatives, and institutional administration. Built with a cinematic **"Premium Glassmorphism"** aesthetic, it prioritizes visual excellence without compromising on performance or security.
 

@@ -21,8 +21,6 @@ export function PageHeader({
         className
       )}
     >
-      <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/15 blur-3xl motion-glow" />
-      <div className="pointer-events-none absolute -bottom-24 -left-10 h-48 w-48 rounded-full bg-accent/10 blur-3xl" />
       <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-2">
           {eyebrow && (

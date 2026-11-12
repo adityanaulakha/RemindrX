@@ -224,7 +224,7 @@ export default function Attendance() {
   if (gate === 'pin-unlock') {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center space-y-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary glow-ring">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary">
           <Lock className="h-7 w-7" />
         </div>
         <div className="text-center space-y-2">
@@ -257,7 +257,7 @@ export default function Attendance() {
   if (gate === 'pin-setup') {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center space-y-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary glow-ring">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary">
           <ShieldCheck className="h-7 w-7" />
         </div>
         <div className="text-center space-y-2">

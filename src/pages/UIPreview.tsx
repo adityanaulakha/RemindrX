@@ -83,36 +83,39 @@ export default function UIPreview() {
 
         {view === 'attendance' && (
           <div className="space-y-6 page-enter">
-            <PageHeader eyebrow="Live portal sync" title="Attendance" description="Signed in as 221500000 — overall 82% · CPI 8.4" />
+            <PageHeader eyebrow="Live portal sync" title="Attendance" description="Signed in as 221500000 — portal session connected · CPI synced" />
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="flex items-center gap-5 p-6" elevated>
-                <ProgressRing value={82} size={96} stroke={9} label="Overall" />
+                <ProgressRing value={78} size={96} stroke={9} label="Overall" />
                 <div>
                   <p className="text-xs text-muted-foreground">Overall attendance</p>
-                  <p className="mt-1 text-3xl font-semibold">82%</p>
+                  <p className="mt-1 text-sm font-medium text-muted-foreground">From GLA portal session</p>
                   <Badge className="mt-3" tone="success">On track</Badge>
                 </div>
               </Card>
               <Card className="p-6" elevated>
                 <p className="text-xs text-muted-foreground">Current CPI</p>
-                <p className="mt-2 text-4xl font-semibold">8.4</p>
+                <p className="mt-2 text-4xl font-semibold tracking-tight">CPI</p>
+                <p className="mt-1 text-sm text-muted-foreground">Synced from student portal</p>
               </Card>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               {[
-                ['Data Structures', 88],
-                ['Operating Systems', 74],
-                ['DBMS Lab', 69],
-              ].map(([name, value]) => (
+                ['Data Structures', 'Theory'],
+                ['Operating Systems', 'Theory'],
+                ['DBMS Lab', 'Lab'],
+              ].map(([name, kind]) => (
                 <Card key={String(name)} className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="font-semibold tracking-tight">{name}</h3>
-                      <p className="mt-1 text-xs text-muted-foreground">Subject attendance</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{kind} · subject attendance</p>
                     </div>
-                    <ProgressRing value={Number(value)} size={64} stroke={6} />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary/40 text-[10px] font-semibold text-primary">
+                      Sync
+                    </div>
                   </div>
-                  <ProgressBar value={Number(value)} className="mt-4" />
+                  <ProgressBar value={70} tone="primary" className="mt-4" />
                 </Card>
               ))}
             </div>
