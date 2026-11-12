@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef, useId } from 'react';
 import type { InputHTMLAttributes } from 'react';
 import { cn } from './Button';
 
@@ -8,24 +8,35 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, ...props }, ref) => {
+  ({ className, label, error, id, ...props }, ref) => {
+    const generatedId = useId();
+    const inputId = id || generatedId;
+    const errorId = error ? `${inputId}-error` : undefined;
+
     return (
-      <div className="w-full space-y-2">
+      <div className="w-full space-y-1.5">
         {label && (
-          <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 ml-1 italic">
+          <label htmlFor={inputId} className="block text-sm font-medium text-foreground">
             {label}
           </label>
         )}
         <input
+          id={inputId}
           ref={ref}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={errorId}
           className={cn(
-            'flex h-14 w-full rounded-2xl border border-border/50 bg-card/50 backdrop-blur-md px-4 py-2 text-sm text-foreground placeholder:text-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-inner',
-            error && 'border-danger/50 focus-visible:ring-danger/40',
+            'flex h-11 w-full rounded-xl border border-border bg-card px-3.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50',
+            error && 'border-danger outline-danger',
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-[10px] font-bold text-danger uppercase tracking-wider ml-1">{error}</p>}
+        {error && (
+          <p id={errorId} className="text-sm font-medium text-danger">
+            {error}
+          </p>
+        )}
       </div>
     );
   }

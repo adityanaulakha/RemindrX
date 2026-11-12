@@ -120,7 +120,7 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
               <option key={inst.id} value={inst.id}>{inst.name}</option>
             ))}
           </select>
-          {institutes.length === 0 && <p className="text-[10px] text-danger mt-1">No institutes found. Create one in Super Admin first.</p>}
+          {institutes.length === 0 && <p className="text-xs text-danger mt-1">No institutes found. Create one in Super Admin first.</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -170,14 +170,14 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
 
         <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 space-y-3">
           <div>
-            <p className="text-xs text-primary font-bold uppercase tracking-wider mb-1">Generated Section Code</p>
+            <p className="text-xs text-primary font-bold tracking-normal mb-1">Generated Section Code</p>
             <p className="font-mono text-lg">{joinCode}</p>
-            <p className="text-[10px] text-foreground/50 mt-1">Students will use this exact code to join this section.</p>
+            <p className="text-xs text-muted-foreground mt-1">Students will use this exact code to join this section.</p>
           </div>
           <div className="pt-2 border-t border-primary/10">
-            <p className="text-xs text-primary font-bold uppercase tracking-wider mb-1">Generated Admin Invite Code</p>
+            <p className="text-xs text-primary font-bold tracking-normal mb-1">Generated Admin Invite Code</p>
             <p className="font-mono text-lg">{adminCode}</p>
-            <p className="text-[10px] text-foreground/50 mt-1">Unique code for Class Representatives to get admin rights.</p>
+            <p className="text-xs text-muted-foreground mt-1">Unique code for Class Representatives to get admin rights.</p>
           </div>
         </div>
 
@@ -191,7 +191,7 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
             onChange={(e) => setAdminLimit(parseInt(e.target.value) || 1)}
             required
           />
-          <p className="text-[10px] text-foreground/50 mt-1">How many CRs can use this admin code.</p>
+          <p className="text-xs text-muted-foreground mt-1">How many CRs can use this admin code.</p>
         </div>
 
         <div className="pt-4 flex justify-end gap-3">

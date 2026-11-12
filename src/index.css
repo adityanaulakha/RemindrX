@@ -1,97 +1,167 @@
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
-  --color-accent: #f59e0b;
+  --color-warning-foreground: var(--warning-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
 }
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #000000;
-    --card: #f9f9f9;
-    --card-foreground: #000000;
-    --border: #eeeeee;
-    --primary: #6366f1; /* Electric Indigo */
-    --primary-foreground: #ffffff;
-    --danger: #ff4d4d;
-    --danger-foreground: #ffffff;
-    --success: #00ff88;
-    --warning: #ffcc00;
+    color-scheme: light;
+    --background: #f6f3ec;
+    --foreground: #1c1917;
+    --card: #fffdf9;
+    --card-foreground: #1c1917;
+    --muted: #efeae1;
+    --muted-foreground: #5c564e;
+    --border: #e4ddd0;
+    --primary: #0f6b56;
+    --primary-foreground: #f4fbf8;
+    --primary-soft: #e4f4ec;
+    --accent: #c45c26;
+    --accent-foreground: #fff7f2;
+    --danger: #b42318;
+    --danger-foreground: #fff5f4;
+    --success: #067647;
+    --success-foreground: #f3fbf6;
+    --warning: #b54708;
+    --warning-foreground: #fff8ef;
+    --ring: #0f6b56;
+    --shadow: 0 1px 2px rgb(28 25 23 / 0.05), 0 18px 40px -28px rgb(28 25 23 / 0.35);
   }
-  
-  .dark {
-    --background: #080808;
-    --foreground: #ffffff;
-    --card: #121212;
-    --card-foreground: #ffffff;
-    --border: #1a1a1a;
-    --primary: #8b5cf6; /* Vibrant Violet */
-    --primary-foreground: #ffffff;
-    --danger: #ff5e5e;
-    --danger-foreground: #ffffff;
-    --success: #00ffaa;
-    --warning: #facc15;
-  }
-}
 
-@layer base {
+  .dark {
+    color-scheme: dark;
+    --background: #10120f;
+    --foreground: #f4f1ea;
+    --card: #1a1d18;
+    --card-foreground: #f4f1ea;
+    --muted: #242820;
+    --muted-foreground: #c8c0b4;
+    --border: #34382e;
+    --primary: #3dbe8a;
+    --primary-foreground: #05281c;
+    --primary-soft: #143028;
+    --accent: #f0a06a;
+    --accent-foreground: #2a1408;
+    --danger: #f97066;
+    --danger-foreground: #2d0a08;
+    --success: #47cd89;
+    --success-foreground: #052e1a;
+    --warning: #fdb022;
+    --warning-foreground: #2a1a04;
+    --ring: #8ae8c4;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 18px 40px -24px rgb(0 0 0 / 0.65);
+  }
+
   * {
     border-color: var(--border);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
+
   html {
     scroll-behavior: smooth;
   }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
-    letter-spacing: -0.01em;
+    font-family: var(--font-sans);
+    letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* GPU-accelerated scrolling */
-  main, [class*="overflow-y-auto"], [class*="overflow-x-auto"] {
-    -webkit-overflow-scrolling: touch;
-    will-change: scroll-position;
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
+    color: var(--foreground);
   }
 
-  /* Reduce animations for users who prefer it */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0); }
-  .pt-safe { padding-top: env(safe-area-inset-top, 0); }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }
 
 @layer components {
-  .glass-panel {
-    @apply bg-card/60 backdrop-blur-lg border border-white/10 shadow-2xl;
+  .app-canvas {
+    background:
+      radial-gradient(900px 420px at 100% -10%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 60%),
+      radial-gradient(720px 380px at -10% 110%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+      var(--background);
   }
-  
-  .mesh-bg {
-    background-image: 
-      radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-      radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-      radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+
+  .surface {
+    background: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+
+  .control {
+    display: flex;
+    width: 100%;
+    min-height: 2.75rem;
+    border-radius: 0.85rem;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    padding: 0.5rem 0.85rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .control::placeholder {
+    color: var(--muted-foreground);
   }
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;

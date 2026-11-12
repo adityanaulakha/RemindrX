@@ -34,23 +34,23 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function typeBadge(lecType?: string): string {
   const t = lecType || '';
-  if (t.includes('Lab')) return 'bg-violet-500/15 text-violet-300 border-violet-500/20';
-  if (t.includes('Tut')) return 'bg-amber-500/15 text-amber-300 border-amber-500/20';
+  if (t.includes('Lab')) return 'bg-primary/10 text-primary border-primary/25';
+  if (t.includes('Tut')) return 'bg-warning/15 text-warning border-warning/30';
   return 'bg-primary/15 text-primary border-primary/20';
 }
 
 function attendanceBadge(tone: ReturnType<typeof attendanceFromStatus>['tone']): string {
   switch (tone) {
     case 'present':
-      return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+      return 'bg-success/15 text-success border-success/30';
     case 'absent':
-      return 'bg-rose-500/15 text-rose-300 border-rose-500/30';
+      return 'bg-danger/15 text-danger border-danger/30';
     case 'completed':
-      return 'bg-sky-500/15 text-sky-300 border-sky-500/30';
+      return 'bg-primary/10 text-primary border-primary/25';
     case 'pending':
-      return 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30';
+      return 'bg-warning/15 text-warning border-warning/30';
     default:
-      return 'bg-foreground/10 text-foreground/60 border-white/10';
+      return 'bg-foreground/10 text-foreground/60 border-border';
   }
 }
 
@@ -218,9 +218,9 @@ export default function Timetable() {
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center gap-3 text-foreground/40">
+      <div className="min-h-[50vh] flex items-center justify-center gap-3 text-muted-foreground">
         <RefreshCw className="h-5 w-5 animate-spin" />
-        <span className="text-[10px] font-black uppercase tracking-widest">Fetching lectures for the selected date…</span>
+        <span className="text-xs font-medium">Fetching lectures for the selected date…</span>
       </div>
     );
   }
@@ -228,15 +228,15 @@ export default function Timetable() {
   if (needsConnect && Object.keys(grouped).length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto text-center space-y-6">
-        <AlertTriangle className="h-12 w-12 text-amber-500" />
+        <AlertTriangle className="h-12 w-12 text-warning" />
         <div className="space-y-2">
-          <h1 className="text-3xl font-black italic tracking-tighter uppercase">Portal login required</h1>
-          <p className="text-sm text-foreground/40">
+          <h1 className="text-3xl font-semibold tracking-tight">Portal login required</h1>
+          <p className="text-sm text-muted-foreground">
             Connect your GLA portal on the Attendance page first, then come back for My timetable.
           </p>
         </div>
         <Link to="/attendance">
-          <Button className="rounded-2xl font-black uppercase tracking-widest italic">Open Attendance</Button>
+          <Button className="rounded-2xl font-medium">Open Attendance</Button>
         </Link>
       </div>
     );
@@ -244,7 +244,7 @@ export default function Timetable() {
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-14 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-3xl bg-card/60 border border-border p-10 lg:p-14 shadow-sm">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <CalendarDays className="h-64 w-64 text-primary" />
         </div>
@@ -252,14 +252,14 @@ export default function Timetable() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="h-1 w-12 bg-primary rounded-full" />
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
+              <span className="text-xs font-semibold tracking-normal text-primary">
                 {cached ? 'Cached · My timetable' : 'Live · My timetable'}
               </span>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none">
               Timetable
             </h1>
-            <p className="text-sm font-medium text-foreground/40 max-w-xl">
+            <p className="text-sm font-medium text-muted-foreground max-w-xl">
               {roll ? `Schedule for ${roll}` : 'Schedule for the selected date'} — current month only, with Present / Absent per lecture (same as the GLA app).
             </p>
           </div>
@@ -268,12 +268,12 @@ export default function Timetable() {
               variant="ghost"
               onClick={() => void syncSelected()}
               disabled={refreshing || dayLoading}
-              className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic"
+              className="h-14 px-8 rounded-xl font-medium"
             >
               <RefreshCw className={`h-4 w-4 mr-3 ${refreshing || dayLoading ? 'animate-spin' : ''}`} /> Sync
             </Button>
             <Link to="/attendance">
-              <Button variant="ghost" className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic">
+              <Button variant="ghost" className="h-14 px-8 rounded-xl font-medium">
                 Attendance
               </Button>
             </Link>
@@ -282,17 +282,17 @@ export default function Timetable() {
       </div>
 
       {needsConnect && Object.keys(grouped).length > 0 && (
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4 text-xs text-amber-500/80 font-medium">
+        <div className="rounded-2xl border border-warning/30 bg-warning/10 px-5 py-4 text-xs text-warning/80 font-medium">
           Showing cached timetable. Portal session may have expired — open Attendance to reconnect, then Sync.
         </div>
       )}
 
       <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.2fr)] gap-6">
-        <section className="rounded-[2.5rem] border border-white/10 bg-card/60 backdrop-blur-xl p-5 sm:p-6 space-y-5 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.4)]">
+        <section className="rounded-2xl border border-border bg-card/60 p-5 sm:p-6 space-y-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary italic">Switch to calendar</p>
-              <h2 className="text-lg font-black tracking-tight">
+              <p className="text-xs font-semibold tracking-normal text-primary">Switch to calendar</p>
+              <h2 className="text-lg font-semibold tracking-tight">
                 {viewMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
               </h2>
             </div>
@@ -306,7 +306,7 @@ export default function Timetable() {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-wider text-foreground/35">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
             {WEEKDAYS.map((d) => (
               <div key={d} className="py-1">
                 {d}
@@ -332,8 +332,8 @@ export default function Timetable() {
                     selected
                       ? 'border-primary/50 bg-primary/20 text-foreground'
                       : inMonth
-                        ? 'border-white/10 bg-white/[0.03] text-foreground/80 hover:bg-white/[0.07]'
-                        : 'border-transparent text-foreground/20'
+                        ? 'border-border bg-muted text-foreground/80 hover:bg-muted'
+                        : 'border-transparent text-muted-foreground'
                   } ${today && !selected ? 'ring-1 ring-primary/40' : ''}`}
                 >
                   {cell.getDate()}
@@ -345,7 +345,7 @@ export default function Timetable() {
             })}
           </div>
 
-          <label className="flex flex-col gap-1.5 text-[10px] font-black uppercase tracking-widest text-foreground/40">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
             Jump to date
             <input
               type="date"
@@ -357,35 +357,35 @@ export default function Timetable() {
                 if (!y || !m || !d) return;
                 void selectDate(new Date(y, m - 1, d));
               }}
-              className="h-11 rounded-2xl border border-white/10 bg-background/40 px-4 text-sm font-semibold tracking-normal text-foreground normal-case outline-none focus:border-primary/40"
+              className="h-11 rounded-2xl border border-border bg-background/40 px-4 text-sm font-semibold tracking-normal text-foreground normal-case outline-none focus:border-primary/40"
             />
           </label>
         </section>
 
-        <section className="rounded-[2.5rem] border border-white/10 bg-card/60 backdrop-blur-xl overflow-hidden shadow-[0_20px_40px_-20px_rgba(0,0,0,0.4)]">
-          <header className="px-6 py-4 border-b border-white/5 bg-white/[0.03] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <section className="rounded-2xl border border-border bg-card/60 overflow-hidden shadow-sm">
+          <header className="px-6 py-4 border-b border-border bg-muted flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary italic">Schedule for the selected date</p>
-              <h2 className="text-sm font-black uppercase tracking-[0.12em] text-foreground/70">{formatDisplayDate(selectedDate)}</h2>
+              <p className="text-xs font-semibold tracking-normal text-primary">Schedule for the selected date</p>
+              <h2 className="text-sm font-semibold tracking-normal text-foreground/70">{formatDisplayDate(selectedDate)}</h2>
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">
+            <span className="text-xs font-medium text-muted-foreground">
               {dayLoading ? 'Loading…' : `${dayLectures.length} lecture${dayLectures.length === 1 ? '' : 's'}`}
             </span>
           </header>
 
           {dayLectures.length > 0 && (
-            <div className="px-5 pt-4 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-wider">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-emerald-300">
+            <div className="px-5 pt-4 flex flex-wrap gap-3 text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-3 py-1.5 text-success">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Present {presentCount}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-rose-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-danger/30 bg-danger/10 px-3 py-1.5 text-danger">
                 <XCircle className="h-3.5 w-3.5" /> Absent {absentCount}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3 py-1.5 text-yellow-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-3 py-1.5 text-warning">
                 <CircleDashed className="h-3.5 w-3.5" /> Pending {pendingCount}
               </span>
               {heldCount > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-sky-300">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-primary">
                   Not marked {heldCount}
                 </span>
               )}
@@ -393,9 +393,9 @@ export default function Timetable() {
           )}
 
           {dayLoading ? (
-            <div className="flex items-center justify-center gap-3 py-16 text-foreground/40">
+            <div className="flex items-center justify-center gap-3 py-16 text-muted-foreground">
               <RefreshCw className="h-5 w-5 animate-spin" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Fetching lectures for the selected date…</span>
+              <span className="text-xs font-medium">Fetching lectures for the selected date…</span>
             </div>
           ) : dayLectures.length === 0 ? (
             <p className="text-center text-sm opacity-50 py-14 px-6">
@@ -404,7 +404,7 @@ export default function Timetable() {
                 : 'No timetable loaded yet. Tap Sync after reconnecting.'}
             </p>
           ) : (
-            <div className="divide-y divide-white/5 mt-2">
+            <div className="divide-y divide-border mt-2">
               {dayLectures.map((lec, i) => {
                 const att = attendanceFromStatus(lectureAttendanceStatus(lec));
                 return (
@@ -415,16 +415,16 @@ export default function Timetable() {
                     <div className="space-y-3 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-3">
                         {lec.LecNo != null && lec.LecNo !== '' && (
-                          <span className="text-[10px] font-black uppercase tracking-wider text-foreground/35">Lec {lec.LecNo}</span>
+                          <span className="text-xs font-medium text-muted-foreground">Lec {lec.LecNo}</span>
                         )}
-                        <h3 className="font-black text-lg tracking-tight truncate">{lec.SuName || 'Untitled'}</h3>
+                        <h3 className="font-semibold text-lg tracking-tight truncate">{lec.SuName || 'Untitled'}</h3>
                         {lec.LecType && (
-                          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${typeBadge(lec.LecType)}`}>
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${typeBadge(lec.LecType)}`}>
                             {lec.LecType}
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-foreground/50 font-medium">
+                      <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground font-medium">
                         {lec.LecTime && (
                           <span className="inline-flex items-center gap-1.5">
                             <Clock className="h-3.5 w-3.5 opacity-60" /> {lec.LecTime}
@@ -445,7 +445,7 @@ export default function Timetable() {
                     </div>
                     <div className="self-start md:self-center flex flex-col items-end gap-1.5">
                       <span
-                        className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border ${attendanceBadge(att.tone)}`}
+                        className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border ${attendanceBadge(att.tone)}`}
                         title={lectureAttendanceStatus(lec) || att.label}
                       >
                         <AttendanceIcon tone={att.tone} />
@@ -454,7 +454,7 @@ export default function Timetable() {
                       {lec.LecStatus &&
                         !/present|absent/i.test(String(lec.PresentStatus || '')) &&
                         /completed|pending/i.test(String(lec.LecStatus)) && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/30">
+                          <span className="text-xs font-bold tracking-normal text-muted-foreground">
                             Class {String(lec.LecStatus)}
                           </span>
                         )}

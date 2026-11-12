@@ -17,8 +17,8 @@ export default defineConfig({
         name: 'Academic Platform',
         short_name: 'Academic',
         description: 'Modern academic management system for college students',
-        theme_color: '#0ea5e9',
-        background_color: '#0f172a', // slate-900 for dark mode feel
+        theme_color: '#0F6B56',
+        background_color: '#F6F3EC',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',

@@ -93,10 +93,10 @@ export default function Subjects() {
   if (loading) {
     return (
       <div className="animate-pulse space-y-12">
-        <div className="h-64 bg-card/20 rounded-[3.5rem] border border-white/5"></div>
+        <div className="h-64 bg-card/20 rounded-3xl border border-border"></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-card/20 rounded-[2.5rem] border border-white/5"></div>
+            <div key={i} className="h-48 bg-card/20 rounded-2xl border border-border"></div>
           ))}
         </div>
       </div>
@@ -105,18 +105,18 @@ export default function Subjects() {
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-3xl bg-card/60 border border-border p-10 lg:p-16 shadow-sm">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <BookOpen className="h-64 w-64 text-primary" />
         </div>
         
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
           <div className="space-y-4">
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
               Subjects
             </h1>
-            <p className="text-sm font-medium text-foreground/40 max-w-xl">
-              Academic management for {subjects.length} active units
+            <p className="text-sm font-medium text-muted-foreground max-w-xl">
+              Subjects in your section — {subjects.length} active units
             </p>
           </div>
 
@@ -125,18 +125,18 @@ export default function Subjects() {
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-20 group-focus-within:opacity-100 transition-opacity" />
               <input 
                 type="text" 
-                placeholder="Find Unit..." 
+                placeholder="Search subjects" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-14 w-64 rounded-2xl bg-white/5 border border-white/10 pl-14 pr-6 text-xs font-bold uppercase tracking-widest italic outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                className="h-14 w-64 rounded-2xl bg-muted border border-border pl-14 pr-6 text-xs font-bold tracking-normal outline-none focus:ring-2 focus:ring-primary/30 transition-all"
               />
             </div>
             {userData?.role === 'admin' && (
               <Button 
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest italic shadow-2xl shadow-primary/20"
+                className="h-14 px-8 rounded-2xl font-medium shadow-2xl shadow-primary/20"
               >
-                {showAddForm ? 'Close Sync' : <><Plus className="mr-2 h-5 w-5" /> Initialize Unit</>}
+                {showAddForm ? 'Close' : <><Plus className="mr-2 h-5 w-5" /> Add subject</>}
               </Button>
             )}
           </div>
@@ -145,33 +145,33 @@ export default function Subjects() {
 
       {showAddForm && userData?.role === 'admin' && (
         <div className="animate-in zoom-in-95 fade-in duration-500">
-          <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[3.5rem] p-10 lg:p-12 shadow-2xl relative overflow-hidden">
+          <div className="bg-card/40 border border-border rounded-3xl p-10 lg:p-12 shadow-2xl relative overflow-hidden">
              <div className="absolute -top-24 -right-24 h-64 w-64 bg-primary/10 rounded-full blur-[100px]" />
-             <h2 className="text-2xl font-black tracking-tighter italic uppercase mb-10 text-primary">Unit Configuration</h2>
+             <h2 className="text-2xl font-semibold tracking-tight mb-10 text-primary">Subject</h2>
              <form onSubmit={handleAddSubject} className="space-y-8">
                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                  <div className="md:col-span-2">
-                   <Input label="Unit Identity (Name)" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Quantum Computing" required />
+                   <Input label="Subject name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Subject name" required />
                  </div>
-                 <Input label="Matrix ID (Code)" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. QC101" required />
-                 <Input label="Credit Weight" type="number" step="0.5" value={credits} onChange={(e) => setCredits(e.target.value)} placeholder="4.0" required />
+                 <Input label="Subject code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Subject code" required />
+                 <Input label="Credits" type="number" step="0.5" value={credits} onChange={(e) => setCredits(e.target.value)} placeholder="4.0" required />
                </div>
                
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-4">
-                 <div className="flex gap-4 p-2 bg-white/5 rounded-2xl border border-white/5">
+                 <div className="flex gap-4 p-2 bg-muted rounded-2xl border border-border">
                    {['theory', 'lab'].map((t) => (
                      <button
                        key={t}
                        type="button"
                        onClick={() => setType(t as any)}
-                       className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${type === t ? 'bg-primary text-primary-foreground shadow-lg' : 'text-foreground/30 hover:text-foreground'}`}
+                       className={`px-8 py-3 rounded-xl text-xs font-medium transition-all ${type === t ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}
                      >
                        {t}
                      </button>
                    ))}
                  </div>
-                 <Button type="submit" className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest italic">
-                   {editingId ? 'Push Update' : 'Initialize Unit'}
+                 <Button type="submit" className="h-14 px-12 rounded-2xl font-medium">
+                   {editingId ? 'Save changes' : 'Add subject'}
                  </Button>
                </div>
              </form>
@@ -180,13 +180,13 @@ export default function Subjects() {
       )}
 
       {filteredSubjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-[3.5rem] bg-card/20 border border-dashed border-white/10 p-24 text-center">
-          <Activity className="mb-8 h-20 w-20 text-foreground/5 opacity-20 animate-pulse" />
-          <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-2">Matrix Depleted</h3>
-          <p className="text-sm text-foreground/30 font-medium max-w-sm uppercase tracking-widest">
+        <div className="flex flex-col items-center justify-center rounded-3xl bg-card/20 border border-dashed border-border p-24 text-center">
+          <Activity className="mb-8 h-20 w-20 text-muted-foreground animate-pulse" />
+          <h3 className="text-2xl font-semibold tracking-tight mb-2">No subjects yet</h3>
+          <p className="text-sm text-muted-foreground font-medium max-w-sm tracking-normal">
             {userData?.role === 'admin' 
-              ? "No active units found. Initialize the matrix to begin tracking."
-              : "Synchronizing with your representative..."}
+              ? "Add the first subject for your section."
+              : "Your class representative has not added subjects yet."}
           </p>
         </div>
       ) : (
@@ -194,7 +194,7 @@ export default function Subjects() {
           {filteredSubjects.map((subject) => (
             <div 
               key={subject.id} 
-              className="group relative bg-card/40 backdrop-blur-xl border border-white/5 rounded-[3rem] p-8 transition-all duration-500 hover:scale-[1.02] hover:border-primary/30 hover:shadow-2xl cursor-pointer overflow-hidden"
+              className="group relative bg-card/40 border border-border rounded-3xl p-8 transition-all duration-500 hover:border-primary/30 hover:shadow-2xl cursor-pointer overflow-hidden"
               onClick={() => navigate(`/subjects/${subject.id}`)}
             >
               {/* Card Glow */}
@@ -202,23 +202,23 @@ export default function Subjects() {
               
               <div className="relative z-10 flex flex-col h-full">
                 <div className="flex items-start justify-between mb-8">
-                  <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-transform duration-500 group-hover:scale-110 shadow-inner ${
+                  <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-transform duration-500  shadow-inner ${
                     subject.type === 'theory' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'
                   }`}>
                     {subject.type === 'theory' ? <GraduationCap className="h-7 w-7" /> : <Zap className="h-7 w-7" />}
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 mb-1">Matrix Code</span>
-                    <span className="font-mono text-sm font-black italic opacity-60 tracking-tighter">{subject.code.toUpperCase()}</span>
+                    <span className="text-xs font-semibold text-muted-foreground mb-1">Code</span>
+                    <span className="font-mono text-sm font-semibold opacity-60 tracking-tighter">{subject.code.toUpperCase()}</span>
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-black tracking-tighter italic uppercase mb-2 leading-tight group-hover:text-primary transition-colors">{subject.name}</h3>
+                <h3 className="text-2xl font-semibold tracking-tight mb-2 leading-tight group-hover:text-primary transition-colors">{subject.name}</h3>
                 
-                <div className="mt-auto pt-8 flex items-center justify-between border-t border-white/5">
+                <div className="mt-auto pt-8 flex items-center justify-between border-t border-border">
                    <div className="flex items-center gap-2">
                      <Layers className="h-4 w-4 opacity-20" />
-                     <span className="text-xs font-bold opacity-40 uppercase tracking-widest">{subject.credits || 0} Credits</span>
+                     <span className="text-xs font-bold opacity-40 tracking-normal">{subject.credits || 0} Credits</span>
                    </div>
                    
                    {userData?.role === 'admin' && (
@@ -226,7 +226,7 @@ export default function Subjects() {
                        <Button 
                          variant="ghost" 
                          size="sm" 
-                         className="h-10 w-10 p-0 rounded-xl hover:bg-primary/20 hover:text-primary border border-white/5" 
+                         className="h-10 w-10 p-0 rounded-xl hover:bg-primary/20 hover:text-primary border border-border" 
                          onClick={(e) => { 
                            e.stopPropagation(); 
                            setEditingId(subject.id);
@@ -241,7 +241,7 @@ export default function Subjects() {
                        <Button 
                          variant="ghost" 
                          size="sm" 
-                         className="h-10 w-10 p-0 rounded-xl hover:bg-rose-500/20 hover:text-rose-500 border border-white/5"
+                         className="h-10 w-10 p-0 rounded-xl hover:bg-danger/15 hover:text-danger border border-border"
                          onClick={(e) => {
                             e.stopPropagation();
                             if (window.confirm('Deactivate this core unit?')) {

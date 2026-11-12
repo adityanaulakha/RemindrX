@@ -48,13 +48,13 @@ export function AutoReminder() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-primary">
                   <Clock className="h-4 w-4" />
-                  <span className="font-bold uppercase tracking-tight text-xs italic">Upcoming Deadline</span>
+                  <span className="font-bold tracking-tight text-xs">Upcoming Deadline</span>
                 </div>
                 <span className="font-bold text-sm">{task.title}</span>
                 <span className="text-xs opacity-70">Due within 24 hours!</span>
                 <button 
                   onClick={() => toast.dismiss(t.id)}
-                  className="mt-2 text-[10px] font-bold uppercase tracking-widest text-primary hover:underline"
+                  className="mt-2 text-xs font-bold tracking-normal text-primary hover:underline"
                 >
                   Acknowledge
                 </button>
@@ -72,7 +72,7 @@ export function AutoReminder() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-accent">
                   <Bell className="h-4 w-4" />
-                  <span className="font-bold uppercase tracking-tight text-xs italic">Event Tomorrow</span>
+                  <span className="font-bold tracking-tight text-xs">Event Tomorrow</span>
                 </div>
                 <span className="font-bold text-sm">{event.title}</span>
                 <span className="text-xs opacity-70">Happening in the next 24 hours.</span>

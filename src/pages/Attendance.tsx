@@ -213,9 +213,9 @@ export default function Attendance() {
 
   if (gate === 'loading') {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center gap-3 text-foreground/40">
+      <div className="min-h-[50vh] flex items-center justify-center gap-3 text-muted-foreground">
         <RefreshCw className="h-5 w-5 animate-spin" />
-        <span className="text-[10px] font-black uppercase tracking-widest">Restoring GLA session…</span>
+        <span className="text-xs font-medium">Restoring your GLA session…</span>
       </div>
     );
   }
@@ -225,8 +225,8 @@ export default function Attendance() {
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-md mx-auto space-y-8">
         <Lock className="h-16 w-16 text-primary" />
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-black italic tracking-tighter uppercase">Unlock Pulse</h1>
-          <p className="text-sm text-foreground/40">Enter your 4-digit RemindrX PIN for {sessionLabel || 'your GLA session'}.</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Unlock attendance</h1>
+          <p className="text-sm text-muted-foreground">Enter your 4-digit RemindrX PIN for {sessionLabel || 'your GLA session'}.</p>
         </div>
         <form onSubmit={handlePinUnlock} className="w-full space-y-6">
           <Input
@@ -254,8 +254,8 @@ export default function Attendance() {
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-md mx-auto space-y-8">
         <ShieldCheck className="h-16 w-16 text-primary" />
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-black italic tracking-tighter uppercase">Set local PIN</h1>
-          <p className="text-sm text-foreground/40">
+          <h1 className="text-3xl font-semibold tracking-tight">Set local PIN</h1>
+          <p className="text-sm text-muted-foreground">
             Optional: unlock RemindrX with a PIN next time instead of re-typing portal credentials (while the portal session is still alive).
           </p>
         </div>
@@ -294,7 +294,7 @@ export default function Attendance() {
       <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="relative group">
           <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
-          <div className="relative h-40 w-40 rounded-[3rem] bg-card/40 backdrop-blur-xl border border-white/10 flex items-center justify-center shadow-2xl">
+          <div className="relative h-40 w-40 rounded-3xl bg-card/40 border border-border flex items-center justify-center shadow-2xl">
             <GraduationCap className="h-20 w-20 text-primary" />
           </div>
         </div>
@@ -302,36 +302,36 @@ export default function Attendance() {
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3">
             <div className="h-1 w-12 bg-primary rounded-full" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">GLA Portal</span>
+            <span className="text-xs font-semibold tracking-normal text-primary">GLA Portal</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none">
-            Pulse Monitor
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none">
+            Attendance
           </h1>
-          <p className="text-sm font-medium text-foreground/40 max-w-md mx-auto leading-relaxed">
-            Sign in with your GLA student portal credentials (same flow as portal-frontend). Captcha required.
+          <p className="text-sm font-medium text-muted-foreground max-w-md mx-auto leading-relaxed">
+            Sign in with your GLA student portal roll number and password. A captcha is required.
           </p>
         </div>
 
-        <div className="w-full bg-card/60 backdrop-blur-xl border border-white/10 rounded-[4rem] p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="w-full bg-card/60 border border-border rounded-3xl p-10 lg:p-16 shadow-sm">
           <form onSubmit={handleConnect} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Input label="Roll Number" placeholder="e.g. 21BCE10234" value={roll} onChange={(e) => setRoll(e.target.value)} required />
+              <Input label="Roll Number" placeholder="Roll number" value={roll} onChange={(e) => setRoll(e.target.value)} required />
               <Input label="Portal Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
 
             <div className="space-y-3">
-              <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 ml-1 italic">Captcha</label>
+              <label className="block text-xs font-medium text-muted-foreground ml-1">Captcha</label>
               <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
                 {captchaUrl ? (
                   <img
                     src={captchaUrl}
                     alt="Captcha"
                     onClick={loadCaptcha}
-                    className="h-16 w-full sm:w-64 object-cover rounded-2xl border border-white/10 cursor-pointer bg-white"
+                    className="h-16 w-full sm:w-64 object-cover rounded-2xl border border-border cursor-pointer bg-white"
                     title="Click to refresh"
                   />
                 ) : (
-                  <div className="h-16 w-full sm:w-64 rounded-2xl border border-white/10 flex items-center justify-center text-xs opacity-40">
+                  <div className="h-16 w-full sm:w-64 rounded-2xl border border-border flex items-center justify-center text-xs opacity-40">
                     Loading captcha…
                   </div>
                 )}
@@ -347,21 +347,21 @@ export default function Attendance() {
               />
             </div>
 
-            <div className="p-6 rounded-[2rem] bg-amber-500/5 border border-amber-500/10 flex items-start gap-4">
-              <ShieldCheck className="h-6 w-6 text-amber-500 shrink-0 mt-1" />
-              <p className="text-xs font-medium text-amber-500/70 leading-relaxed">
-                Uses your portal-backend at portal-backend-z9ce.onrender.com (from portal-frontend). Free Render hosts may sleep — first request can take ~30s.
+            <div className="p-6 rounded-2xl bg-warning/10 border border-warning/25 flex items-start gap-4">
+              <ShieldCheck className="h-6 w-6 text-warning shrink-0 mt-1" />
+              <p className="text-xs font-medium text-warning/70 leading-relaxed">
+                The portal service may take a moment to wake up on the first request.
               </p>
             </div>
 
-            <Button type="submit" className="w-full h-16 rounded-[2rem] font-black uppercase tracking-[0.2em] italic" disabled={loading}>
+            <Button type="submit" className="w-full h-16 rounded-2xl font-semibold tracking-normal" disabled={loading}>
               {loading ? (
                 <span className="flex items-center gap-3">
                   <RefreshCw className="h-5 w-5 animate-spin" /> Connecting…
                 </span>
               ) : (
                 <span className="flex items-center gap-3">
-                  Connect Matrix <Zap className="h-5 w-5" />
+                  Connect portal <Zap className="h-5 w-5" />
                 </span>
               )}
             </Button>
@@ -376,7 +376,7 @@ export default function Attendance() {
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-3xl bg-card/60 border border-border p-10 lg:p-16 shadow-sm">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <Activity className="h-64 w-64 text-primary" />
         </div>
@@ -385,29 +385,29 @@ export default function Attendance() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="h-1 w-12 bg-primary rounded-full" />
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
+              <span className="text-xs font-semibold tracking-normal text-primary">
                 {live ? 'Live Portal Sync' : 'Cached Snapshot'}
               </span>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
               Attendance
             </h1>
-            <p className="text-sm font-medium text-foreground/40 max-w-xl leading-relaxed">
+            <p className="text-sm font-medium text-muted-foreground max-w-xl leading-relaxed">
               {sessionLabel ? `Signed in as ${sessionLabel}` : 'GLA portal'} — overall {summary.overall}
               {summary.overall !== '--' ? '%' : ''} · CPI {summary.cpi}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 p-2 bg-white/5 rounded-[2.5rem] border border-white/5 shadow-inner">
+          <div className="flex flex-wrap items-center gap-3 p-2 bg-muted rounded-2xl border border-border shadow-inner">
             <Link to="/timetable">
-              <Button variant="ghost" className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic">
+              <Button variant="ghost" className="h-14 px-8 rounded-xl font-medium">
                 <CalendarDays className="h-4 w-4 mr-3" /> Timetable
               </Button>
             </Link>
-            <Button variant="ghost" onClick={handleRefresh} disabled={loading} className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic">
+            <Button variant="ghost" onClick={handleRefresh} disabled={loading} className="h-14 px-8 rounded-xl font-medium">
               <RefreshCw className={`h-4 w-4 mr-3 ${loading ? 'animate-spin' : ''}`} /> Sync
             </Button>
-            <Button variant="ghost" onClick={handleDisconnect} className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic text-danger hover:bg-danger/10">
+            <Button variant="ghost" onClick={handleDisconnect} className="h-14 px-8 rounded-xl font-medium text-danger hover:bg-danger/10">
               Disconnect
             </Button>
           </div>
@@ -415,16 +415,16 @@ export default function Attendance() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className={`rounded-[2.5rem] border p-8 bg-card/60 ${overallOk ? 'border-emerald-500/20' : 'border-rose-500/20'}`}>
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-2">Overall Attendance</p>
-          <p className="text-5xl font-black italic">
+        <div className={`rounded-2xl border p-8 bg-card/60 ${overallOk ? 'border-success/25' : 'border-danger/25'}`}>
+          <p className="text-xs font-medium opacity-40 mb-2">Overall Attendance</p>
+          <p className="text-5xl font-semibold">
             {summary.overall}
             {summary.overall !== '--' ? '%' : ''}
           </p>
         </div>
-        <div className="rounded-[2.5rem] border border-primary/20 p-8 bg-card/60">
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-2">Current CPI</p>
-          <p className="text-5xl font-black italic">{summary.cpi}</p>
+        <div className="rounded-2xl border border-primary/20 p-8 bg-card/60">
+          <p className="text-xs font-medium opacity-40 mb-2">Current CPI</p>
+          <p className="text-5xl font-semibold">{summary.cpi}</p>
         </div>
       </div>
 
@@ -438,7 +438,7 @@ export default function Attendance() {
           return (
             <div
               key={`${sub.name}-${i}`}
-              className={`group relative bg-card/60 backdrop-blur-xl border rounded-[3.5rem] p-8 transition-all duration-500 hover:scale-[1.03] overflow-hidden ${isDanger ? 'border-rose-500/20' : 'border-emerald-500/20'}`}
+              className={`group relative bg-card/60  border rounded-3xl p-8 transition-all duration-500  overflow-hidden ${isDanger ? 'border-danger/25' : 'border-success/25'}`}
             >
               <div className="relative z-10 flex flex-col items-center text-center">
                 <div className="relative h-40 w-40 flex items-center justify-center mb-8">
@@ -448,7 +448,7 @@ export default function Attendance() {
                       cx="80"
                       cy="80"
                       r="34"
-                      className={`transition-all duration-1000 ease-out ${isDanger ? 'stroke-rose-500' : 'stroke-emerald-500'}`}
+                      className={`transition-all duration-1000 ease-out ${isDanger ? 'stroke-danger' : 'stroke-success'}`}
                       strokeWidth="10"
                       strokeDasharray={circumference}
                       strokeDashoffset={strokeDashoffset}
@@ -457,27 +457,27 @@ export default function Attendance() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black italic">{percentage}%</span>
-                    <span className="text-[8px] font-black uppercase tracking-widest opacity-30">Accuracy</span>
+                    <span className="text-3xl font-semibold">{percentage}%</span>
+                    <span className="text-xs font-medium text-muted-foreground">Attendance</span>
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-8">
-                  <h3 className="font-black text-xl tracking-tighter italic uppercase leading-snug group-hover:text-primary transition-colors">
+                  <h3 className="font-semibold text-xl tracking-tighter leading-snug group-hover:text-primary transition-colors">
                     {sub.name}
                   </h3>
                 </div>
 
                 <div className="w-full">
                   {isDanger ? (
-                    <div className="bg-rose-500/10 rounded-[2rem] p-6 border border-rose-500/10 flex flex-col items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-rose-500" />
-                      <p className="text-xs font-black uppercase italic tracking-tight text-rose-500/80">Below 75% — Short</p>
+                    <div className="bg-danger/10 rounded-2xl p-6 border border-danger/20 flex flex-col items-center gap-3">
+                      <AlertTriangle className="h-5 w-5 text-danger" />
+                      <p className="text-xs font-semibold tracking-tight text-danger/80">Below 75%</p>
                     </div>
                   ) : (
-                    <div className="bg-emerald-500/10 rounded-[2rem] p-6 border border-emerald-500/10 flex flex-col items-center gap-3">
-                      <TrendingUp className="h-5 w-5 text-emerald-500" />
-                      <p className="text-xs font-black uppercase italic tracking-tight text-emerald-500/80">On track — Good</p>
+                    <div className="bg-success/10 rounded-2xl p-6 border border-success/20 flex flex-col items-center gap-3">
+                      <TrendingUp className="h-5 w-5 text-success" />
+                      <p className="text-xs font-semibold tracking-tight text-success/80">At or above 75%</p>
                     </div>
                   )}
                 </div>

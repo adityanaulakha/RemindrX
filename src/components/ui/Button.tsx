@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import type { ButtonHTMLAttributes } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -18,19 +18,19 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-2xl font-black transition-all duration-300 active:scale-95 disabled:pointer-events-none disabled:opacity-50 uppercase tracking-widest text-xs italic',
+          'inline-flex items-center justify-center gap-2 rounded-xl font-semibold tracking-normal normal-case not-italic transition-colors duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
           {
-            'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:brightness-110': variant === 'primary',
-            'bg-card/50 backdrop-blur-lg border border-border/50 text-foreground hover:bg-border/50 shadow-sm': variant === 'secondary',
-            'bg-gradient-to-br from-danger to-danger/80 text-danger-foreground shadow-lg shadow-danger/20 hover:shadow-danger/40': variant === 'danger',
-            'bg-gradient-to-br from-success to-success/80 text-primary-foreground shadow-lg shadow-success/20 hover:shadow-success/40': variant === 'success',
-            'hover:bg-primary/10 text-foreground hover:text-primary': variant === 'ghost',
-            'border-2 border-primary/30 text-primary hover:bg-primary/5': variant === 'outline',
-            'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20': variant === 'glass',
-            'h-9 px-4': size === 'sm',
-            'h-12 px-6 py-2': size === 'md',
-            'h-14 px-10 text-sm': size === 'lg',
-            'h-16 px-12 text-base': size === 'xl',
+            'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90': variant === 'primary',
+            'bg-muted text-foreground border border-border hover:bg-muted/70': variant === 'secondary',
+            'bg-danger text-danger-foreground shadow-sm hover:bg-danger/90': variant === 'danger',
+            'bg-success text-success-foreground shadow-sm hover:bg-success/90': variant === 'success',
+            'text-foreground hover:bg-muted': variant === 'ghost',
+            'border border-primary/40 text-primary bg-transparent hover:bg-primary-soft': variant === 'outline',
+            'bg-card text-foreground border border-border hover:bg-muted': variant === 'glass',
+            'h-10 px-3 text-sm': size === 'sm',
+            'h-11 px-4 text-sm': size === 'md',
+            'h-12 px-5 text-sm': size === 'lg',
+            'h-12 px-6 text-base': size === 'xl',
           },
           className
         )}

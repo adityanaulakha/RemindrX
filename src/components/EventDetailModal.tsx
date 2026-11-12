@@ -270,10 +270,10 @@ export function EventDetailModal({
       <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
         {/* Category & Organizer */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-accent/10 text-accent">{event.category}</span>
-          <span className="text-xs text-foreground/50">Organized by <strong className="text-foreground/80">{event.organizer}</strong></span>
-          {event.status === 'pending' && <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-warning/10 text-warning">Pending Approval</span>}
-          {event.status === 'rejected' && <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-danger/10 text-danger">Rejected</span>}
+          <span className="px-2.5 py-0.5 text-xs font-bold tracking-normal rounded-full bg-accent/10 text-accent">{event.category}</span>
+          <span className="text-xs text-muted-foreground">Organized by <strong className="text-foreground/80">{event.organizer}</strong></span>
+          {event.status === 'pending' && <span className="px-2 py-0.5 text-xs font-bold tracking-normal rounded bg-warning/10 text-warning">Pending Approval</span>}
+          {event.status === 'rejected' && <span className="px-2 py-0.5 text-xs font-bold tracking-normal rounded bg-danger/10 text-danger">Rejected</span>}
         </div>
 
         {/* Moderator Remarks */}
@@ -281,8 +281,8 @@ export function EventDetailModal({
           <div className="bg-warning/5 border border-warning/20 rounded-xl p-4 flex gap-3 items-start">
             <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-warning uppercase tracking-wider mb-1">Moderator Feedback</p>
-              <p className="text-sm text-foreground/80 italic">"{event.moderatorRemarks}"</p>
+              <p className="text-xs font-bold text-warning tracking-normal mb-1">Moderator Feedback</p>
+              <p className="text-sm text-foreground/80">"{event.moderatorRemarks}"</p>
             </div>
           </div>
         )}
@@ -299,7 +299,7 @@ export function EventDetailModal({
               <Calendar className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-tighter text-foreground/40">Date</p>
+              <p className="text-xs font-bold tracking-tighter text-muted-foreground">Date</p>
               <p className="text-xs font-semibold">{new Date(event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
             </div>
           </div>
@@ -308,7 +308,7 @@ export function EventDetailModal({
               <Clock className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-tighter text-foreground/40">Time</p>
+              <p className="text-xs font-bold tracking-tighter text-muted-foreground">Time</p>
               <p className="text-xs font-semibold">
                 {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 {event.endDate && ` – ${new Date(event.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
@@ -320,7 +320,7 @@ export function EventDetailModal({
               <MapPin className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-tighter text-foreground/40">Venue</p>
+              <p className="text-xs font-bold tracking-tighter text-muted-foreground">Venue</p>
               <p className="text-xs font-semibold truncate">{event.venue}</p>
           </div>
         </div>
@@ -335,7 +335,7 @@ export function EventDetailModal({
                   <DollarSign className="h-4 w-4 text-success" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-tighter text-foreground/40">Entry Fee</p>
+                  <p className="text-xs font-bold tracking-tighter text-muted-foreground">Entry Fee</p>
                   <p className="text-xs font-semibold">{event.entryFee}</p>
                 </div>
               </div>
@@ -346,7 +346,7 @@ export function EventDetailModal({
                   <Users2 className="h-4 w-4 text-accent" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-tighter text-foreground/40">Team Size</p>
+                  <p className="text-xs font-bold tracking-tighter text-muted-foreground">Team Size</p>
                   <p className="text-xs font-semibold">{event.teamSize}</p>
                 </div>
               </div>
@@ -357,10 +357,10 @@ export function EventDetailModal({
         {/* Links */}
         {linkItems.length > 0 && (
           <div>
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 px-1">Links</p>
+            <p className="text-xs font-bold text-muted-foreground tracking-normal mb-2 px-1">Links</p>
             <div className="flex flex-wrap gap-2">
               {linkItems.map((link, i) => (
-                <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border text-sm font-semibold shadow-sm hover:shadow-md hover:scale-[1.02] transition-all ${link.color}`}>
+                <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border text-sm font-semibold shadow-sm hover:shadow-md  transition-all ${link.color}`}>
                   <link.icon className="h-4 w-4" />
                   {link.label}
                 </a>
@@ -372,7 +372,7 @@ export function EventDetailModal({
         {/* Contact */}
         {(event.contactEmail || event.contactPhone) && (
           <div className="bg-muted/20 rounded-xl p-4 border border-border/50">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 px-1">Contact for queries</p>
+            <p className="text-xs font-bold text-muted-foreground tracking-normal mb-3 px-1">Contact for queries</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {event.contactEmail && (
                 <a href={`mailto:${event.contactEmail}`} className="flex items-center gap-2.5 text-sm font-medium text-foreground/70 hover:text-primary transition-colors bg-card/50 p-2 rounded-lg border border-border/40">
@@ -391,11 +391,11 @@ export function EventDetailModal({
         {/* Custom Fields */}
         {event.customFields && event.customFields.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 px-1">Additional Details</p>
+            <p className="text-xs font-bold text-muted-foreground tracking-normal mb-2 px-1">Additional Details</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {event.customFields.map((field, i) => (
                 <div key={i} className="flex flex-col bg-card border border-border rounded-xl px-3 py-2 shadow-sm">
-                  <span className="text-[10px] font-bold uppercase tracking-tight text-foreground/40">{field.label}</span>
+                  <span className="text-xs font-bold tracking-tight text-muted-foreground">{field.label}</span>
                   <span className="text-sm font-semibold">{field.value}</span>
                 </div>
               ))}
@@ -408,7 +408,7 @@ export function EventDetailModal({
           {/* Super Admin Moderation Actions */}
           {isSuperAdmin && isAdminView && (
             <div className="flex flex-col gap-3 bg-muted/20 p-4 rounded-xl border border-border">
-              <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">Moderation Panel</p>
+              <p className="text-xs font-bold tracking-normal text-muted-foreground">Moderation Panel</p>
               <textarea
                 placeholder="Add remarks/reason for this action (notified to creator)..."
                 className="flex w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[80px]"

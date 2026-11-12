@@ -190,7 +190,7 @@ export default function Profile() {
         const count = snapshot.data().count;
         
         if (count <= 1) {
-          toast.error('Protocol Denied: You are the last Super Admin. Appoint a successor before termination.');
+          toast.error('You are the last super admin. Add another super admin before deleting this account.');
           setDeleteLoading(false);
           return;
         }
@@ -210,7 +210,7 @@ export default function Profile() {
       navigate('/login');
     } catch (error: any) {
       console.error('Delete error:', error);
-      toast.error(error.message || 'Purge failed');
+      toast.error(error.message || 'Could not delete');
     } finally {
       setDeleteLoading(false);
     }
@@ -280,7 +280,7 @@ export default function Profile() {
   return (
     <>
       <div className="space-y-12 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] bg-card/40 backdrop-blur-xl border border-white/10 p-5 sm:p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-card/40 border border-border p-5 sm:p-10 lg:p-16 shadow-sm">
           <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
             <Fingerprint className="h-64 w-64 text-primary" />
           </div>
@@ -290,20 +290,20 @@ export default function Profile() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-1.5 w-12 bg-primary rounded-full" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Identity Profile</span>
+                  <span className="text-xs font-semibold tracking-normal text-primary">Account</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
-                  User Profile
+                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
+                  Profile
                 </h1>
               </div>
 
-              <div className="flex items-center gap-6 p-6 rounded-[2.5rem] bg-white/5 border border-white/5 shadow-inner">
+              <div className="flex items-center gap-6 p-6 rounded-2xl bg-muted border border-border shadow-inner">
                 <div className="text-right">
-                  <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">Trust Score</p>
-                  <p className="text-3xl font-black italic text-primary">{trustScore}%</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Trust Score</p>
+                  <p className="text-3xl font-semibold text-primary">{trustScore}%</p>
                 </div>
-                <div className="h-12 w-px bg-white/10" />
-                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-white/5">
+                <div className="h-12 w-px bg-muted" />
+                <div className="h-16 w-16 rounded-2xl bg-primary-soft flex items-center justify-center border border-border">
                   <UserCircle className="h-8 w-8 text-primary" />
                 </div>
               </div>
@@ -312,19 +312,19 @@ export default function Profile() {
             <form onSubmit={handleUpdateProfile} className="space-y-12">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div className="space-y-8">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-foreground/40 flex items-center gap-2">
-                    <UserCircle className="h-3 w-3" /> Core Identity
+                  <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
+                    <UserCircle className="h-3 w-3" /> Your details
                   </h3>
                   <div className="space-y-6">
-                    <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your identity" required />
-                    <Input label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" required />
+                    <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+                    <Input label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="College email" required />
                     <Input label="University Roll No" value={rollNo} onChange={(e) => setRollNo(e.target.value)} placeholder="Enter your roll number" required />
                     <Input label="Date of Birth" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
                   </div>
                 </div>
 
                 <div className="space-y-8">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-foreground/40 flex items-center gap-2">
+                  <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
                     <Repeat className="h-3 w-3" /> Academic Details
                   </h3>
                   <div className="space-y-6">
@@ -336,8 +336,8 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-white/5 space-y-8">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-foreground/40 flex items-center gap-2">
+              <div className="pt-8 border-t border-border space-y-8">
+                <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
                   <Lock className="h-3 w-3" /> Security
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -346,13 +346,13 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-white/5 space-y-8">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-foreground/40 flex items-center gap-2">
-                  <Fingerprint className="h-3 w-3" /> System Preferences
+              <div className="pt-8 border-t border-border space-y-8">
+                <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
+                  <Fingerprint className="h-3 w-3" /> Reminders
                 </h3>
                 <div className="space-y-4">
-                  <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 ml-1 italic">
-                    Deadline Dashboard Presence ({deadlinePreference} Days)
+                  <label className="block text-xs font-medium text-muted-foreground ml-1">
+                    Deadline window ({deadlinePreference} Days)
                   </label>
                   <div className="flex items-center gap-4">
                     <input 
@@ -363,22 +363,22 @@ export default function Profile() {
                       onChange={(e) => setDeadlinePreference(parseInt(e.target.value))}
                       className="flex-1 accent-primary"
                     />
-                    <div className="h-10 w-20 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-black italic text-primary">
+                    <div className="h-10 w-20 rounded-xl bg-muted border border-border flex items-center justify-center font-semibold text-primary">
                       {deadlinePreference}D
                     </div>
                   </div>
-                  <p className="text-[9px] font-medium text-foreground/30 italic">
+                  <p className="text-xs font-medium text-muted-foreground">
                     Adjust how many days before a deadline a task should appear in your Dashboard's Alert section.
                   </p>
                 </div>
               </div>
 
               <div className="pt-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
-                 <Button type="button" variant="ghost" onClick={() => setIsClassChangeModalOpen(true)} className="rounded-2xl h-12 sm:h-14 px-6 sm:px-8 font-black uppercase tracking-widest italic hover:bg-primary/10 hover:text-primary text-[10px] sm:text-xs">
+                 <Button type="button" variant="ghost" onClick={() => setIsClassChangeModalOpen(true)} className="rounded-2xl h-12 sm:h-14 px-6 sm:px-8 font-medium hover:bg-primary/10 hover:text-primary text-xs sm:text-xs">
                     <Repeat className="mr-2 h-4 w-4" /> Transfer Class
                  </Button>
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <Button type="submit" disabled={loading} className="h-12 sm:h-14 px-8 sm:px-12 rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-primary/20 text-[10px] sm:text-xs">
+                    <Button type="submit" disabled={loading} className="h-12 sm:h-14 px-8 sm:px-12 rounded-2xl font-medium shadow-xl shadow-primary/20 text-xs sm:text-xs">
                       {loading ? 'Saving...' : 'Update Profile'}
                     </Button>
                   </div>
@@ -388,54 +388,54 @@ export default function Profile() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-          <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl">
-            <h2 className="text-2xl font-black tracking-tighter italic uppercase mb-6 flex items-center gap-3">
+          <div className="bg-card/40 border border-border rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-2xl">
+            <h2 className="text-2xl font-semibold tracking-tight mb-6 flex items-center gap-3">
               <Bell className="h-6 w-6 text-primary" /> Notifications
             </h2>
-            <p className="text-sm font-medium text-foreground/40 leading-relaxed mb-8">
+            <p className="text-sm font-medium text-muted-foreground leading-relaxed mb-8">
               Enable notifications for real-time updates on event approvals and class announcements.
             </p>
-            <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 space-y-6">
+            <div className="p-6 rounded-2xl bg-muted border border-border space-y-6">
                <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-30">Status</p>
-                    <p className={`text-sm font-black italic uppercase ${Notification.permission === 'granted' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    <p className="text-xs font-medium text-muted-foreground">Status</p>
+                    <p className={`text-sm font-semibold ${Notification.permission === 'granted' ? 'text-success' : 'text-danger'}`}>
                       {Notification.permission === 'granted' ? 'Enabled' : 'Disabled'}
                     </p>
                   </div>
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${Notification.permission === 'granted' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${Notification.permission === 'granted' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
                     {Notification.permission === 'granted' ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
                   </div>
                </div>
                <Button 
                 onClick={requestPermission} 
                 disabled={Notification.permission === 'granted'}
-                className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] italic shadow-lg shadow-primary/10"
+                className="w-full h-12 rounded-xl font-medium text-xs shadow-lg shadow-primary/10"
                >
                  {Notification.permission === 'granted' ? 'Notifications Active' : 'Enable Notifications'}
                </Button>
             </div>
           </div>
 
-          <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-2xl flex flex-col justify-between">
+          <div className="bg-card/40 border border-border rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-2xl flex flex-col justify-between">
             <div className="space-y-6">
-              <h2 className="text-2xl font-black tracking-tighter italic uppercase flex items-center gap-3 text-danger">
+              <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-3 text-danger">
                 <ShieldAlert className="h-6 w-6" /> Account Security
               </h2>
-              <p className="text-sm font-medium text-foreground/40 leading-relaxed">
+              <p className="text-sm font-medium text-muted-foreground leading-relaxed">
                 Irreversible deletion of your account from the RemindrX platform.
               </p>
             </div>
             <button 
               onClick={() => setIsDeleteModalOpen(true)}
-              className="w-full group p-6 rounded-[2rem] bg-danger/5 border border-danger/10 hover:bg-danger/10 transition-all text-left mt-8"
+              className="w-full group p-6 rounded-2xl bg-danger/5 border border-danger/10 hover:bg-danger/10 transition-all text-left mt-8"
             >
               <div className="flex items-center justify-between">
                  <div className="space-y-1">
-                    <p className="text-sm font-black italic uppercase text-danger">Delete Account</p>
-                    <p className="text-[10px] font-medium opacity-40 uppercase tracking-widest">Permanent removal from the platform</p>
+                    <p className="text-sm font-semibold text-danger">Delete Account</p>
+                    <p className="text-xs font-medium opacity-40 tracking-normal">Permanent removal from the platform</p>
                  </div>
-                 <ShieldAlert className="h-6 w-6 text-danger group-hover:scale-110 transition-transform" />
+                 <ShieldAlert className="h-6 w-6 text-danger transition-transform" />
               </div>
             </button>
           </div>
@@ -443,44 +443,44 @@ export default function Profile() {
       </div>
 
       {/* Account Deletion Modal */}
-      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Security Protocol: Deletion">
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete account">
         <div className="space-y-8 p-2">
-          <div className="bg-danger/10 p-6 rounded-[2rem] border border-danger/20 flex items-start gap-4">
+          <div className="bg-danger/10 p-6 rounded-2xl border border-danger/20 flex items-start gap-4">
             <ShieldAlert className="h-6 w-6 text-danger shrink-0 mt-1" />
             <div className="space-y-2">
-              <h4 className="text-sm font-black italic uppercase text-danger leading-none">Irreversible Action</h4>
-              <p className="text-[11px] font-medium text-danger/80 leading-relaxed uppercase tracking-wider">
+              <h4 className="text-sm font-semibold text-danger leading-none">Irreversible Action</h4>
+              <p className="text-xs font-medium text-danger/80 leading-relaxed tracking-normal">
                 This will permanently delete your profile, academic records, and access from the RemindrX platform.
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-             <label className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+             <label className="flex items-start gap-4 p-4 rounded-2xl bg-muted border border-border cursor-pointer hover:bg-muted transition-colors">
                <input 
                  type="checkbox" 
                  className="mt-1 h-4 w-4 accent-danger" 
                  checked={deleteConfirm1}
                  onChange={(e) => setDeleteConfirm1(e.target.checked)}
                />
-               <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 italic">I understand that all my data will be permanently erased.</span>
+               <span className="text-xs font-semibold tracking-normal opacity-60">I understand that all my data will be permanently erased.</span>
              </label>
 
-             <label className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+             <label className="flex items-start gap-4 p-4 rounded-2xl bg-muted border border-border cursor-pointer hover:bg-muted transition-colors">
                <input 
                  type="checkbox" 
                  className="mt-1 h-4 w-4 accent-danger" 
                  checked={deleteConfirm2}
                  onChange={(e) => setDeleteConfirm2(e.target.checked)}
                />
-               <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 italic">I confirm that this action cannot be undone.</span>
+               <span className="text-xs font-semibold tracking-normal opacity-60">I confirm that this action cannot be undone.</span>
              </label>
           </div>
 
           <div className="space-y-4">
-             <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-30 italic text-center">Verification Required</p>
+             <p className="text-xs font-semibold text-muted-foreground text-center">Verification Required</p>
              <Input 
-               label="Current Access Key (Password)" 
+               label="Current password" 
                type="password" 
                value={currentPassword} 
                onChange={(e) => setCurrentPassword(e.target.value)} 
@@ -494,7 +494,7 @@ export default function Profile() {
               Cancel
             </Button>
             <Button 
-              className="flex-1 rounded-2xl h-14 bg-danger hover:bg-danger/90 text-white font-black italic uppercase tracking-widest shadow-xl shadow-danger/20"
+              className="flex-1 rounded-2xl h-14 bg-danger hover:bg-danger/90 text-white font-medium shadow-xl shadow-danger/20"
               disabled={!deleteConfirm1 || !deleteConfirm2 || !currentPassword || deleteLoading}
               onClick={handleAccountDelete}
             >
@@ -507,21 +507,21 @@ export default function Profile() {
       {/* Sector Transfer Modal */}
       <Modal isOpen={isClassChangeModalOpen} onClose={() => setIsClassChangeModalOpen(false)} title="Class Transfer Request">
         <form onSubmit={handleClassChangeRequest} className="space-y-8 py-4">
-          <div className="p-6 rounded-[2rem] bg-primary/5 border border-primary/10">
-            <p className="text-xs font-medium text-foreground/60 leading-relaxed italic">
-              "Initiating class transfer will queue your request for Super Admin verification. Ensure the destination class code is accurate."
+          <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10">
+            <p className="text-xs font-medium text-foreground/60 leading-relaxed">
+              A class transfer is sent to a super admin for approval. Check the destination section code before you submit.
             </p>
           </div>
           <Input
             label="Destination Class Code"
-            placeholder="e.g. CS2024"
+            placeholder="Section code"
             value={newClassCode}
             onChange={(e) => setNewClassCode(e.target.value)}
             required
           />
           <div className="pt-4 flex gap-4">
-            <Button type="button" variant="ghost" className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest italic" onClick={() => setIsClassChangeModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={classChangeLoading} className="flex-2 h-14 px-10 rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-primary/20">
+            <Button type="button" variant="ghost" className="flex-1 h-14 rounded-2xl font-medium" onClick={() => setIsClassChangeModalOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={classChangeLoading} className="flex-2 h-14 px-10 rounded-2xl font-medium shadow-xl shadow-primary/20">
               {classChangeLoading ? 'Processing...' : 'Submit Transfer'}
             </Button>
           </div>

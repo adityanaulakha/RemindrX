@@ -113,12 +113,13 @@ export default function JoinClass() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-border bg-card p-8 shadow-xl">
-        <div className="flex flex-col items-center space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Join a Class</h1>
-          <p className="text-sm text-foreground/60">
-            Enter your class code to get started. If you are a Class Rep, enter your admin invite code as well.
+    <div className="app-canvas flex min-h-screen flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6 rounded-3xl border border-border bg-card p-6 shadow-[var(--shadow)] sm:p-8">
+        <div className="space-y-2 text-center">
+          <p className="text-xs font-semibold tracking-[0.14em] text-primary">One last step</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Join your section</h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Enter the section code from your class representative. Class reps can also add their invite code.
           </p>
         </div>
 
@@ -134,7 +135,7 @@ export default function JoinClass() {
           <Input
             label="Section Code *"
             type="text"
-            placeholder="e.g. CS2024"
+            placeholder="Section code"
             value={classCode}
             onChange={(e) => setClassCode(e.target.value)}
             required
@@ -142,7 +143,7 @@ export default function JoinClass() {
           <Input
             label="Admin Invite Code (Optional)"
             type="text"
-            placeholder="For Class Reps only"
+            placeholder="Only if you are a class rep"
             value={adminCode}
             onChange={(e) => setAdminCode(e.target.value)}
           />

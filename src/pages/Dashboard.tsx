@@ -167,7 +167,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-10 duration-1000 pb-20">
-      <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-6 sm:p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-card/60 border border-border p-6 sm:p-10 lg:p-16 shadow-sm">
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
           <Activity className="h-64 w-64 text-primary" />
         </div>
@@ -175,30 +175,30 @@ export default function Dashboard() {
         <div className="relative z-10 space-y-6">
           <div className="flex items-center gap-3">
             <div className="h-1 w-12 bg-primary rounded-full" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">{greeting}</span>
+            <span className="text-xs font-semibold tracking-normal text-primary">{greeting}</span>
           </div>
           
           <div className="space-y-2">
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground leading-none pr-8">
               Hello, {firstName}
             </h1>
-            <p className="text-sm font-medium text-foreground/40 max-w-xl leading-relaxed">
-              Here's your academic overview for today. Stay on track and crush your goals.
+            <p className="text-sm font-medium text-muted-foreground max-w-xl leading-relaxed">
+              Here's what needs attention.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3 pt-2">
-            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
+            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-muted border border-border">
               <BookOpen className="h-4 w-4 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{subjects.length} Subjects</span>
+              <span className="text-xs font-medium">{subjects.length} Subjects</span>
             </div>
-            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
+            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-muted border border-border">
               <Clock className="h-4 w-4 text-warning" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{activeTasks} Active Tasks</span>
+              <span className="text-xs font-medium">{activeTasks} Active Tasks</span>
             </div>
-            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
+            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-muted border border-border">
               <Calendar className="h-4 w-4 text-accent" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{upcomingEvents} Upcoming Events</span>
+              <span className="text-xs font-medium">{upcomingEvents} Upcoming Events</span>
             </div>
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function Dashboard() {
 
       {/* Danger Zone - Refactored to Ultra-Premium Warning */}
       {dangerZoneTasks.length > 0 && (
-        <div className="relative group overflow-hidden rounded-[2.5rem] border border-danger/30 bg-danger/5 backdrop-blur-2xl p-8 shadow-[0_32px_64px_-12px_rgba(239,68,68,0.2)]">
+        <div className="relative group overflow-hidden rounded-2xl border border-danger/30 bg-danger/5 p-8 shadow-sm">
           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
             <AlertTriangle className="h-32 w-32 text-danger" />
           </div>
@@ -217,11 +217,11 @@ export default function Dashboard() {
                   <ShieldAlert className="h-7 w-7 text-danger" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black italic uppercase tracking-tighter text-danger">Deadline Alert</h2>
-                  <p className="text-xs font-bold text-danger/60 uppercase tracking-[0.2em]">{dangerZoneTasks.length} CRITICAL TASK{dangerZoneTasks.length > 1 ? 'S' : ''}</p>
+                  <h2 className="text-3xl font-semibold tracking-tight text-danger">Deadline Alert</h2>
+                  <p className="text-xs font-bold text-danger/60 tracking-normal">{dangerZoneTasks.length} {dangerZoneTasks.length === 1 ? 'deadline needs attention' : 'deadlines need attention'}</p>
                 </div>
               </div>
-              <Button variant="danger" size="xl" className="rounded-[2rem] px-10 shadow-2xl shadow-danger/20" onClick={() => navigate('/timeline')}>Review Now</Button>
+              <Button variant="danger" size="xl" className="rounded-2xl px-10 shadow-2xl shadow-danger/20" onClick={() => navigate('/timeline')}>Open timeline</Button>
             </div>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -229,26 +229,26 @@ export default function Dashboard() {
                 const isMissed = task.deadline < now;
                 const isDone = task.completedBy?.includes(currentUser?.uid || '') || false;
                 return (
-                  <div key={task.id} className={`flex flex-col gap-4 p-6 rounded-[2rem] bg-white/5 border border-white/10 ${isMissed ? 'opacity-60' : 'hover:border-primary/30'} transition-all group/item`}>
+                  <div key={task.id} className={`flex flex-col gap-4 p-6 rounded-2xl bg-muted border border-border ${isMissed ? 'opacity-60' : 'hover:border-primary/30'} transition-all group/item`}>
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
-                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] italic ${isMissed ? 'text-foreground/40' : 'text-primary'}`}>
-                          {isMissed ? 'Past Objective' : 'Active Deadline'}
+                        <span className={`text-xs font-semibold tracking-normal  ${isMissed ? 'text-muted-foreground' : 'text-primary'}`}>
+                          {isMissed ? 'Overdue' : 'Coming up'}
                         </span>
-                        <p className={`text-lg font-black tracking-tight leading-none uppercase italic ${isMissed ? 'text-foreground/60' : ''}`}>{task.title}</p>
+                        <p className={`text-lg font-semibold tracking-tight leading-none   ${isMissed ? 'text-foreground/60' : ''}`}>{task.title}</p>
                       </div>
                       <Button 
                         variant="ghost" 
-                        className={`h-10 w-10 p-0 rounded-xl border border-white/10 ${isDone ? 'text-success bg-success/10' : 'text-foreground/20 hover:text-primary'}`}
+                        className={`h-10 w-10 p-0 rounded-xl border border-border ${isDone ? 'text-success bg-success/10' : 'text-muted-foreground hover:text-primary'}`}
                         onClick={() => handleToggleDone(task.id, isDone)}
                       >
                         {isDone ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
                       </Button>
                     </div>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-foreground/40">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-3.5 w-3.5" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">{new Date(task.deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-xs font-bold tracking-normal">{new Date(task.deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       {!isMissed && <Clock className="h-4 w-4 text-primary/20 animate-pulse" />}
                     </div>
@@ -267,7 +267,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-3">
               <BookOpen className="h-5 w-5 text-primary" />
-              <h3 className="font-black italic uppercase tracking-widest text-sm opacity-40">Academic Subjects</h3>
+              <h3 className="font-medium text-sm opacity-40">Subjects</h3>
             </div>
           </div>
 
@@ -281,15 +281,15 @@ export default function Dashboard() {
               return (
                 <Card 
                   key={subject.id} 
-                  className="group hover:scale-[1.02] active:scale-[0.98] cursor-pointer relative overflow-hidden"
+                  className="group cursor-pointer relative overflow-hidden"
                   onClick={() => navigate(`/subjects/${subject.id}`)}
                 >
                   <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <div className="text-6xl font-black italic leading-none">{subject.code.slice(-2)}</div>
+                    <div className="text-6xl font-semibold leading-none">{subject.code.slice(-2)}</div>
                   </div>
                   <CardHeader className="p-8 pb-4">
                     <div className="flex justify-between items-start mb-4">
-                      <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner ${
+                      <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-semibold text-sm shadow-inner ${
                         subject.type === 'theory' ? 'bg-primary/20 text-primary' : 'bg-accent/20 text-accent'
                       }`}>
                         {subject.code.toUpperCase()}
@@ -297,17 +297,12 @@ export default function Dashboard() {
                       <ArrowRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
                     </div>
                     <CardTitle className="text-2xl mb-1">{subject.name}</CardTitle>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 italic">{subject.type}</p>
+                    <p className="text-xs font-semibold text-muted-foreground">{subject.type}</p>
                   </CardHeader>
                   <CardContent className="p-8 pt-0 mt-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1 h-1.5 bg-foreground/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary/40 rounded-full w-[60%]" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
-                        {subjectTasks.length > 0 ? `${subjectTasks.length} Active` : 'Clear'}
-                      </span>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {subjectTasks.length > 0 ? `${subjectTasks.length} open ${subjectTasks.length === 1 ? 'task' : 'tasks'}` : 'No open tasks'}
+                    </p>
                   </CardContent>
                 </Card>
               );
@@ -321,26 +316,26 @@ export default function Dashboard() {
           <div className="space-y-4">
             <div className="flex items-center gap-3 px-2">
               <PartyPopper className="h-5 w-5 text-accent" />
-              <h3 className="font-black italic uppercase tracking-widest text-sm opacity-40">Upcoming Events</h3>
+              <h3 className="font-medium text-sm opacity-40">Upcoming Events</h3>
             </div>
             
             {dashboardEvents.length === 0 ? (
-              <Card className="p-10 text-center border-dashed border-white/10 bg-transparent">
-                <p className="text-xs font-bold opacity-20 uppercase tracking-widest">No Events Scheduled</p>
+              <Card className="p-10 text-center border-dashed border-border bg-transparent">
+                <p className="text-xs font-medium text-muted-foreground">No events you're going to</p>
               </Card>
             ) : (
               <div className="space-y-4">
                 {dashboardEvents.map(event => (
-                  <div key={event.id} className="relative group overflow-hidden rounded-[2rem] border border-white/5 bg-accent/5 backdrop-blur-xl p-6 hover:bg-accent/10 transition-all cursor-pointer" onClick={() => navigate('/events')}>
+                  <div key={event.id} className="relative group overflow-hidden rounded-2xl border border-border bg-accent/5 p-6 hover:bg-accent/10 transition-all cursor-pointer" onClick={() => navigate('/events')}>
                     <div className="flex flex-col gap-4">
                       <div className="flex justify-between items-start">
                         <div className="h-10 w-10 bg-accent/20 rounded-xl flex items-center justify-center text-accent">
                           <Calendar className="h-5 w-5" />
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-accent italic">Confirmed</span>
+                        <span className="text-xs font-medium text-accent">Confirmed</span>
                       </div>
                       <div>
-                        <h4 className="text-lg font-black tracking-tight uppercase italic">{event.title}</h4>
+                        <h4 className="text-lg font-semibold tracking-tight">{event.title}</h4>
                         <p className="text-xs font-bold opacity-40 mt-1">{event.venue} • {new Date(event.date).toLocaleDateString()}</p>
                       </div>
                     </div>
@@ -351,7 +346,7 @@ export default function Dashboard() {
           </div>
 
           {/* Attendance Quick Link */}
-          <div className="relative group overflow-hidden rounded-[2rem] border border-primary/30 bg-primary/5 p-8 hover:bg-primary/10 transition-all cursor-pointer" onClick={() => navigate('/attendance')}>
+          <div className="relative group overflow-hidden rounded-2xl border border-primary/30 bg-primary/5 p-8 hover:bg-primary/10 transition-all cursor-pointer" onClick={() => navigate('/attendance')}>
              <div className="absolute top-0 right-0 p-6 opacity-10">
                <Activity className="h-20 w-20 text-primary" />
              </div>
@@ -360,11 +355,11 @@ export default function Dashboard() {
                   <Activity className="h-6 w-6 animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-black tracking-tighter uppercase italic">Attendance Monitor</h4>
-                  <p className="text-xs font-bold opacity-60 mt-2 leading-relaxed">System integration pending. Click to access manual entry.</p>
+                  <h4 className="text-xl font-semibold tracking-tighter">Attendance</h4>
+                  <p className="text-xs font-bold opacity-60 mt-2 leading-relaxed">Connect the GLA portal to see attendance and your timetable.</p>
                 </div>
-                <div className="flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-widest">
-                  Sync Now <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center gap-2 text-primary font-semibold text-xs tracking-normal">
+                  Open attendance <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
                 </div>
              </div>
           </div>
@@ -376,32 +371,32 @@ export default function Dashboard() {
         <div className="text-center space-y-10 py-8 px-4">
           <div className="flex justify-center relative">
             <div className="absolute inset-0 bg-success/20 blur-3xl rounded-full" />
-            <div className="relative bg-success/20 p-8 rounded-[2rem] border border-success/30 shadow-2xl">
+            <div className="relative bg-success/20 p-8 rounded-2xl border border-success/30 shadow-2xl">
               <CheckCircle2 className="h-16 w-16 text-success animate-in zoom-in duration-500" />
             </div>
           </div>
           
           <div className="space-y-3">
-            <h3 className="text-3xl font-black italic uppercase tracking-tighter">Welcome to RemindrX</h3>
-            <p className="text-foreground/40 font-bold uppercase tracking-widest text-[10px]">Your class workspace is now fully synchronized.</p>
+            <h3 className="text-3xl font-semibold tracking-tight">Welcome to RemindrX</h3>
+            <p className="text-muted-foreground font-bold tracking-normal text-xs">You're in. Here's what is already set up.</p>
           </div>
 
           <div className="grid gap-4">
              {[
                { icon: BookOpen, label: `${subjects.length} Subjects Loaded`, color: 'primary' },
-               { icon: Calendar, label: `${tasks.length} Active Deadlines`, color: 'accent' },
-               { icon: Activity, label: 'Attendance Sync Active', color: 'danger' }
+               { icon: Calendar, label: `${tasks.length} Coming ups`, color: 'accent' },
+               { icon: Activity, label: 'Attendance is ready to connect', color: 'danger' }
              ].map((item, idx) => (
-               <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-4 text-left transition-all hover:bg-white/10">
+               <div key={idx} className="p-5 rounded-2xl bg-muted border border-border flex items-center gap-4 text-left transition-all hover:bg-muted">
                  <div className={`p-2.5 rounded-xl bg-${item.color}/20 text-${item.color}`}>
                    <item.icon className="h-5 w-5" />
                  </div>
-                 <p className="font-black italic uppercase tracking-tight text-sm">{item.label}</p>
+                 <p className="font-semibold tracking-tight text-sm">{item.label}</p>
                </div>
              ))}
           </div>
 
-          <Button size="xl" className="w-full rounded-[2rem] shadow-2xl" onClick={closeFTEModal}>Enter Dashboard</Button>
+          <Button size="xl" className="w-full rounded-2xl shadow-2xl" onClick={closeFTEModal}>Enter Dashboard</Button>
         </div>
       </Modal>
     </div>
