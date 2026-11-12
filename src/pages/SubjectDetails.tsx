@@ -76,9 +76,14 @@ export default function SubjectDetails() {
     if (!newPostContent.trim() || !currentUser || !id) return;
 
     try {
+      if (!userData?.classId) {
+        toast.error('Missing section — re-enroll from the portal');
+        return;
+      }
       const newPost: Omit<Post, 'id'> = {
         content: newPostContent.trim(),
         subjectId: id,
+        classId: userData.classId,
         confirmations: [currentUser.uid],
         disputes: [],
         status: 'unverified',
