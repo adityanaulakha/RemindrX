@@ -8,12 +8,17 @@ import {
 } from './portal';
 import {
   clearGlaSession,
+  loadMeta,
   loadSnapshot,
   markConnected,
   saveSnapshot,
   saveTimetableSnapshot,
   type GlaPortalSnapshot,
 } from './session';
+
+function activeRoll(): string | null {
+  return loadMeta().roll;
+}
 
 const DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -222,8 +227,10 @@ export async function restorePortalSession(): Promise<{
   snapshot: GlaPortalSnapshot | null;
 }> {
   const snapshot = loadSnapshot();
+  const roll = activeRoll();
+  if (!roll) return { live: false, dashboard: null, snapshot };
   try {
-    const dashboard = await portalDashboard();
+    const dashboard = await portalDashboard(roll);
     if (dashboard) {
       saveSnapshot(dashboard);
       return { live: true, dashboard, snapshot };
@@ -239,12 +246,13 @@ export async function loginAndFetch(
   password: string,
   captcha: string
 ): Promise<{ ok: true; dashboard: PortalDashboard } | { ok: false; error: string }> {
-  const result = await portalLogin(roll.trim(), password, captcha.trim());
+  const cleaned = roll.trim();
+  const result = await portalLogin(cleaned, password, captcha.trim());
   if (!result.success) {
     return { ok: false, error: result.error || 'Login failed' };
   }
-  markConnected(roll.trim());
-  const dashboard = await portalDashboard();
+  markConnected(cleaned);
+  const dashboard = await portalDashboard(cleaned);
   if (!dashboard) {
     return { ok: false, error: 'Login succeeded but dashboard could not be loaded' };
   }
@@ -253,13 +261,15 @@ export async function loginAndFetch(
 }
 
 export async function refreshDashboard(): Promise<PortalDashboard | null> {
-  const dashboard = await portalDashboard();
+  const roll = activeRoll();
+  if (!roll) return null;
+  const dashboard = await portalDashboard(roll);
   if (dashboard) saveSnapshot(dashboard);
   return dashboard;
 }
 
 export async function fetchTimetable(date?: Date | string | null): Promise<Record<string, PortalLecture[]> | null> {
-  const raw = await portalTimetable(date ?? null);
+  const raw = await portalTimetable(date ?? null, activeRoll());
   if (!raw) return null;
   const grouped = normalizeTimetable(raw);
   saveTimetableSnapshot(grouped);
@@ -274,7 +284,7 @@ export async function fetchTimetableForDate(
   date: Date,
   existing?: Record<string, PortalLecture[]> | null
 ): Promise<{ grouped: Record<string, PortalLecture[]>; day: PortalLecture[] } | null> {
-  const raw = await portalTimetable(date);
+  const raw = await portalTimetable(date, activeRoll());
   if (!raw) return null;
   const merged = mergeTimetableLectures(existing || {}, raw);
   saveTimetableSnapshot(merged);
@@ -284,6 +294,6 @@ export async function fetchTimetableForDate(
 }
 
 export async function disconnectPortal(): Promise<void> {
-  await portalLogout();
+  await portalLogout(activeRoll());
   clearGlaSession();
 }

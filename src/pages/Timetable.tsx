@@ -225,8 +225,8 @@ export default function Timetable() {
     return (
       <EmptyState
         icon={AlertTriangle}
-        title="Portal login required"
-        description="Connect your GLA portal on the Attendance page first, then come back for My timetable."
+        title="Portal session needed"
+        description="If you enrolled with GLA portal, reopen Attendance to refresh the live session (captcha only if it expired). Then return here for My timetable."
         action={
           <Link to="/attendance">
             <Button>Open Attendance</Button>

@@ -91,6 +91,13 @@ VITE_FIREBASE_STORAGE_BUCKET="your_project.firebasestorage.app"
 VITE_FIREBASE_MESSAGING_SENDER_ID="your_sender_id"
 VITE_FIREBASE_APP_ID="your_app_id"
 VITE_FIREBASE_MEASUREMENT_ID="your_measurement_id"
+
+# Server-only (Vercel /api/gla/enroll) — never expose in VITE_*
+FIREBASE_PROJECT_ID="your_project_id"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk@….iam.gserviceaccount.com"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----\n"
+# Or: FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",…}'
+PORTAL_BACKEND_URL="https://portal-backend-z9ce.onrender.com"
 ```
 
 ---

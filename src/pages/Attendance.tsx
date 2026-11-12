@@ -35,6 +35,7 @@ import {
   refreshDashboard,
   restorePortalSession,
 } from '../services/gla/client';
+import { useAuth } from '../context/AuthContext';
 
 type Gate = 'loading' | 'connect' | 'pin-setup' | 'pin-unlock' | 'ready';
 
@@ -44,6 +45,7 @@ function subjectPercent(sub: PortalSubject): number {
 }
 
 export default function Attendance() {
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [gate, setGate] = useState<Gate>('loading');
   const [live, setLive] = useState(false);
@@ -59,10 +61,15 @@ export default function Attendance() {
   const [subjects, setSubjects] = useState<PortalSubject[]>([]);
   const [sessionLabel, setSessionLabel] = useState<string | null>(null);
 
-  const loadCaptcha = async () => {
+  const loadCaptcha = async (forRoll?: string) => {
+    const r = (forRoll ?? roll).trim();
+    if (!r) {
+      toast.error('Enter roll number before loading captcha');
+      return;
+    }
     try {
       if (captchaUrl) URL.revokeObjectURL(captchaUrl);
-      const blob = await fetchCaptchaBlob();
+      const blob = await fetchCaptchaBlob(r);
       setCaptchaUrl(URL.createObjectURL(blob));
       setCaptcha('');
     } catch {
@@ -75,11 +82,13 @@ export default function Attendance() {
 
     const boot = async () => {
       const meta = loadMeta();
-      if (meta.roll) {
-        setRoll(meta.roll);
-        setSessionLabel(meta.roll);
+      const preferredRoll = meta.roll || userData?.rollNo || '';
+      if (preferredRoll) {
+        setRoll(preferredRoll);
+        setSessionLabel(preferredRoll);
       }
 
+      // Prefer live enroll session (same roll jar on portal-backend)
       const restored = await restorePortalSession();
       if (cancelled) return;
 
@@ -90,7 +99,12 @@ export default function Attendance() {
         if (hasLocalPin() && !isSessionUnlocked()) {
           setGate('pin-unlock');
         } else if (!hasLocalPin() && restored.live) {
-          setGate('pin-setup');
+          // Portal enroll already authenticated — skip PIN gate for first live session
+          if (userData?.authProvider === 'gla_portal') {
+            setGate('ready');
+          } else {
+            setGate('pin-setup');
+          }
         } else {
           setGate('ready');
         }
@@ -103,8 +117,9 @@ export default function Attendance() {
         setLive(false);
       }
 
+      // Session expired — reconnect with captcha (roll prefilled for portal users)
       setGate('connect');
-      await loadCaptcha();
+      if (preferredRoll) await loadCaptcha(preferredRoll);
     };
 
     boot();
@@ -112,7 +127,7 @@ export default function Attendance() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userData?.rollNo, userData?.authProvider]);
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -304,7 +319,11 @@ export default function Attendance() {
         <PageHeader
           eyebrow="GLA Portal"
           title="Attendance"
-          description="Sign in with your GLA student portal roll number and password. A captcha is required."
+          description={
+            userData?.authProvider === 'gla_portal'
+              ? 'Your portal session expired. Re-enter password and captcha — roll is prefilled from enroll.'
+              : 'Reconnect your GLA Student Corner session. Enter roll first, then load captcha.'
+          }
         />
         <Card elevated className="p-6 sm:p-8">
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">
@@ -322,17 +341,17 @@ export default function Attendance() {
                   <img
                     src={captchaUrl}
                     alt="Captcha"
-                    onClick={loadCaptcha}
+                    onClick={() => loadCaptcha()}
                     className="h-16 w-full cursor-pointer rounded-xl border border-border bg-white object-cover sm:w-64"
                     title="Click to refresh"
                   />
                 ) : (
                   <div className="flex h-16 w-full items-center justify-center rounded-xl border border-border text-xs text-muted-foreground sm:w-64">
-                    Loading captcha…
+                    Enter roll, then load captcha
                   </div>
                 )}
-                <Button type="button" variant="secondary" onClick={loadCaptcha}>
-                  <RefreshCw className="h-4 w-4" /> Refresh
+                <Button type="button" variant="secondary" onClick={() => loadCaptcha()}>
+                  <RefreshCw className="h-4 w-4" /> {captchaUrl ? 'Refresh' : 'Load'}
                 </Button>
               </div>
               <Input label="Enter Captcha" value={captcha} onChange={(e) => setCaptcha(e.target.value)} required />

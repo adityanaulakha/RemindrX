@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { User } from '../types';
 
@@ -21,6 +21,11 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+/** GLA portal custom-token users use uid `gla_{ROLL}` and skip email verification. */
+export function isPortalAuthUser(user: FirebaseUser): boolean {
+  return user.uid.startsWith('gla_');
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
@@ -28,20 +33,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let unSubDoc: (() => void) | null = null;
-    
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      
-      if (user && user.emailVerified) {
+
+      if (unSubDoc) {
+        unSubDoc();
+        unSubDoc = null;
+      }
+
+      const sessionOk = !!user && (isPortalAuthUser(user) || user.emailVerified);
+
+      if (sessionOk && user) {
         const userDocRef = doc(db, 'users', user.uid);
-        
+
         unSubDoc = onSnapshot(userDocRef, async (userDoc) => {
-          let fetchedUser: User;
           if (userDoc.exists()) {
-            fetchedUser = { id: userDoc.id, ...userDoc.data() } as User;
-            
-            // Auto-sync email and update lastActive (skip setting state if it's identical basically handled by snapshot)
-            const updates: any = { lastActive: Date.now() };
+            const fetchedUser = { id: userDoc.id, ...userDoc.data() } as User;
+
+            const updates: Record<string, unknown> = { lastActive: Date.now() };
             let needsUpdate = false;
             if (user.email && user.email !== fetchedUser.email) {
               updates.email = user.email;
@@ -50,31 +60,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (needsUpdate) {
               setDoc(userDocRef, updates, { merge: true }).catch(console.error);
             }
-            
+
             setUserData(fetchedUser);
           } else {
-            // If the user exists in Auth but not in Firestore, create a basic record
             const newUser: User = {
               id: user.uid,
               name: user.displayName || 'New User',
               email: user.email || '',
               classId: null,
               role: 'student',
-              trustScore: 0,
+              trustScore: isPortalAuthUser(user) ? 100 : 0,
               createdAt: Date.now(),
-              lastActive: Date.now()
+              lastActive: Date.now(),
+              authProvider: isPortalAuthUser(user) ? 'gla_portal' : 'email',
+              rollNo: isPortalAuthUser(user) ? user.uid.replace(/^gla_/, '') : undefined,
+              collegeId: isPortalAuthUser(user) ? 'gla' : undefined,
             };
             await setDoc(userDocRef, newUser);
-            fetchedUser = newUser;
             setUserData(newUser);
           }
 
-          // Request FCM Permissions immediately if supported
           if ('Notification' in window && Notification.permission === 'default') {
             try {
               await Notification.requestPermission();
-              // In a full implementation, we'd also call getToken(messaging) here 
-              // and save the FCM token to the user's document for backend usage.
             } catch (err) {
               console.error('Failed to request notification permission', err);
             }
@@ -84,7 +92,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setUserData(null);
         setLoading(false);
-        if (unSubDoc) unSubDoc();
       }
     });
 
