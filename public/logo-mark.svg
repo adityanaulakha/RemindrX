@@ -1,23 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RemindrX">
   <!-- Graphite tile — stays dark on light and dark themes -->
   <rect width="512" height="512" rx="108" fill="#1A1A1A"/>
-  <!-- Geometric mortarboard: diamond board + rounded base + tassel + cream pip -->
-  <g fill="#FF5B1F">
-    <!-- Top board (front-facing diamond) -->
-    <path d="M256 138 L422 258 L256 348 L90 258 Z"/>
-    <!-- Cap base (gap to board is intentional graphite negative space) -->
-    <path d="
-      M170 368
-      H342
-      C360 368 374 382 374 400
-      C374 424 340 442 256 442
-      C172 442 138 424 138 400
-      C138 382 152 368 170 368
-      Z
-    "/>
-    <!-- Tassel cord from right board tip -->
-    <rect x="404" y="258" width="18" height="152" rx="9"/>
-  </g>
+  <!-- Geometric mortarboard: rounded diamond board + rounded base + tassel + cream pip -->
+  <!-- Top board: stroked with round joins so every corner is soft -->
+  <path d="M256 146 L414 258 L256 340 L98 258 Z" fill="#FF5B1F" stroke="#FF5B1F" stroke-width="16" stroke-linejoin="round"/>
+  <!-- Cap base (gap to board is intentional graphite negative space) -->
+  <path fill="#FF5B1F" d="
+    M170 368
+    H342
+    C360 368 374 382 374 400
+    C374 424 340 442 256 442
+    C172 442 138 424 138 400
+    C138 382 152 368 170 368
+    Z
+  "/>
+  <!-- Tassel cord: starts at the centre of the board's rounded tip so the joint is seamless -->
+  <path d="M414 258 V408" stroke="#FF5B1F" stroke-width="18" stroke-linecap="round" fill="none"/>
   <!-- Warm off-white notification pip -->
-  <circle cx="413" cy="428" r="26" fill="#FFF3E3"/>
+  <circle cx="414" cy="428" r="26" fill="#FFF3E3"/>
 </svg>

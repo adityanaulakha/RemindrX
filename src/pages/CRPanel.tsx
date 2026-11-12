@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
-import { ShieldAlert, Users, UserMinus, ShieldCheck, Search, ChevronLeft, ChevronRight, GraduationCap, Hash, LayoutGrid, Info, Copy } from 'lucide-react';
+import { ShieldAlert, Users, UserMinus, ShieldCheck, Search, ChevronLeft, ChevronRight, GraduationCap, LayoutGrid, Info, Copy } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
 
@@ -162,44 +162,26 @@ export default function CRPanel() {
 
           <Card className="rounded-3xl border border-border bg-card/40 p-8">
              <div className="space-y-6">
-               <p className="text-sm font-medium text-muted-foreground">Invite codes</p>
-               <div className="space-y-4">
-                 <div className="p-6 rounded-2xl bg-muted border border-border relative overflow-hidden group">
-                   <button 
-                      className="absolute top-4 right-4 p-2 rounded-xl bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white z-20"
-                      onClick={() => {
-                        navigator.clipboard.writeText(classData.joinCode);
-                        toast.success('Key Copied');
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </button>
-                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                     <Hash className="h-12 w-12" />
-                   </div>
-                   <p className="text-xs font-medium opacity-40 mb-2">Student Join Code</p>
-                   <code className="text-2xl font-semibold text-primary">{classData.joinCode}</code>
+               <p className="text-sm font-medium text-muted-foreground">CR invite</p>
+               <div className="p-6 rounded-2xl bg-danger/5 border border-danger/10 relative overflow-hidden group">
+                 <button
+                    className="absolute top-4 right-4 p-2 rounded-xl bg-danger/10 text-danger opacity-0 group-hover:opacity-100 transition-all hover:bg-danger hover:text-white z-20"
+                    onClick={() => {
+                      navigator.clipboard.writeText(classData.adminInviteCode);
+                      toast.success('ID Copied');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                   <ShieldAlert className="h-12 w-12" />
                  </div>
-                 
-                 <div className="p-6 rounded-2xl bg-danger/5 border border-danger/10 relative overflow-hidden group">
-                   <button 
-                      className="absolute top-4 right-4 p-2 rounded-xl bg-danger/10 text-danger opacity-0 group-hover:opacity-100 transition-all hover:bg-danger hover:text-white z-20"
-                      onClick={() => {
-                        navigator.clipboard.writeText(classData.adminInviteCode);
-                        toast.success('ID Copied');
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </button>
-                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                     <ShieldAlert className="h-12 w-12" />
-                   </div>
-                   <p className="text-xs font-medium text-danger opacity-60 mb-2">CR Invite Code</p>
-                   <div className="flex items-center justify-between">
-                     <code className="text-2xl font-semibold text-danger">{classData.adminInviteCode}</code>
-                     <span className="text-xs font-bold text-danger/40">{classData.adminCodeUses} left</span>
-                   </div>
+                 <p className="text-xs font-medium text-danger opacity-60 mb-2">CR Invite Code</p>
+                 <div className="flex items-center justify-between">
+                   <code className="text-2xl font-semibold text-danger">{classData.adminInviteCode}</code>
+                   <span className="text-xs font-bold text-danger/40">{classData.adminCodeUses} left</span>
                  </div>
+                 <p className="mt-3 text-xs text-muted-foreground">Students enroll via GLA portal — this code only elevates a classmate to Class Rep.</p>
                </div>
              </div>
           </Card>

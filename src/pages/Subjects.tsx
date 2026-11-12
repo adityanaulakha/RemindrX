@@ -157,7 +157,9 @@ export default function Subjects() {
         <EmptyState
           icon={BookOpen}
           title="No subjects yet"
-          description={userData?.role === 'admin'
+          description={userData?.authProvider === 'gla_portal'
+            ? 'Subjects sync from your GLA portal allotment. Class reps can still add extras.'
+            : userData?.role === 'admin'
             ? 'Add the first subject for your section.'
             : 'Your class representative has not added subjects yet.'}
         />

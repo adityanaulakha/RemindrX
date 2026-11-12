@@ -1,7 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential, verifyBeforeUpdateEmail, deleteUser } from 'firebase/auth';
-import { doc, updateDoc, collection, addDoc, query, where, getDocs, deleteDoc, getCountFromServer } from 'firebase/firestore';
+import {
+  updateProfile,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  verifyBeforeUpdateEmail,
+  deleteUser,
+  signOut,
+} from 'firebase/auth';
+import {
+  doc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  getCountFromServer,
+  arrayUnion,
+  increment,
+} from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -9,16 +28,27 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
-import { UserCircle, Lock, ShieldCheck, Repeat, Bell, Mail, ShieldAlert, Fingerprint } from 'lucide-react';
+import {
+  UserCircle,
+  Lock,
+  ShieldCheck,
+  Bell,
+  ShieldAlert,
+  Fingerprint,
+  GraduationCap,
+  Shield,
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
 import { useNotifications } from '../hooks/useNotifications';
+import type { ClassData } from '../types';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { currentUser, userData, setUserData } = useAuth();
   const { requestPermission } = useNotifications();
-  
+  const isPortalUser = userData?.authProvider === 'gla_portal' || currentUser?.uid.startsWith('gla_');
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -33,16 +63,14 @@ export default function Profile() {
   const [program, setProgram] = useState('');
   const [branch, setBranch] = useState('');
 
-  // Class Change State
-  const [isClassChangeModalOpen, setIsClassChangeModalOpen] = useState(false);
-  const [newClassCode, setNewClassCode] = useState('');
-  const [classChangeLoading, setClassChangeLoading] = useState(false);
-  
-  // Account Deletion State
+  const [crInviteCode, setCrInviteCode] = useState('');
+  const [crLoading, setCrLoading] = useState(false);
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirm1, setDeleteConfirm1] = useState(false);
   const [deleteConfirm2, setDeleteConfirm2] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     async function loadProfileData() {
@@ -58,11 +86,11 @@ export default function Profile() {
         setBranch(userData.branch || '');
         calculateTrustScore(currentUser.uid).then(setTrustScore);
 
-        // Auto-capture class details if available
         if (userData.classId) {
           try {
-            const classRef = doc(db, 'classes', userData.classId);
-            const classSnap = await getDocs(query(collection(db, 'classes'), where('__name__', '==', userData.classId)));
+            const classSnap = await getDocs(
+              query(collection(db, 'classes'), where('__name__', '==', userData.classId))
+            );
             if (!classSnap.empty) {
               const classData = classSnap.docs[0].data();
               if (classData.year && !userData.year) setYear(classData.year);
@@ -71,7 +99,7 @@ export default function Profile() {
               if (classData.branch && !userData.branch) setBranch(classData.branch);
             }
           } catch (e) {
-            console.error("Failed to fetch class details", e);
+            console.error('Failed to fetch class details', e);
           }
         }
       }
@@ -79,17 +107,72 @@ export default function Profile() {
     loadProfileData();
   }, [userData, currentUser]);
 
+  const handleBecomeCR = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !userData?.classId) {
+      toast.error('You need an enrolled section first');
+      return;
+    }
+    if (userData.role === 'admin') {
+      toast.error('You are already a Class Rep');
+      return;
+    }
+    const code = crInviteCode.trim();
+    if (!code) {
+      toast.error('Enter the CR invite code');
+      return;
+    }
+
+    setCrLoading(true);
+    try {
+      const classRef = doc(db, 'classes', userData.classId);
+      const classSnap = await getDocs(query(collection(db, 'classes'), where('__name__', '==', userData.classId)));
+      if (classSnap.empty) {
+        toast.error('Section not found');
+        return;
+      }
+      const classDoc = classSnap.docs[0];
+      const classData = classDoc.data() as ClassData;
+
+      if (classData.adminInviteCode !== code) {
+        toast.error('Invalid CR invite code');
+        return;
+      }
+      if ((classData.adminCodeUses ?? 0) <= 0) {
+        toast.error('CR invite code usage limit reached');
+        return;
+      }
+      if (classData.adminCodeExpiry && classData.adminCodeExpiry < Date.now()) {
+        toast.error('CR invite code has expired');
+        return;
+      }
+
+      await updateDoc(classRef, {
+        adminCodeUses: increment(-1),
+        admins: arrayUnion(currentUser.uid),
+      });
+      await updateDoc(doc(db, 'users', currentUser.uid), { role: 'admin' });
+      setUserData({ ...userData, role: 'admin' });
+      setCrInviteCode('');
+      toast.success('You are now a Class Rep');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not elevate to CR');
+    } finally {
+      setCrLoading(false);
+    }
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !userData) return;
-    
+
     setLoading(true);
     try {
       let requiresContextUpdate = false;
       const newUserData = { ...userData };
 
-      const isEmailChanged = email !== currentUser.email;
-      const isPasswordChanged = newPassword.length > 0;
+      const isEmailChanged = !isPortalUser && email !== currentUser.email;
+      const isPasswordChanged = !isPortalUser && newPassword.length > 0;
 
       if (isEmailChanged || isPasswordChanged) {
         if (!currentPassword) {
@@ -101,7 +184,7 @@ export default function Profile() {
         await reauthenticateWithCredential(currentUser, credential);
       }
 
-      const updates: any = {};
+      const updates: Record<string, unknown> = {};
       if (name !== userData.name) {
         await updateProfile(currentUser, { displayName: name });
         updates.name = name;
@@ -118,30 +201,9 @@ export default function Profile() {
         newUserData.dob = dob;
         requiresContextUpdate = true;
       }
-      if (rollNo !== userData.rollNo) {
+      if (!isPortalUser && rollNo !== userData.rollNo) {
         updates.rollNo = rollNo;
         newUserData.rollNo = rollNo;
-        requiresContextUpdate = true;
-      }
-      // Read-only fields from class (failsafe)
-      if (year !== userData.year) {
-        updates.year = year;
-        newUserData.year = year;
-        requiresContextUpdate = true;
-      }
-      if (section !== userData.section) {
-        updates.section = section;
-        newUserData.section = section;
-        requiresContextUpdate = true;
-      }
-      if (program !== userData.program) {
-        updates.program = program;
-        newUserData.program = program;
-        requiresContextUpdate = true;
-      }
-      if (branch !== userData.branch) {
-        updates.branch = branch;
-        newUserData.branch = branch;
         requiresContextUpdate = true;
       }
 
@@ -164,16 +226,15 @@ export default function Profile() {
       toast.success('Profile updated');
       setCurrentPassword('');
       setNewPassword('');
-    } catch (error: any) {
-      toast.error(error.message || 'Profile update failed');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Profile update failed');
     } finally {
       setLoading(false);
     }
   };
 
-
   const handleAccountDelete = async () => {
-    if (!currentUser || !userData || !currentPassword) {
+    if (!currentUser || !userData) {
       toast.error('Authentication Required');
       return;
     }
@@ -183,101 +244,60 @@ export default function Profile() {
       return;
     }
 
+    if (isPortalUser) {
+      const expected = (userData.rollNo || currentUser.uid.replace(/^gla_/, '')).toUpperCase();
+      if (deleteConfirmText.trim().toUpperCase() !== expected) {
+        toast.error('Type your roll number to confirm');
+        return;
+      }
+    } else if (!currentPassword) {
+      toast.error('Authentication Required');
+      return;
+    }
+
     setDeleteLoading(true);
     try {
-      // 1. Failsafe for Super Admins
       if (userData.isSuperAdmin) {
         const q = query(collection(db, 'users'), where('isSuperAdmin', '==', true));
         const snapshot = await getCountFromServer(q);
-        const count = snapshot.data().count;
-        
-        if (count <= 1) {
+        if (snapshot.data().count <= 1) {
           toast.error('You are the last super admin. Add another super admin before deleting this account.');
           setDeleteLoading(false);
           return;
         }
       }
 
-      // 2. Re-authenticate
-      const credential = EmailAuthProvider.credential(currentUser.email!, currentPassword);
-      await reauthenticateWithCredential(currentUser, credential);
+      if (!isPortalUser) {
+        const credential = EmailAuthProvider.credential(currentUser.email!, currentPassword);
+        await reauthenticateWithCredential(currentUser, credential);
+      }
 
-      // 3. Delete Firestore Document
       await deleteDoc(doc(db, 'users', currentUser.uid));
 
-      // 4. Delete Firebase Auth User
-      await deleteUser(currentUser);
+      try {
+        await deleteUser(currentUser);
+      } catch {
+        // Portal sessions may lack a recent password reauth — sign out after Firestore purge
+        await signOut(auth);
+      }
 
-      toast.success('Account purged from matrix');
+      toast.success('Account deleted');
       navigate('/login');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete error:', error);
-      toast.error(error.message || 'Could not delete');
+      toast.error(error instanceof Error ? error.message : 'Could not delete');
     } finally {
       setDeleteLoading(false);
     }
   };
 
-  const handleClassChangeRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser || !userData || !newClassCode.trim()) return;
-
-    setClassChangeLoading(true);
-    try {
-      const classQ = query(collection(db, 'classes'), where('joinCode', '==', newClassCode.trim().toUpperCase()));
-      const classSnap = await getDocs(classQ);
-      
-      if (classSnap.empty) {
-        toast.error('Sector not found');
-        return;
-      }
-
-      const targetClass = classSnap.docs[0];
-      const existingReqQ = query(
-        collection(db, 'class_change_requests'), 
-        where('userId', '==', currentUser.uid),
-        where('status', '==', 'pending')
-      );
-      const existingReqSnap = await getDocs(existingReqQ);
-
-      if (!existingReqSnap.empty) {
-        toast.error('Request already in queue');
-        return;
-      }
-
-        let currentClassName = 'Unassigned';
-        if (userData.classId) {
-          try {
-            const currentClassSnap = await getDocs(query(collection(db, 'classes'), where('__name__', '==', userData.classId)));
-            if (!currentClassSnap.empty) {
-              currentClassName = currentClassSnap.docs[0].data().name;
-            }
-          } catch (e) {
-            console.error('Failed to get current class name', e);
-          }
-        }
-
-        await addDoc(collection(db, 'class_change_requests'), {
-          userId: currentUser.uid,
-          userName: userData.name,
-          currentClassId: userData.classId,
-          currentClassName: currentClassName,            requestedClassId: targetClass.id,
-            requestedClassCode: targetClass.data().joinCode,
-            requestedClassName: targetClass.data().name,
-            status: 'pending',
-            createdAt: Date.now()
-          });
-      toast.success('Transfer request queued');
-      setIsClassChangeModalOpen(false);
-      setNewClassCode('');
-    } catch (error: any) {
-      toast.error('Request failed');
-    } finally {
-      setClassChangeLoading(false);
-    }
-  };
-
   if (!userData) return null;
+
+  const deleteReady = deleteConfirm1 && deleteConfirm2 && (
+    isPortalUser
+      ? deleteConfirmText.trim().toUpperCase() === (userData.rollNo || currentUser?.uid.replace(/^gla_/, '') || '').toUpperCase()
+      : !!currentPassword
+  );
 
   return (
     <>
@@ -300,82 +320,113 @@ export default function Profile() {
         />
 
         <Card elevated className="p-5 sm:p-8">
-            <form onSubmit={handleUpdateProfile} className="space-y-10">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <div className="space-y-8">
-                  <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
-                    <UserCircle className="h-3 w-3" /> Your details
-                  </h3>
-                  <div className="space-y-6">
-                    <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+          <form onSubmit={handleUpdateProfile} className="space-y-10">
+            <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+              <div className="space-y-8">
+                <h3 className="flex items-center gap-2 text-xs font-semibold tracking-normal text-muted-foreground">
+                  <UserCircle className="h-3 w-3" /> Your details
+                </h3>
+                <div className="space-y-6">
+                  <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+                  {!isPortalUser ? (
                     <Input label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="College email" required />
-                    <Input label="University Roll No" value={rollNo} onChange={(e) => setRollNo(e.target.value)} placeholder="Enter your roll number" required />
-                    <Input label="Date of Birth" type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
-                  </div>
-                </div>
-
-                <div className="space-y-8">
-                  <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
-                    <Repeat className="h-3 w-3" /> Academic Details
-                  </h3>
-                  <div className="space-y-6">
-                    <Input label="Academic Year" value={year} disabled className="opacity-50 cursor-not-allowed bg-muted/5" />
-                    <Input label="Assigned Section" value={section} disabled className="opacity-50 cursor-not-allowed bg-muted/5" />
-                    <Input label="Program" value={program} disabled className="opacity-50 cursor-not-allowed bg-muted/5" />
-                    <Input label="Branch" value={branch} disabled className="opacity-50 cursor-not-allowed bg-muted/5" />
-                  </div>
+                  ) : (
+                    <Input label="Auth" value={`GLA portal · ${userData.rollNo || currentUser?.uid.replace(/^gla_/, '')}`} disabled className="cursor-not-allowed bg-muted/5 opacity-70" />
+                  )}
+                  <Input
+                    label="University Roll No"
+                    value={rollNo}
+                    onChange={(e) => setRollNo(e.target.value)}
+                    placeholder="Enter your roll number"
+                    required
+                    disabled={isPortalUser}
+                    className={isPortalUser ? 'cursor-not-allowed bg-muted/5 opacity-70' : undefined}
+                  />
+                  <Input label="Date of Birth" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-border space-y-8">
-                <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
+              <div className="space-y-8">
+                <h3 className="flex items-center gap-2 text-xs font-semibold tracking-normal text-muted-foreground">
+                  <GraduationCap className="h-3 w-3" /> Academic Details
+                </h3>
+                <div className="space-y-6">
+                  <Input label="Academic Year" value={year} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Assigned Section" value={section} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Program" value={program} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                  <Input label="Branch" value={branch} disabled className="cursor-not-allowed bg-muted/5 opacity-50" />
+                </div>
+              </div>
+            </div>
+
+            {!isPortalUser && (
+              <div className="space-y-8 border-t border-border pt-8">
+                <h3 className="flex items-center gap-2 text-xs font-semibold tracking-normal text-muted-foreground">
                   <Lock className="h-3 w-3" /> Security
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                   <Input label="Current Password" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Required for major changes" />
                   <Input label="New Password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 6 chars" />
                 </div>
               </div>
+            )}
 
-              <div className="pt-8 border-t border-border space-y-8">
-                <h3 className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2">
-                  <Fingerprint className="h-3 w-3" /> Reminders
-                </h3>
-                <div className="space-y-4">
-                  <label className="block text-xs font-medium text-muted-foreground ml-1">
-                    Deadline window ({deadlinePreference} Days)
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="7" 
-                      value={deadlinePreference} 
-                      onChange={(e) => setDeadlinePreference(parseInt(e.target.value))}
-                      className="flex-1 accent-primary"
-                    />
-                    <div className="h-10 w-20 rounded-xl bg-muted border border-border flex items-center justify-center font-semibold text-primary">
-                      {deadlinePreference}D
-                    </div>
+            <div className="space-y-8 border-t border-border pt-8">
+              <h3 className="flex items-center gap-2 text-xs font-semibold tracking-normal text-muted-foreground">
+                <Fingerprint className="h-3 w-3" /> Reminders
+              </h3>
+              <div className="space-y-4">
+                <label className="ml-1 block text-xs font-medium text-muted-foreground">
+                  Deadline window ({deadlinePreference} Days)
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="1"
+                    max="7"
+                    value={deadlinePreference}
+                    onChange={(e) => setDeadlinePreference(parseInt(e.target.value))}
+                    className="flex-1 accent-primary"
+                  />
+                  <div className="flex h-10 w-20 items-center justify-center rounded-xl border border-border bg-muted font-semibold text-primary">
+                    {deadlinePreference}D
                   </div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Adjust how many days before a deadline a task should appear in your Dashboard's Alert section.
-                  </p>
                 </div>
               </div>
+            </div>
 
-              <div className="pt-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
-                 <Button type="button" variant="ghost" onClick={() => setIsClassChangeModalOpen(true)} className="rounded-2xl h-12 sm:h-14 px-6 sm:px-8 font-medium hover:bg-primary/10 hover:text-primary text-xs sm:text-xs">
-                    <Repeat className="mr-2 h-4 w-4" /> Transfer Class
-                 </Button>
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <Button type="submit" disabled={loading} className="h-12 sm:h-14 px-8 sm:px-12 rounded-2xl font-medium shadow-[var(--shadow)] text-xs sm:text-xs">
-                      {loading ? 'Saving...' : 'Update Profile'}
-                    </Button>
-                  </div>
-              </div>
-            </form>
+            <div className="flex justify-end pt-4">
+              <Button type="submit" disabled={loading} className="h-12 rounded-2xl px-8 font-medium shadow-[var(--shadow)] sm:h-14 sm:px-12">
+                {loading ? 'Saving...' : 'Update Profile'}
+              </Button>
+            </div>
+          </form>
         </Card>
+
+        {userData.classId && userData.role !== 'admin' && !userData.isSuperAdmin && (
+          <Card className="p-6 sm:p-8">
+            <h2 className="mb-2 flex items-center gap-3 text-xl font-semibold tracking-tight">
+              <Shield className="h-5 w-5 text-primary" /> Become Class Rep
+            </h2>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+              Enter the CR invite code for your section. This does not change your portal-mapped class — it only elevates your role.
+            </p>
+            <form onSubmit={handleBecomeCR} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <Input
+                  label="CR invite code"
+                  value={crInviteCode}
+                  onChange={(e) => setCrInviteCode(e.target.value)}
+                  placeholder="CR-…"
+                  required
+                />
+              </div>
+              <Button type="submit" disabled={crLoading} className="h-12 sm:mb-0.5">
+                {crLoading ? 'Checking…' : 'Elevate to CR'}
+              </Button>
+            </form>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           <Card className="p-6 sm:p-8">
@@ -386,24 +437,20 @@ export default function Profile() {
               Enable notifications for real-time updates on event approvals and class announcements.
             </p>
             <div className="space-y-4 rounded-2xl border border-border bg-muted/60 p-5">
-               <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Status</p>
-                    <p className={`text-sm font-semibold ${Notification.permission === 'granted' ? 'text-success' : 'text-danger'}`}>
-                      {Notification.permission === 'granted' ? 'Enabled' : 'Disabled'}
-                    </p>
-                  </div>
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${Notification.permission === 'granted' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
-                    {Notification.permission === 'granted' ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
-                  </div>
-               </div>
-               <Button
-                onClick={requestPermission}
-                disabled={Notification.permission === 'granted'}
-                className="w-full"
-               >
-                 {Notification.permission === 'granted' ? 'Notifications Active' : 'Enable Notifications'}
-               </Button>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Status</p>
+                  <p className={`text-sm font-semibold ${Notification.permission === 'granted' ? 'text-success' : 'text-danger'}`}>
+                    {Notification.permission === 'granted' ? 'Enabled' : 'Disabled'}
+                  </p>
+                </div>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${Notification.permission === 'granted' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
+                  {Notification.permission === 'granted' ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+                </div>
+              </div>
+              <Button onClick={requestPermission} disabled={Notification.permission === 'granted'} className="w-full">
+                {Notification.permission === 'granted' ? 'Notifications Active' : 'Enable Notifications'}
+              </Button>
             </div>
           </Card>
 
@@ -421,101 +468,75 @@ export default function Profile() {
               className="group mt-8 w-full rounded-2xl border border-danger/15 bg-danger/5 p-5 text-left transition-all hover:bg-danger/10"
             >
               <div className="flex items-center justify-between">
-                 <div className="space-y-1">
-                    <p className="text-sm font-semibold text-danger">Delete account</p>
-                    <p className="text-xs text-muted-foreground">Permanent removal from the platform</p>
-                 </div>
-                 <ShieldAlert className="h-5 w-5 text-danger" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-danger">Delete account</p>
+                  <p className="text-xs text-muted-foreground">Permanent removal from the platform</p>
+                </div>
+                <ShieldAlert className="h-5 w-5 text-danger" />
               </div>
             </button>
           </Card>
         </div>
       </div>
 
-      {/* Account Deletion Modal */}
       <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete account">
         <div className="space-y-8 p-2">
-          <div className="bg-danger/10 p-6 rounded-2xl border border-danger/20 flex items-start gap-4">
-            <ShieldAlert className="h-6 w-6 text-danger shrink-0 mt-1" />
+          <div className="flex items-start gap-4 rounded-2xl border border-danger/20 bg-danger/10 p-6">
+            <ShieldAlert className="mt-1 h-6 w-6 shrink-0 text-danger" />
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-danger leading-none">Irreversible Action</h4>
-              <p className="text-xs font-medium text-danger/80 leading-relaxed tracking-normal">
-                This will permanently delete your profile, academic records, and access from the RemindrX platform.
+              <h4 className="text-sm font-semibold leading-none text-danger">Irreversible Action</h4>
+              <p className="text-xs font-medium leading-relaxed tracking-normal text-danger/80">
+                This will permanently delete your profile from RemindrX.
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-             <label className="flex items-start gap-4 p-4 rounded-2xl bg-muted border border-border cursor-pointer hover:bg-muted transition-colors">
-               <input 
-                 type="checkbox" 
-                 className="mt-1 h-4 w-4 accent-danger" 
-                 checked={deleteConfirm1}
-                 onChange={(e) => setDeleteConfirm1(e.target.checked)}
-               />
-               <span className="text-xs font-semibold tracking-normal opacity-60">I understand that all my data will be permanently erased.</span>
-             </label>
-
-             <label className="flex items-start gap-4 p-4 rounded-2xl bg-muted border border-border cursor-pointer hover:bg-muted transition-colors">
-               <input 
-                 type="checkbox" 
-                 className="mt-1 h-4 w-4 accent-danger" 
-                 checked={deleteConfirm2}
-                 onChange={(e) => setDeleteConfirm2(e.target.checked)}
-               />
-               <span className="text-xs font-semibold tracking-normal opacity-60">I confirm that this action cannot be undone.</span>
-             </label>
+            <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-border bg-muted p-4 hover:bg-muted">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-danger" checked={deleteConfirm1} onChange={(e) => setDeleteConfirm1(e.target.checked)} />
+              <span className="text-xs font-semibold tracking-normal opacity-60">I understand that all my data will be permanently erased.</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-border bg-muted p-4 hover:bg-muted">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-danger" checked={deleteConfirm2} onChange={(e) => setDeleteConfirm2(e.target.checked)} />
+              <span className="text-xs font-semibold tracking-normal opacity-60">I confirm that this action cannot be undone.</span>
+            </label>
           </div>
 
           <div className="space-y-4">
-             <p className="text-xs font-semibold text-muted-foreground text-center">Verification Required</p>
-             <Input 
-               label="Current password" 
-               type="password" 
-               value={currentPassword} 
-               onChange={(e) => setCurrentPassword(e.target.value)} 
-               placeholder="Enter password to proceed"
-               required
-             />
+            <p className="text-center text-xs font-semibold text-muted-foreground">Verification Required</p>
+            {isPortalUser ? (
+              <Input
+                label="Type your roll number"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={userData.rollNo || 'Roll number'}
+                required
+              />
+            ) : (
+              <Input
+                label="Current password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter password to proceed"
+                required
+              />
+            )}
           </div>
 
           <div className="flex gap-4">
-            <Button variant="ghost" className="flex-1 rounded-2xl h-14" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button variant="ghost" className="h-14 flex-1 rounded-2xl" onClick={() => setIsDeleteModalOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              className="flex-1 rounded-2xl h-14 bg-danger hover:bg-danger/90 text-white font-medium shadow-xl shadow-danger/20"
-              disabled={!deleteConfirm1 || !deleteConfirm2 || !currentPassword || deleteLoading}
+            <Button
+              className="h-14 flex-1 rounded-2xl bg-danger font-medium text-white shadow-xl shadow-danger/20 hover:bg-danger/90"
+              disabled={!deleteReady || deleteLoading}
               onClick={handleAccountDelete}
             >
               {deleteLoading ? 'Deleting...' : 'Confirm Deletion'}
             </Button>
           </div>
         </div>
-      </Modal>
-
-      {/* Sector Transfer Modal */}
-      <Modal isOpen={isClassChangeModalOpen} onClose={() => setIsClassChangeModalOpen(false)} title="Class Transfer Request">
-        <form onSubmit={handleClassChangeRequest} className="space-y-8 py-4">
-          <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10">
-            <p className="text-xs font-medium text-foreground/60 leading-relaxed">
-              A class transfer is sent to a super admin for approval. Check the destination section code before you submit.
-            </p>
-          </div>
-          <Input
-            label="Destination Class Code"
-            placeholder="Section code"
-            value={newClassCode}
-            onChange={(e) => setNewClassCode(e.target.value)}
-            required
-          />
-          <div className="pt-4 flex gap-4">
-            <Button type="button" variant="ghost" className="flex-1 h-14 rounded-2xl font-medium" onClick={() => setIsClassChangeModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={classChangeLoading} className="flex-2 h-14 px-10 rounded-2xl font-medium shadow-[var(--shadow)]">
-              {classChangeLoading ? 'Processing...' : 'Submit Transfer'}
-            </Button>
-          </div>
-        </form>
       </Modal>
     </>
   );

@@ -100,7 +100,7 @@ export default function Login() {
           ? 'Enrolled — your section was created from the portal'
           : 'Signed in with GLA portal'
       );
-      navigate(result.classId ? '/dashboard' : '/join');
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : 'Enroll failed');
@@ -208,7 +208,7 @@ export default function Login() {
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {mode === 'portal'
-              ? 'Roll + portal password + captcha. No join code needed.'
+              ? 'Roll + portal password + captcha. Your section is mapped automatically.'
               : 'Use the college email for Super Admin / staff.'}
           </p>
 

@@ -53,19 +53,93 @@ async function resolveGlaInstituteId(db: Firestore): Promise<string | null> {
   return null;
 }
 
+/** Infer academic year from GLA-style roll prefix (e.g. 2215… → admit 2022). */
+export function inferYearFromRoll(roll: string): string | null {
+  const m = /^(\d{2})/.exec(String(roll || '').trim());
+  if (!m) return null;
+  const admit = 2000 + Number(m[1]);
+  if (admit < 2015 || admit > new Date().getFullYear()) return null;
+  const y = new Date().getFullYear() - admit + 1;
+  if (y < 1 || y > 5) return null;
+  return String(y);
+}
+
+function part(v: unknown, fallback = 'NA'): string {
+  const s = String(v || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
+  return s || fallback;
+}
+
+function subjectSignature(subjects: PortalSubjectIn[] | undefined): string {
+  const codes = (subjects || [])
+    .map((s) => String(s.code || '').trim().toUpperCase())
+    .filter(Boolean)
+    .sort();
+  if (!codes.length) return 'NOSUB';
+  // Stable short fingerprint so missing section still groups classmates with same paper set
+  return codes.join('+').slice(0, 48);
+}
+
+/**
+ * Build a usable cohort key. Rejects the all-NA mega-class when we have no
+ * program/branch/year/section AND no subject codes to fingerprint.
+ */
+export function resolvePortalCohort(profile: PortalProfileIn): {
+  cohortKey: string;
+  profile: PortalProfileIn;
+} {
+  const next: PortalProfileIn = { ...profile };
+  if (!next.year) {
+    const inferred = inferYearFromRoll(next.roll);
+    if (inferred) next.year = inferred;
+  }
+
+  let section = part(next.section, '');
+  if (!section) {
+    // Prefer subject fingerprint over dumping everyone into NA
+    section = subjectSignature(next.subjects);
+    next.section = next.section || null;
+  }
+
+  const program = part(next.program);
+  const branch = part(next.branch);
+  const year = part(next.year);
+  const sectionPart = section || 'NA';
+
+  const weak =
+    program === 'NA' &&
+    branch === 'NA' &&
+    year === 'NA' &&
+    (sectionPart === 'NA' || sectionPart === 'NOSUB');
+
+  if (weak) {
+    throw new Error(
+      'Could not read section allotment from the GLA portal (program/branch/year/section). Try again after the portal session loads fully.'
+    );
+  }
+
+  const cohortKey = ['gla', program, branch, year, sectionPart].join('|');
+  next.portalCohortKey = cohortKey;
+  if (!next.classDisplayName) {
+    next.classDisplayName = [
+      next.program || 'GLA',
+      next.branch,
+      next.year ? `Year ${next.year}` : null,
+      next.section ? `Section ${next.section}` : sectionPart !== 'NOSUB' && sectionPart !== 'NA' ? `Group ${sectionPart}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  return { cohortKey, profile: next };
+}
+
 export async function ensurePortalClassAndSubjects(
   db: Firestore,
-  profile: PortalProfileIn
-): Promise<{ classId: string; created: boolean; subjectUpserts: number }> {
-  const cohortKey =
-    profile.portalCohortKey ||
-    [
-      'gla',
-      String(profile.program || 'NA').toUpperCase(),
-      String(profile.branch || 'NA').toUpperCase(),
-      String(profile.year || 'NA').toUpperCase(),
-      String(profile.section || 'NA').toUpperCase(),
-    ].join('|');
+  profileIn: PortalProfileIn
+): Promise<{ classId: string; created: boolean; subjectUpserts: number; profile: PortalProfileIn }> {
+  const { cohortKey, profile } = resolvePortalCohort(profileIn);
 
   const existing = await db
     .collection('classes')
@@ -162,7 +236,7 @@ export async function ensurePortalClassAndSubjects(
     subjectUpserts += 1;
   }
 
-  return { classId, created, subjectUpserts };
+  return { classId, created, subjectUpserts, profile };
 }
 
 export async function upsertPortalUser(

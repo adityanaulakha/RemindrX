@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
-import JoinClass from './pages/JoinClass';
 import Dashboard from './pages/Dashboard';
 import Subjects from './pages/Subjects';
 import SubjectDetails from './pages/SubjectDetails';
@@ -19,7 +18,6 @@ import Landing from './pages/Landing';
 import Layout from './components/layout/Layout';
 import { BootScreen } from './components/ui/BootScreen';
 import { useTheme } from './hooks/useTheme';
-import type { JSX } from 'react';
 
 const uiPreviewEnabled = import.meta.env.DEV && import.meta.env.VITE_UI_PREVIEW === '1';
 const UIPreview = uiPreviewEnabled ? lazy(() => import('./pages/UIPreview')) : null;
@@ -31,30 +29,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (loading) return <BootScreen />;
   if (!currentUser) return <Navigate to="/login" replace />;
 
-  // Portal-enrolled students already have classId from auto-map — skip Join Class.
-  // Legacy email students without a section still go to /join (fallback).
+  // Section comes from portal enroll auto-map. Users without a class go back to login.
   if (userData && !userData.classId && !userData.isSuperAdmin) {
-    return <Navigate to="/join" replace />;
-  }
-
-  return children;
-};
-
-// Route wrapper for users who haven't joined a class yet (legacy / non-portal fallback)
-const JoinClassRoute = ({ children }: { children: JSX.Element }) => {
-  const { currentUser, userData, loading } = useAuth();
-
-  if (loading) return <BootScreen />;
-  if (!currentUser) return <Navigate to="/login" replace />;
-
-  // Portal users and anyone already mapped to a class shouldn't land here
-  if (userData && (userData.classId || userData.isSuperAdmin || userData.authProvider === 'gla_portal')) {
-    return (
-      <Navigate
-        to={userData.isSuperAdmin ? '/super-admin' : userData.classId ? '/dashboard' : '/login'}
-        replace
-      />
-    );
+    return <Navigate to="/login" replace />;
   }
 
   return children;
@@ -86,15 +63,7 @@ function App() {
       <div className="min-h-screen bg-background text-foreground">
         <Routes>
           <Route path="/login" element={<Login />} />
-
-          <Route
-            path="/join"
-            element={
-              <JoinClassRoute>
-                <JoinClass />
-              </JoinClassRoute>
-            }
-          />
+          <Route path="/join" element={<Navigate to="/login" replace />} />
 
           {UIPreview && (
             <Route
@@ -107,7 +76,6 @@ function App() {
             />
           )}
 
-          {/* Main App Layout */}
           <Route
             element={
               <ProtectedRoute>

@@ -90,11 +90,13 @@ export function EditSectionModal({ isOpen, onClose, section, onSectionUpdated }:
           </select>
         </div>
 
-        <div className="p-3 bg-accent/5 rounded-lg border border-accent/20 my-4">
-          <p className="text-xs text-muted-foreground tracking-normal mb-1 font-bold">Section Code (Immutable)</p>
-          <p className="font-mono text-lg font-bold text-accent">{section.joinCode}</p>
-          <p className="text-xs text-muted-foreground mt-1">To change the taxonomy or join code, please delete and recreate the section.</p>
-        </div>
+        {section.portalCohortKey ? (
+          <div className="p-3 bg-accent/5 rounded-lg border border-accent/20 my-4">
+            <p className="text-xs text-muted-foreground tracking-normal mb-1 font-bold">Portal cohort</p>
+            <p className="font-mono text-sm font-bold text-accent break-all">{section.portalCohortKey}</p>
+            <p className="text-xs text-muted-foreground mt-1">Students auto-join this section from GLA portal enroll.</p>
+          </div>
+        ) : null}
 
         <Input
           label="Section Display Name"
