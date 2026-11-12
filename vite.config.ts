@@ -14,11 +14,11 @@ export default defineConfig({
         enabled: true
       },
       manifest: {
-        name: 'Academic Platform',
-        short_name: 'Academic',
-        description: 'Modern academic management system for college students',
-        theme_color: '#0F6B56',
-        background_color: '#F6F3EC',
+        name: 'RemindrX',
+        short_name: 'RemindrX',
+        description: 'Campus workspace for deadlines, attendance, timetable, and section updates',
+        theme_color: '#07070B',
+        background_color: '#07070B',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',

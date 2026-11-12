@@ -4,6 +4,11 @@ export type ThemePreference = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'remindrx-theme';
 
+const THEME_COLORS = {
+  light: '#F4F2F8',
+  dark: '#07070B',
+} as const;
+
 export function resolveTheme(preference: ThemePreference): 'light' | 'dark' {
   if (preference === 'dark') return 'dark';
   if (preference === 'light') return 'light';
@@ -14,7 +19,7 @@ export function applyTheme(preference: ThemePreference) {
   const resolved = resolveTheme(preference);
   document.documentElement.classList.toggle('dark', resolved === 'dark');
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', resolved === 'dark' ? '#10120F' : '#F6F3EC');
+  if (meta) meta.setAttribute('content', THEME_COLORS[resolved]);
   return resolved;
 }
 
@@ -25,7 +30,7 @@ function readPreference(): ThemePreference {
   } catch {
     /* private mode */
   }
-  return 'system';
+  return 'dark';
 }
 
 export function useTheme() {
@@ -46,5 +51,5 @@ export function useTheme() {
     return () => media.removeEventListener('change', onChange);
   }, [preference]);
 
-  return { preference, setPreference };
+  return { preference, setPreference, resolved: resolveTheme(preference) };
 }

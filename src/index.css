@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -21,61 +22,86 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-glow: var(--glow);
 }
 
 @layer base {
   :root {
     color-scheme: light;
-    --background: #f6f3ec;
-    --foreground: #1c1917;
-    --card: #fffdf9;
-    --card-foreground: #1c1917;
-    --muted: #efeae1;
-    --muted-foreground: #5c564e;
-    --border: #e4ddd0;
-    --primary: #0f6b56;
-    --primary-foreground: #f4fbf8;
-    --primary-soft: #e4f4ec;
-    --accent: #c45c26;
-    --accent-foreground: #fff7f2;
-    --danger: #b42318;
-    --danger-foreground: #fff5f4;
-    --success: #067647;
-    --success-foreground: #f3fbf6;
-    --warning: #b54708;
-    --warning-foreground: #fff8ef;
-    --ring: #0f6b56;
-    --shadow: 0 1px 2px rgb(28 25 23 / 0.05), 0 18px 40px -28px rgb(28 25 23 / 0.35);
+    --background: #f4f2f8;
+    --foreground: #12101a;
+    --card: rgba(255, 255, 255, 0.78);
+    --card-foreground: #12101a;
+    --surface: #ffffff;
+    --surface-elevated: #ffffff;
+    --muted: #ebe7f3;
+    --muted-foreground: #6b657a;
+    --border: rgba(28, 22, 48, 0.1);
+    --primary: #6d5efc;
+    --primary-foreground: #f8f7ff;
+    --primary-soft: rgba(109, 94, 252, 0.12);
+    --accent: #9b7bff;
+    --accent-foreground: #1a1030;
+    --danger: #e5484d;
+    --danger-foreground: #fff7f7;
+    --success: #30a46c;
+    --success-foreground: #f2fbf6;
+    --warning: #f5a524;
+    --warning-foreground: #2a1a04;
+    --ring: #6d5efc;
+    --glow: rgba(109, 94, 252, 0.35);
+    --shadow:
+      0 0 0 1px rgba(28, 22, 48, 0.04),
+      0 1px 2px rgba(28, 22, 48, 0.04),
+      0 18px 40px -24px rgba(70, 50, 140, 0.28);
+    --shadow-lg:
+      0 0 0 1px rgba(28, 22, 48, 0.05),
+      0 8px 30px -12px rgba(70, 50, 140, 0.22),
+      0 28px 60px -36px rgba(70, 50, 140, 0.35);
+    --glass: blur(18px) saturate(1.35);
   }
 
   .dark {
     color-scheme: dark;
-    --background: #10120f;
-    --foreground: #f4f1ea;
-    --card: #1a1d18;
-    --card-foreground: #f4f1ea;
-    --muted: #242820;
-    --muted-foreground: #c8c0b4;
-    --border: #34382e;
-    --primary: #3dbe8a;
-    --primary-foreground: #05281c;
-    --primary-soft: #143028;
-    --accent: #f0a06a;
-    --accent-foreground: #2a1408;
-    --danger: #f97066;
-    --danger-foreground: #2d0a08;
-    --success: #47cd89;
-    --success-foreground: #052e1a;
-    --warning: #fdb022;
-    --warning-foreground: #2a1a04;
-    --ring: #8ae8c4;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 18px 40px -24px rgb(0 0 0 / 0.65);
+    --background: #07070b;
+    --foreground: #f4f2fb;
+    --card: rgba(18, 18, 28, 0.72);
+    --card-foreground: #f4f2fb;
+    --surface: #0e0e16;
+    --surface-elevated: #151522;
+    --muted: #161622;
+    --muted-foreground: #9b96ad;
+    --border: rgba(255, 255, 255, 0.08);
+    --primary: #8b7cf8;
+    --primary-foreground: #0d0a1c;
+    --primary-soft: rgba(139, 124, 248, 0.14);
+    --accent: #a996ff;
+    --accent-foreground: #140f28;
+    --danger: #ff6b6b;
+    --danger-foreground: #2a0b0b;
+    --success: #3ecf8e;
+    --success-foreground: #041910;
+    --warning: #f5b942;
+    --warning-foreground: #241802;
+    --ring: #a996ff;
+    --glow: rgba(139, 124, 248, 0.45);
+    --shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 1px 2px rgba(0, 0, 0, 0.45),
+      0 22px 48px -28px rgba(0, 0, 0, 0.75);
+    --shadow-lg:
+      0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 12px 40px -16px rgba(0, 0, 0, 0.7),
+      0 0 80px -40px var(--glow);
+    --glass: blur(22px) saturate(1.45);
   }
 
   * {
     border-color: var(--border);
     scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
   }
 
   html {
@@ -86,13 +112,14 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    letter-spacing: -0.011em;
+    letter-spacing: -0.015em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--primary) 28%, transparent);
+    background: color-mix(in srgb, var(--primary) 32%, transparent);
     color: var(--foreground);
   }
 
@@ -128,8 +155,9 @@
 @layer components {
   .app-canvas {
     background:
-      radial-gradient(900px 420px at 100% -10%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 60%),
-      radial-gradient(720px 380px at -10% 110%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+      radial-gradient(920px 480px at 88% -8%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 58%),
+      radial-gradient(720px 420px at -12% 18%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 52%),
+      radial-gradient(640px 360px at 50% 110%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 55%),
       var(--background);
   }
 
@@ -139,23 +167,68 @@
     border: 1px solid var(--border);
     border-radius: 1.25rem;
     box-shadow: var(--shadow);
+    backdrop-filter: var(--glass);
+    -webkit-backdrop-filter: var(--glass);
+  }
+
+  .surface-solid {
+    background: var(--surface-elevated);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+
+  .glass-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    backdrop-filter: var(--glass);
+    -webkit-backdrop-filter: var(--glass);
+    box-shadow: var(--shadow);
+  }
+
+  .glow-ring {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--primary) 28%, transparent),
+      0 0 36px -10px var(--glow);
   }
 
   .control {
     display: flex;
     width: 100%;
     min-height: 2.75rem;
-    border-radius: 0.85rem;
+    border-radius: 0.9rem;
     border: 1px solid var(--border);
-    background: var(--card);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
     color: var(--foreground);
-    padding: 0.5rem 0.85rem;
+    padding: 0.5rem 0.9rem;
     font-size: 0.875rem;
     line-height: 1.4;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  }
+
+  .control:focus-visible {
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
   }
 
   .control::placeholder {
     color: var(--muted-foreground);
+  }
+
+  .page-enter {
+    animation: page-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--muted) 70%, transparent) 25%,
+      color-mix(in srgb, var(--foreground) 8%, var(--muted)) 45%,
+      color-mix(in srgb, var(--muted) 70%, transparent) 65%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -165,5 +238,52 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .motion-float {
+    animation: float-soft 5.5s ease-in-out infinite;
+  }
+
+  .motion-glow {
+    animation: pulse-glow 3.2s ease-in-out infinite;
   }
 }
