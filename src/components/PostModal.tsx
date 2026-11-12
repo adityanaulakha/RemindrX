@@ -62,7 +62,7 @@ export function PostModal({ isOpen, onClose, onPostAdded, defaultSubjectId, edit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userData?.classId || !currentUser || !subjectId || !content.trim()) {
-      toast.error('Matrix inputs incomplete');
+      toast.error('Add a subject and a message first');
       return;
     }
 
@@ -90,34 +90,34 @@ export function PostModal({ isOpen, onClose, onPostAdded, defaultSubjectId, edit
           createdBy: currentUser.uid,
         };
         await addDoc(collection(db, 'posts'), newPost);
-        toast.success('Intelligence Broadcasted');
+        toast.success('Update posted');
       }
       
       setContent('');
       onClose();
       if (onPostAdded) onPostAdded();
     } catch (error: any) {
-      toast.error('Broadcast failed');
+      toast.error('Could not post the update');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={editPost ? "Modify Intelligence" : "Broadcast Intelligence"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={editPost ? "Edit update" : "Post an update"}>
       <form onSubmit={handleSubmit} className="space-y-8 py-4">
         <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 flex items-center gap-2 ml-1">
+          <label className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2 ml-1">
             <BookOpen className="h-3 w-3" /> Core Subject
           </label>
           <div className="relative group">
             <select
-              className="flex h-14 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-2 text-sm font-bold italic focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 transition-all appearance-none"
+              className="flex h-14 w-full rounded-2xl border border-border bg-muted px-5 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 transition-all appearance-none"
               value={subjectId}
               onChange={(e) => setSubjectId(e.target.value)}
               required
             >
-              <option value="" disabled className="bg-background">Select Cluster...</option>
+              <option value="" disabled className="bg-background">Choose a subject</option>
               {subjects.map(sub => (
                 <option key={sub.id} value={sub.id} className="bg-background">{sub.name}</option>
               ))}
@@ -129,22 +129,22 @@ export function PostModal({ isOpen, onClose, onPostAdded, defaultSubjectId, edit
         </div>
 
         <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 flex items-center gap-2 ml-1">
+          <label className="text-xs font-semibold tracking-normal text-muted-foreground flex items-center gap-2 ml-1">
             <MessageSquare className="h-3 w-3" /> Information Load
           </label>
           <textarea
-            className="flex w-full rounded-[2rem] border border-white/10 bg-white/5 px-6 py-5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 min-h-[160px] resize-none leading-relaxed"
+            className="flex w-full rounded-2xl border border-border bg-muted px-6 py-5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 min-h-[160px] resize-none leading-relaxed"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Broadcast tomorrow's schedule shift or urgent updates..."
+            placeholder="What should your class know?"
             required
           />
         </div>
 
         <div className="pt-4 flex gap-4">
-          <Button type="button" variant="ghost" className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest italic" onClick={onClose}>Abort</Button>
-          <Button type="submit" className="flex-2 h-14 px-10 rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-primary/20" disabled={loading}>
-            {loading ? 'Broadcasting...' : (editPost ? 'Push Update' : 'Initialize Broadcast')}
+          <Button type="button" variant="ghost" className="flex-1 h-14 rounded-2xl font-medium" onClick={onClose}>Abort</Button>
+          <Button type="submit" className="flex-2 h-14 px-10 rounded-2xl font-medium shadow-[var(--shadow)]" disabled={loading}>
+            {loading ? 'Posting…' : (editPost ? 'Save changes' : 'Post update')}
           </Button>
         </div>
       </form>

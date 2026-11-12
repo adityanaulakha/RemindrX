@@ -91,9 +91,9 @@ export function EditSectionModal({ isOpen, onClose, section, onSectionUpdated }:
         </div>
 
         <div className="p-3 bg-accent/5 rounded-lg border border-accent/20 my-4">
-          <p className="text-xs text-foreground/50 uppercase tracking-wider mb-1 font-bold">Section Code (Immutable)</p>
+          <p className="text-xs text-muted-foreground tracking-normal mb-1 font-bold">Section Code (Immutable)</p>
           <p className="font-mono text-lg font-bold text-accent">{section.joinCode}</p>
-          <p className="text-[10px] text-foreground/50 mt-1">To change the taxonomy or join code, please delete and recreate the section.</p>
+          <p className="text-xs text-muted-foreground mt-1">To change the taxonomy or join code, please delete and recreate the section.</p>
         </div>
 
         <Input

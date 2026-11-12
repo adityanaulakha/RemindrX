@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { PageHeader } from '../components/ui/PageHeader';
+import { ProgressRing } from '../components/ui/ProgressRing';
+import { ProgressBar } from '../components/ui/ProgressBar';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { PageSkeleton } from '../components/ui/Skeleton';
 import {
   Activity,
   AlertTriangle,
@@ -212,283 +218,212 @@ export default function Attendance() {
   };
 
   if (gate === 'loading') {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center gap-3 text-foreground/40">
-        <RefreshCw className="h-5 w-5 animate-spin" />
-        <span className="text-[10px] font-black uppercase tracking-widest">Restoring GLA session…</span>
-      </div>
-    );
+    return <PageSkeleton rows={3} />;
   }
 
   if (gate === 'pin-unlock') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-md mx-auto space-y-8">
-        <Lock className="h-16 w-16 text-primary" />
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-black italic tracking-tighter uppercase">Unlock Pulse</h1>
-          <p className="text-sm text-foreground/40">Enter your 4-digit RemindrX PIN for {sessionLabel || 'your GLA session'}.</p>
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center space-y-6">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+          <Lock className="h-7 w-7" />
         </div>
-        <form onSubmit={handlePinUnlock} className="w-full space-y-6">
-          <Input
-            label="4-digit PIN"
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            required
-          />
-          <Button type="submit" className="w-full" disabled={loading || pin.length !== 4}>
-            Unlock
-          </Button>
-          <Button type="button" variant="ghost" className="w-full" onClick={handleDisconnect}>
-            Sign out of GLA
-          </Button>
-        </form>
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight">Unlock attendance</h1>
+          <p className="text-sm text-muted-foreground">Enter your 4-digit RemindrX PIN for {sessionLabel || 'your GLA session'}.</p>
+        </div>
+        <Card className="w-full p-6">
+          <form onSubmit={handlePinUnlock} className="space-y-4">
+            <Input
+              label="4-digit PIN"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              required
+            />
+            <Button type="submit" className="w-full" disabled={loading || pin.length !== 4}>
+              Unlock
+            </Button>
+            <Button type="button" variant="ghost" className="w-full" onClick={handleDisconnect}>
+              Sign out of GLA
+            </Button>
+          </form>
+        </Card>
       </div>
     );
   }
 
   if (gate === 'pin-setup') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-md mx-auto space-y-8">
-        <ShieldCheck className="h-16 w-16 text-primary" />
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center space-y-6">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+          <ShieldCheck className="h-7 w-7" />
+        </div>
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-black italic tracking-tighter uppercase">Set local PIN</h1>
-          <p className="text-sm text-foreground/40">
+          <h1 className="text-3xl font-semibold tracking-tight">Set local PIN</h1>
+          <p className="text-sm text-muted-foreground">
             Optional: unlock RemindrX with a PIN next time instead of re-typing portal credentials (while the portal session is still alive).
           </p>
         </div>
-        <form onSubmit={handlePinSetup} className="w-full space-y-6">
-          <Input
-            label="New 4-digit PIN"
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            required
-          />
-          <Input
-            label="Confirm PIN"
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            value={pinConfirm}
-            onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            required
-          />
-          <Button type="submit" className="w-full" disabled={pin.length !== 4 || pinConfirm.length !== 4}>
-            Save PIN & continue
-          </Button>
-          <Button type="button" variant="ghost" className="w-full" onClick={() => setGate('ready')}>
-            Skip for now
-          </Button>
-        </form>
+        <Card className="w-full p-6">
+          <form onSubmit={handlePinSetup} className="space-y-4">
+            <Input
+              label="New 4-digit PIN"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              required
+            />
+            <Input
+              label="Confirm PIN"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pinConfirm}
+              onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              required
+            />
+            <Button type="submit" className="w-full" disabled={pin.length !== 4 || pinConfirm.length !== 4}>
+              Save PIN & continue
+            </Button>
+            <Button type="button" variant="ghost" className="w-full" onClick={() => setGate('ready')}>
+              Skip for now
+            </Button>
+          </form>
+        </Card>
       </div>
     );
   }
 
   if (gate === 'connect') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="relative group">
-          <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
-          <div className="relative h-40 w-40 rounded-[3rem] bg-card/40 backdrop-blur-xl border border-white/10 flex items-center justify-center shadow-2xl">
-            <GraduationCap className="h-20 w-20 text-primary" />
+      <div className="mx-auto max-w-3xl space-y-8">
+        <PageHeader
+          eyebrow="GLA Portal"
+          title="Attendance"
+          description="Sign in with your GLA student portal roll number and password. A captcha is required."
+        />
+        <Card elevated className="p-6 sm:p-8">
+          <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+            <GraduationCap className="h-7 w-7" />
           </div>
-        </div>
-
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <div className="h-1 w-12 bg-primary rounded-full" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">GLA Portal</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none">
-            Pulse Monitor
-          </h1>
-          <p className="text-sm font-medium text-foreground/40 max-w-md mx-auto leading-relaxed">
-            Sign in with your GLA student portal credentials (same flow as portal-frontend). Captcha required.
-          </p>
-        </div>
-
-        <div className="w-full bg-card/60 backdrop-blur-xl border border-white/10 rounded-[4rem] p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
-          <form onSubmit={handleConnect} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Input label="Roll Number" placeholder="e.g. 21BCE10234" value={roll} onChange={(e) => setRoll(e.target.value)} required />
+          <form onSubmit={handleConnect} className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input label="Roll Number" placeholder="Roll number" value={roll} onChange={(e) => setRoll(e.target.value)} required />
               <Input label="Portal Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-
             <div className="space-y-3">
-              <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 ml-1 italic">Captcha</label>
-              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+              <label className="block text-sm font-medium">Captcha</label>
+              <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
                 {captchaUrl ? (
                   <img
                     src={captchaUrl}
                     alt="Captcha"
                     onClick={loadCaptcha}
-                    className="h-16 w-full sm:w-64 object-cover rounded-2xl border border-white/10 cursor-pointer bg-white"
+                    className="h-16 w-full cursor-pointer rounded-xl border border-border bg-white object-cover sm:w-64"
                     title="Click to refresh"
                   />
                 ) : (
-                  <div className="h-16 w-full sm:w-64 rounded-2xl border border-white/10 flex items-center justify-center text-xs opacity-40">
+                  <div className="flex h-16 w-full items-center justify-center rounded-xl border border-border text-xs text-muted-foreground sm:w-64">
                     Loading captcha…
                   </div>
                 )}
-                <Button type="button" variant="ghost" onClick={loadCaptcha} className="rounded-2xl">
-                  <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+                <Button type="button" variant="secondary" onClick={loadCaptcha}>
+                  <RefreshCw className="h-4 w-4" /> Refresh
                 </Button>
               </div>
-              <Input
-                label="Enter Captcha"
-                value={captcha}
-                onChange={(e) => setCaptcha(e.target.value)}
-                required
-              />
+              <Input label="Enter Captcha" value={captcha} onChange={(e) => setCaptcha(e.target.value)} required />
             </div>
-
-            <div className="p-6 rounded-[2rem] bg-amber-500/5 border border-amber-500/10 flex items-start gap-4">
-              <ShieldCheck className="h-6 w-6 text-amber-500 shrink-0 mt-1" />
-              <p className="text-xs font-medium text-amber-500/70 leading-relaxed">
-                Uses your portal-backend at portal-backend-z9ce.onrender.com (from portal-frontend). Free Render hosts may sleep — first request can take ~30s.
-              </p>
+            <div className="flex items-start gap-3 rounded-2xl border border-warning/25 bg-warning/10 p-4">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+              <p className="text-sm text-warning/80">The portal service may take a moment to wake up on the first request.</p>
             </div>
-
-            <Button type="submit" className="w-full h-16 rounded-[2rem] font-black uppercase tracking-[0.2em] italic" disabled={loading}>
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? (
-                <span className="flex items-center gap-3">
-                  <RefreshCw className="h-5 w-5 animate-spin" /> Connecting…
-                </span>
+                <span className="flex items-center gap-2"><RefreshCw className="h-4 w-4 animate-spin" /> Connecting…</span>
               ) : (
-                <span className="flex items-center gap-3">
-                  Connect Matrix <Zap className="h-5 w-5" />
-                </span>
+                <span className="flex items-center gap-2">Connect portal <Zap className="h-4 w-4" /></span>
               )}
             </Button>
           </form>
-        </div>
+        </Card>
       </div>
     );
   }
 
   const overallNum = parseFloat(String(summary.overall));
-  const overallOk = Number.isFinite(overallNum) ? overallNum >= 75 : true;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <Activity className="h-64 w-64 text-primary" />
-        </div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-1 w-12 bg-primary rounded-full" />
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
-                {live ? 'Live Portal Sync' : 'Cached Snapshot'}
-              </span>
-            </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
-              Attendance
-            </h1>
-            <p className="text-sm font-medium text-foreground/40 max-w-xl leading-relaxed">
-              {sessionLabel ? `Signed in as ${sessionLabel}` : 'GLA portal'} — overall {summary.overall}
-              {summary.overall !== '--' ? '%' : ''} · CPI {summary.cpi}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 p-2 bg-white/5 rounded-[2.5rem] border border-white/5 shadow-inner">
-            <Link to="/timetable">
-              <Button variant="ghost" className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic">
-                <CalendarDays className="h-4 w-4 mr-3" /> Timetable
-              </Button>
-            </Link>
-            <Button variant="ghost" onClick={handleRefresh} disabled={loading} className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic">
-              <RefreshCw className={`h-4 w-4 mr-3 ${loading ? 'animate-spin' : ''}`} /> Sync
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow={live ? 'Live portal sync' : 'Cached snapshot'}
+        title="Attendance"
+        description={`${sessionLabel ? `Signed in as ${sessionLabel}` : 'GLA portal'} — overall ${summary.overall}${summary.overall !== '--' ? '%' : ''} · CPI ${summary.cpi}`}
+        actions={
+          <>
+            <Link to="/timetable"><Button variant="secondary"><CalendarDays className="h-4 w-4" /> Timetable</Button></Link>
+            <Button variant="secondary" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Sync
             </Button>
-            <Button variant="ghost" onClick={handleDisconnect} className="h-14 px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic text-danger hover:bg-danger/10">
+            <Button variant="ghost" className="text-danger hover:bg-danger/10 hover:text-danger" onClick={handleDisconnect}>
               Disconnect
             </Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="flex items-center gap-5 p-6" elevated>
+          <ProgressRing value={Number.isFinite(overallNum) ? overallNum : 0} size={96} stroke={9} label="Overall" />
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Overall attendance</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">
+              {summary.overall}{summary.overall !== '--' ? '%' : ''}
+            </p>
+            <Badge className="mt-3" tone={Number.isFinite(overallNum) && overallNum >= 75 ? 'success' : 'danger'}>
+              {Number.isFinite(overallNum) && overallNum >= 75 ? 'On track' : 'Needs attention'}
+            </Badge>
           </div>
-        </div>
+        </Card>
+        <Card className="p-6" elevated>
+          <p className="text-xs font-medium text-muted-foreground">Current CPI</p>
+          <p className="mt-2 text-4xl font-semibold tracking-tight">{summary.cpi}</p>
+          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+            <Activity className="h-4 w-4 text-primary" /> Portal academic summary
+          </div>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className={`rounded-[2.5rem] border p-8 bg-card/60 ${overallOk ? 'border-emerald-500/20' : 'border-rose-500/20'}`}>
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-2">Overall Attendance</p>
-          <p className="text-5xl font-black italic">
-            {summary.overall}
-            {summary.overall !== '--' ? '%' : ''}
-          </p>
-        </div>
-        <div className="rounded-[2.5rem] border border-primary/20 p-8 bg-card/60">
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-2">Current CPI</p>
-          <p className="text-5xl font-black italic">{summary.cpi}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {subjects.map((sub, i) => {
           const percentage = subjectPercent(sub);
           const isDanger = percentage < 75;
-          const circumference = 2 * Math.PI * 34;
-          const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
           return (
-            <div
-              key={`${sub.name}-${i}`}
-              className={`group relative bg-card/60 backdrop-blur-xl border rounded-[3.5rem] p-8 transition-all duration-500 hover:scale-[1.03] overflow-hidden ${isDanger ? 'border-rose-500/20' : 'border-emerald-500/20'}`}
-            >
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="relative h-40 w-40 flex items-center justify-center mb-8">
-                  <svg className="h-full w-full transform -rotate-90">
-                    <circle cx="80" cy="80" r="34" className="stroke-foreground/5" strokeWidth="10" fill="transparent" />
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="34"
-                      className={`transition-all duration-1000 ease-out ${isDanger ? 'stroke-rose-500' : 'stroke-emerald-500'}`}
-                      strokeWidth="10"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={strokeDashoffset}
-                      strokeLinecap="round"
-                      fill="transparent"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black italic">{percentage}%</span>
-                    <span className="text-[8px] font-black uppercase tracking-widest opacity-30">Accuracy</span>
-                  </div>
+            <Card key={`${sub.name}-${i}`} className={`p-5 ${isDanger ? 'border-danger/25' : 'border-success/20'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate font-semibold tracking-tight">{sub.name}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">Subject attendance</p>
                 </div>
-
-                <div className="space-y-2 mb-8">
-                  <h3 className="font-black text-xl tracking-tighter italic uppercase leading-snug group-hover:text-primary transition-colors">
-                    {sub.name}
-                  </h3>
-                </div>
-
-                <div className="w-full">
-                  {isDanger ? (
-                    <div className="bg-rose-500/10 rounded-[2rem] p-6 border border-rose-500/10 flex flex-col items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-rose-500" />
-                      <p className="text-xs font-black uppercase italic tracking-tight text-rose-500/80">Below 75% — Short</p>
-                    </div>
-                  ) : (
-                    <div className="bg-emerald-500/10 rounded-[2rem] p-6 border border-emerald-500/10 flex flex-col items-center gap-3">
-                      <TrendingUp className="h-5 w-5 text-emerald-500" />
-                      <p className="text-xs font-black uppercase italic tracking-tight text-emerald-500/80">On track — Good</p>
-                    </div>
-                  )}
-                </div>
+                <ProgressRing value={percentage} size={64} stroke={6} />
               </div>
-            </div>
+              <ProgressBar value={percentage} className="mt-4" />
+              <div className={`mt-4 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${
+                isDanger ? 'border-danger/20 bg-danger/10 text-danger' : 'border-success/20 bg-success/10 text-success'
+              }`}>
+                {isDanger ? <AlertTriangle className="h-3.5 w-3.5" /> : <TrendingUp className="h-3.5 w-3.5" />}
+                {isDanger ? 'Below 75%' : 'At or above 75%'}
+              </div>
+            </Card>
           );
         })}
       </div>
 
       {subjects.length === 0 && (
-        <p className="text-center text-sm opacity-40">No subject rows returned. Try Sync after the backend wakes up.</p>
+        <p className="text-center text-sm text-muted-foreground">No subject rows returned. Try Sync after the backend wakes up.</p>
       )}
     </div>
   );

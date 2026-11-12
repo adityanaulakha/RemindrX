@@ -4,10 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Subject } from '../types';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { BookOpen, Edit2, Plus, Trash2, GraduationCap, Layers, Zap, Search, Activity } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { BookOpen, Edit2, Plus, Trash2, GraduationCap, Layers, Zap, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function Subjects() {
@@ -90,172 +94,130 @@ export default function Subjects() {
     s.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) {
-    return (
-      <div className="animate-pulse space-y-12">
-        <div className="h-64 bg-card/20 rounded-[3.5rem] border border-white/5"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-card/20 rounded-[2.5rem] border border-white/5"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton rows={6} />;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <BookOpen className="h-64 w-64 text-primary" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-          <div className="space-y-4">
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
-              Subjects
-            </h1>
-            <p className="text-sm font-medium text-foreground/40 max-w-xl">
-              Academic management for {subjects.length} active units
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative group">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 opacity-20 group-focus-within:opacity-100 transition-opacity" />
-              <input 
-                type="text" 
-                placeholder="Find Unit..." 
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Section curriculum"
+        title="Subjects"
+        description={`Subjects in your section — ${subjects.length} active units`}
+        actions={
+          <>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search subjects"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-14 w-64 rounded-2xl bg-white/5 border border-white/10 pl-14 pr-6 text-xs font-bold uppercase tracking-widest italic outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                className="control h-11 w-52 pl-9 sm:w-64"
               />
             </div>
             {userData?.role === 'admin' && (
-              <Button 
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest italic shadow-2xl shadow-primary/20"
-              >
-                {showAddForm ? 'Close Sync' : <><Plus className="mr-2 h-5 w-5" /> Initialize Unit</>}
+              <Button onClick={() => setShowAddForm(!showAddForm)}>
+                {showAddForm ? 'Close' : <><Plus className="h-4 w-4" /> Add subject</>}
               </Button>
             )}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {showAddForm && userData?.role === 'admin' && (
-        <div className="animate-in zoom-in-95 fade-in duration-500">
-          <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[3.5rem] p-10 lg:p-12 shadow-2xl relative overflow-hidden">
-             <div className="absolute -top-24 -right-24 h-64 w-64 bg-primary/10 rounded-full blur-[100px]" />
-             <h2 className="text-2xl font-black tracking-tighter italic uppercase mb-10 text-primary">Unit Configuration</h2>
-             <form onSubmit={handleAddSubject} className="space-y-8">
-               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                 <div className="md:col-span-2">
-                   <Input label="Unit Identity (Name)" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Quantum Computing" required />
-                 </div>
-                 <Input label="Matrix ID (Code)" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. QC101" required />
-                 <Input label="Credit Weight" type="number" step="0.5" value={credits} onChange={(e) => setCredits(e.target.value)} placeholder="4.0" required />
-               </div>
-               
-               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-4">
-                 <div className="flex gap-4 p-2 bg-white/5 rounded-2xl border border-white/5">
-                   {['theory', 'lab'].map((t) => (
-                     <button
-                       key={t}
-                       type="button"
-                       onClick={() => setType(t as any)}
-                       className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${type === t ? 'bg-primary text-primary-foreground shadow-lg' : 'text-foreground/30 hover:text-foreground'}`}
-                     >
-                       {t}
-                     </button>
-                   ))}
-                 </div>
-                 <Button type="submit" className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest italic">
-                   {editingId ? 'Push Update' : 'Initialize Unit'}
-                 </Button>
-               </div>
-             </form>
-          </div>
-        </div>
+        <Card elevated className="p-6 sm:p-8">
+          <h2 className="mb-6 text-lg font-semibold tracking-tight text-primary">Subject</h2>
+          <form onSubmit={handleAddSubject} className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="md:col-span-2">
+                <Input label="Subject name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Subject name" required />
+              </div>
+              <Input label="Subject code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Subject code" required />
+              <Input label="Credits" type="number" step="0.5" value={credits} onChange={(e) => setCredits(e.target.value)} placeholder="4.0" required />
+            </div>
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+              <div className="flex gap-2 rounded-xl border border-border bg-muted/60 p-1">
+                {(['theory', 'lab'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setType(t)}
+                    className={`rounded-lg px-4 py-2 text-xs font-semibold capitalize transition-all ${type === t ? 'bg-primary text-primary-foreground shadow-[var(--shadow)]' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <Button type="submit">{editingId ? 'Save changes' : 'Add subject'}</Button>
+            </div>
+          </form>
+        </Card>
       )}
 
       {filteredSubjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-[3.5rem] bg-card/20 border border-dashed border-white/10 p-24 text-center">
-          <Activity className="mb-8 h-20 w-20 text-foreground/5 opacity-20 animate-pulse" />
-          <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-2">Matrix Depleted</h3>
-          <p className="text-sm text-foreground/30 font-medium max-w-sm uppercase tracking-widest">
-            {userData?.role === 'admin' 
-              ? "No active units found. Initialize the matrix to begin tracking."
-              : "Synchronizing with your representative..."}
-          </p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="No subjects yet"
+          description={userData?.role === 'admin'
+            ? 'Add the first subject for your section.'
+            : 'Your class representative has not added subjects yet.'}
+        />
       ) : (
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredSubjects.map((subject) => (
-            <div 
-              key={subject.id} 
-              className="group relative bg-card/40 backdrop-blur-xl border border-white/5 rounded-[3rem] p-8 transition-all duration-500 hover:scale-[1.02] hover:border-primary/30 hover:shadow-2xl cursor-pointer overflow-hidden"
+            <Card
+              key={subject.id}
+              interactive
+              className="group cursor-pointer p-5"
               onClick={() => navigate(`/subjects/${subject.id}`)}
             >
-              {/* Card Glow */}
-              <div className={`absolute -top-24 -right-24 h-48 w-48 rounded-full blur-[80px] opacity-0 group-hover:opacity-20 transition-opacity duration-700 ${subject.type === 'theory' ? 'bg-primary' : 'bg-accent'}`} />
-              
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="flex items-start justify-between mb-8">
-                  <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-transform duration-500 group-hover:scale-110 shadow-inner ${
-                    subject.type === 'theory' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'
-                  }`}>
-                    {subject.type === 'theory' ? <GraduationCap className="h-7 w-7" /> : <Zap className="h-7 w-7" />}
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 mb-1">Matrix Code</span>
-                    <span className="font-mono text-sm font-black italic opacity-60 tracking-tighter">{subject.code.toUpperCase()}</span>
-                  </div>
+              <div className="mb-5 flex items-start justify-between">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                  subject.type === 'theory' ? 'bg-primary-soft text-primary' : 'bg-accent/15 text-accent'
+                }`}>
+                  {subject.type === 'theory' ? <GraduationCap className="h-6 w-6" /> : <Zap className="h-6 w-6" />}
                 </div>
-
-                <h3 className="text-2xl font-black tracking-tighter italic uppercase mb-2 leading-tight group-hover:text-primary transition-colors">{subject.name}</h3>
-                
-                <div className="mt-auto pt-8 flex items-center justify-between border-t border-white/5">
-                   <div className="flex items-center gap-2">
-                     <Layers className="h-4 w-4 opacity-20" />
-                     <span className="text-xs font-bold opacity-40 uppercase tracking-widest">{subject.credits || 0} Credits</span>
-                   </div>
-                   
-                   {userData?.role === 'admin' && (
-                     <div className="flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-300 translate-y-0 lg:translate-y-4 lg:group-hover:translate-y-0">
-                       <Button 
-                         variant="ghost" 
-                         size="sm" 
-                         className="h-10 w-10 p-0 rounded-xl hover:bg-primary/20 hover:text-primary border border-white/5" 
-                         onClick={(e) => { 
-                           e.stopPropagation(); 
-                           setEditingId(subject.id);
-                           setName(subject.name); setCode(subject.code); setType(subject.type);
-                           setCredits((subject.credits || 0).toString());
-                           setShowAddForm(true);
-                           window.scrollTo({ top: 0, behavior: 'smooth' });
-                         }}
-                       >
-                         <Edit2 className="h-4 w-4" />
-                       </Button>
-                       <Button 
-                         variant="ghost" 
-                         size="sm" 
-                         className="h-10 w-10 p-0 rounded-xl hover:bg-rose-500/20 hover:text-rose-500 border border-white/5"
-                         onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Deactivate this core unit?')) {
-                              updateDoc(doc(db, 'subjects', subject.id), { isActive: false }).then(() => fetchSubjects());
-                            }
-                         }}
-                       >
-                         <Trash2 className="h-4 w-4" />
-                       </Button>
-                     </div>
-                   )}
-                </div>
+                <Badge tone="neutral">{subject.code.toUpperCase()}</Badge>
               </div>
-            </div>
+              <h3 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">{subject.name}</h3>
+              <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Layers className="h-3.5 w-3.5" />
+                  {subject.credits || 0} credits
+                </div>
+                {userData?.role === 'admin' && (
+                  <div className="flex gap-1 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingId(subject.id);
+                        setName(subject.name); setCode(subject.code); setType(subject.type);
+                        setCredits((subject.credits || 0).toString());
+                        setShowAddForm(true);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0 text-danger hover:bg-danger/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Deactivate this core unit?')) {
+                          updateDoc(doc(db, 'subjects', subject.id), { isActive: false }).then(() => fetchSubjects());
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
           ))}
         </div>
       )}

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
@@ -16,13 +17,18 @@ import Attendance from './pages/Attendance';
 import Timetable from './pages/Timetable';
 import Landing from './pages/Landing';
 import Layout from './components/layout/Layout';
+import { BootScreen } from './components/ui/BootScreen';
+import { useTheme } from './hooks/useTheme';
 import type { JSX } from 'react';
+
+const uiPreviewEnabled = import.meta.env.DEV && import.meta.env.VITE_UI_PREVIEW === '1';
+const UIPreview = uiPreviewEnabled ? lazy(() => import('./pages/UIPreview')) : null;
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, userData, loading } = useAuth();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (loading) return <BootScreen />;
   if (!currentUser) return <Navigate to="/login" replace />;
 
   // If user is logged in but hasn't joined a class, force them to join a class
@@ -38,7 +44,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const JoinClassRoute = ({ children }: { children: JSX.Element }) => {
   const { currentUser, userData, loading } = useAuth();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (loading) return <BootScreen />;
   if (!currentUser) return <Navigate to="/login" replace />;
 
   // If they already have a class or are a super admin, they shouldn't be here
@@ -64,25 +70,15 @@ const DefaultRoute = () => {
 
 function App() {
   const { loading } = useAuth();
+  useTheme();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 p-8">
-        <div className="relative">
-          <div className="h-16 w-16 rounded-2xl bg-primary animate-pulse" />
-          <div className="absolute inset-0 h-16 w-16 border-4 border-primary/20 rounded-2xl animate-spin [animation-duration:3s]" />
-        </div>
-        <div className="space-y-2 text-center">
-          <h2 className="text-xl font-black italic tracking-tighter uppercase">Initializing Core</h2>
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-20 animate-pulse">Syncing temporal nodes...</p>
-        </div>
-      </div>
-    );
+    return <BootScreen label="Getting your campus workspace ready" />;
   }
 
   return (
     <Router>
-      <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
+      <div className="min-h-screen bg-background text-foreground">
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -94,6 +90,17 @@ function App() {
               </JoinClassRoute>
             }
           />
+
+          {UIPreview && (
+            <Route
+              path="/dev/ui-preview"
+              element={
+                <Suspense fallback={<BootScreen label="Loading UI preview" />}>
+                  <UIPreview />
+                </Suspense>
+              }
+            />
+          )}
 
           {/* Main App Layout */}
           <Route
@@ -114,12 +121,23 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/cr-panel" element={<CRPanel />} />
             <Route path="/super-admin" element={<SuperAdmin />} />
-            {/* Additional routes will be added here */}
           </Route>
 
           <Route path="/" element={<DefaultRoute />} />
         </Routes>
-        <Toaster position="bottom-right" />
+        <Toaster
+          position="bottom-center"
+          toastOptions={{
+            style: {
+              background: 'var(--card)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              boxShadow: 'var(--shadow)',
+              fontSize: '14px',
+            },
+          }}
+        />
       </div>
     </Router>
   );

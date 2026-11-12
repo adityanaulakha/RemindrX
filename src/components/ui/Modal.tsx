@@ -1,45 +1,62 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './Button';
+import { cn } from '../../lib/cn';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  size?: 'md' | 'lg';
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+  const titleId = useId();
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
+    if (!isOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
     };
-  }, [isOpen]);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+    <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
+      <div
+        className="fixed inset-0 bg-[#050508]/55 backdrop-blur-sm dark:bg-black/60"
         onClick={onClose}
+        aria-hidden
       />
-      <div className="relative z-50 w-full max-w-lg rounded-xl border border-border bg-card shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border p-4">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className={cn(
+          'relative z-[81] flex max-h-[min(92vh,820px)] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-surface-elevated text-card-foreground shadow-[var(--shadow-lg)] sm:rounded-2xl page-enter',
+          size === 'lg' ? 'max-w-2xl' : 'max-w-lg'
+        )}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+          <h2 id={titleId} className="text-base font-semibold tracking-tight">
+            {title}
+          </h2>
+          <Button variant="ghost" size="sm" className="h-10 w-10 p-0" onClick={onClose} aria-label="Close">
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="p-4 max-h-[80vh] overflow-y-auto">
-          {children}
-        </div>
+        <div className="overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   );

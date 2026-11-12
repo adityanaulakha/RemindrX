@@ -6,7 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import type { Task, Event, EventParticipation } from '../types';
 import { TaskModal } from '../components/TaskModal';
 import { Button } from '../components/ui/Button';
-import { Plus, Clock, Calendar, AlertTriangle, PartyPopper, RefreshCw, MapPin, CheckCircle2, Circle } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { Plus, Clock, Calendar, AlertTriangle, MapPin, CheckCircle2, Circle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Card } from '../components/ui/Card';
 
@@ -96,58 +99,36 @@ export default function Timeline() {
   const isPast = (timestamp: number) => timestamp < now;
   const isCritical = (timestamp: number, priority?: string) => !isPast(timestamp) && (timestamp <= now + 48 * 60 * 60 * 1000 || priority === 'critical');
 
-  if (loading) {
-    return <div className="animate-pulse h-64 bg-card rounded-xl"></div>;
-  }
+  if (loading) return <PageSkeleton rows={4} />;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-6 sm:p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <Clock className="h-64 w-64 text-primary" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-10">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-1 w-12 bg-primary rounded-full" />
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Live Stream</span>
-            </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
-              Timeline
-            </h1>
-            <p className="text-sm font-medium text-foreground/40 max-w-xl leading-relaxed">
-              Integrated stream of tasks, assignments, and events.
-            </p>
-          </div>
-        
-          <div className="flex flex-wrap items-center gap-3 p-2 bg-white/5 rounded-[2rem] border border-white/5 shadow-inner">
-            <Button 
-              variant="ghost" 
-              className="h-12 sm:h-14 px-5 sm:px-8 rounded-[1.8rem] font-black uppercase tracking-widest italic text-[10px] opacity-40 hover:opacity-100"
-              onClick={() => navigate('/profile')}
-            >
-              Prefs: {userData?.deadlinePreference || 2}D
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Deadlines and events"
+        title="Timeline"
+        description="Tasks and the events you're going to, in time order."
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => navigate('/profile')}>
+              Window {userData?.deadlinePreference || 2}D
             </Button>
-            <Button className="h-12 sm:h-14 px-6 sm:px-10 rounded-[1.8rem] shadow-2xl shadow-primary/20 italic font-black uppercase tracking-widest text-[10px] sm:text-xs" onClick={() => setIsModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> New Mission
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-4 w-4" /> Add task
             </Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="relative ml-6 sm:ml-8 mt-12 pb-20">
-        {/* Glowing Timeline Axis */}
-        <div className="absolute left-0 top-4 bottom-0 w-0.5 sm:w-1 bg-gradient-to-b from-primary via-accent to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)] opacity-20" />
+      <div className="relative ml-4 pb-8 sm:ml-6">
+        <div className="absolute bottom-0 left-0 top-4 w-px bg-gradient-to-b from-primary via-accent/60 to-transparent opacity-40" />
 
         {timelineItems.length === 0 ? (
-          <div className="pl-12 py-24">
-             <div className="h-20 w-20 bg-white/5 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner">
-               <Clock className="h-10 w-10 opacity-10" />
-             </div>
-             <h3 className="text-2xl font-black italic uppercase tracking-tighter opacity-40">Temporal Void</h3>
-             <p className="text-xs font-bold uppercase tracking-widest opacity-20 mt-2">No upcoming objectives detected in the timeline.</p>
-          </div>
+          <EmptyState
+            icon={Clock}
+            title="Nothing scheduled"
+            description="Tasks and events you join will show up here."
+            className="ml-6"
+          />
         ) : (
           <div className="space-y-12">
             {timelineItems.map((item) => {
@@ -164,57 +145,57 @@ export default function Timeline() {
                   <div key={key} className={`relative pl-8 sm:pl-12 group transition-all duration-500 ${isDone ? 'opacity-40' : isMissed ? 'opacity-80' : ''}`}>
                     {/* Simple Node for Past Tasks */}
                     <div className={`absolute -left-[10px] sm:-left-[14px] top-6 h-5 w-5 sm:h-7 sm:w-7 rounded-full border-[3px] sm:border-4 border-background flex items-center justify-center shadow-xl z-10 transition-transform group-hover:scale-125 ${
-                      isDone ? 'bg-success' : isMissed ? 'bg-foreground/20' : critical ? 'bg-danger animate-pulse shadow-danger/50' : 'bg-primary shadow-primary/50'
+                      isDone ? 'bg-success' : isMissed ? 'bg-foreground/20' : critical ? 'bg-danger animate-pulse shadow-danger/50' : 'bg-primary'
                     }`}>
                       {isDone ? <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-white" /> : <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 bg-white rounded-full" />}
                     </div>
 
-                    <Card className={`overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl ${
-                      isDone ? 'border-success/30 bg-success/5' : isMissed ? 'border-white/5 bg-white/5' : critical ? 'border-danger/30 bg-danger/5' : 'bg-card/20 backdrop-blur-xl border-white/10'
+                    <Card className={`overflow-hidden transition-all duration-500  hover:shadow-2xl ${
+                      isDone ? 'border-success/30 bg-success/5' : isMissed ? 'border-border bg-muted' : critical ? 'border-danger/30 bg-danger/5' : 'bg-card/20  border-border'
                     }`}>
                       <div className="p-5 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-8">
                         <div className="space-y-4 flex-1">
                           <div className="flex items-center gap-3">
-                            <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg italic ${
+                            <span className={`px-3 py-1 text-xs font-medium rounded-lg  ${
                               isDone ? 'bg-success text-white' :
                               task.priority === 'critical' ? 'bg-danger text-white' :
                               task.priority === 'medium' ? 'bg-accent/20 text-accent' :
-                              'bg-white/10 text-foreground/40'
+                              'bg-muted text-muted-foreground'
                             }`}>
-                              {isDone ? 'Goal Achieved' : `${task.priority} Priority`}
+                              {isDone ? 'Done' : `${task.priority} Priority`}
                             </span>
                             {critical && !past && (
                               <div className="flex items-center gap-1.5 text-danger animate-pulse">
                                 <AlertTriangle className="h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase tracking-widest italic">Intercept Imminent</span>
+                                <span className="text-xs font-medium">Due soon</span>
                               </div>
                             )}
                           </div>
                           
-                          <h3 className={`text-xl sm:text-3xl font-black italic tracking-tighter uppercase leading-tight transition-colors ${isDone ? 'text-success line-through opacity-50' : 'group-hover:text-primary'}`}>
+                          <h3 className={`text-xl sm:text-3xl font-semibold tracking-tight leading-tight transition-colors ${isDone ? 'text-success line-through opacity-50' : 'group-hover:text-primary'}`}>
                             {task.title}
                           </h3>
                           
                           {task.description && (
-                            <p className="text-sm text-foreground/40 font-medium leading-relaxed line-clamp-2">{task.description}</p>
+                            <p className="text-sm text-muted-foreground font-medium leading-relaxed line-clamp-2">{task.description}</p>
                           )}
                         </div>
 
                         <div className="flex items-center gap-3 sm:gap-6">
-                          <div className="shrink-0 flex flex-col gap-2 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-white/5 border border-white/5 min-w-[140px] sm:min-w-[180px]">
+                          <div className="shrink-0 flex flex-col gap-2 p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-muted border border-border min-w-[140px] sm:min-w-[180px]">
                              <div className="flex items-center justify-between">
                                 <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-20" />
-                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">{itemDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}</span>
+                                <span className="text-xs sm:text-xs font-medium">{itemDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}</span>
                              </div>
                              <div className="flex items-center justify-between">
                                 <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-20" />
-                                <span className="text-base sm:text-xl font-black italic">{itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-base sm:text-xl font-semibold">{itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                              </div>
                           </div>
 
                           <Button 
                             variant="ghost" 
-                            className={`h-11 w-11 sm:h-14 sm:w-14 p-0 rounded-xl sm:rounded-2xl border border-white/10 shrink-0 ${isDone ? 'text-success bg-success/10' : 'text-foreground/40 hover:text-primary'}`}
+                            className={`h-11 w-11 sm:h-14 sm:w-14 p-0 rounded-xl sm:rounded-2xl border border-border shrink-0 ${isDone ? 'text-success bg-success/10' : 'text-muted-foreground hover:text-primary'}`}
                             onClick={() => handleToggleDone(task.id, !!isDone)}
                           >
                             {isDone ? <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" /> : <Circle className="h-5 w-5 sm:h-6 sm:w-6" />}
@@ -234,33 +215,33 @@ export default function Timeline() {
                        <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 bg-white rounded-full" />
                     </div>
 
-                    <Card className="bg-accent/5 backdrop-blur-xl border border-accent/20 overflow-hidden hover:border-accent/40 transition-all hover:-translate-y-1 hover:shadow-2xl">
+                    <Card className="bg-accent/5 border border-accent/20 overflow-hidden hover:border-accent/40 transition-all hover:shadow-2xl">
                        <div className="p-5 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-8">
                           <div className="space-y-4 flex-1">
                              <div className="flex items-center gap-3">
-                                <span className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-accent/20 text-accent italic">
+                                <span className="px-3 py-1 text-xs font-medium rounded-lg bg-accent/20 text-accent">
                                    {event.category} Event
                                 </span>
                              </div>
                              
-                             <h3 className="text-xl sm:text-3xl font-black italic tracking-tighter uppercase leading-tight group-hover:text-accent transition-colors">
+                             <h3 className="text-xl sm:text-3xl font-semibold tracking-tight leading-tight group-hover:text-accent transition-colors">
                                 {event.title}
                              </h3>
                              
                              <div className="flex items-center gap-2 opacity-40">
                                 <MapPin className="h-4 w-4" />
-                                <span className="text-xs font-bold uppercase tracking-widest italic">{event.venue}</span>
+                                <span className="text-xs font-bold tracking-normal">{event.venue}</span>
                              </div>
                           </div>
 
-                          <div className="shrink-0 flex flex-col gap-2 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-accent/10 border border-accent/10 min-w-[140px] sm:min-w-[180px]">
+                          <div className="shrink-0 flex flex-col gap-2 p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-accent/10 border border-accent/10 min-w-[140px] sm:min-w-[180px]">
                              <div className="flex items-center justify-between text-accent">
                                 <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-40" />
-                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">{itemDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}</span>
+                                <span className="text-xs sm:text-xs font-medium">{itemDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}</span>
                              </div>
                              <div className="flex items-center justify-between text-accent">
                                 <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-40" />
-                                <span className="text-base sm:text-xl font-black italic">{itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-base sm:text-xl font-semibold">{itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                              </div>
                           </div>
                        </div>

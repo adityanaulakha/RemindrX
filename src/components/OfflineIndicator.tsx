@@ -20,8 +20,8 @@ export function OfflineIndicator() {
   if (!isOffline) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in slide-in-from-bottom-2">
-      <div className="bg-danger text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-bold">
+    <div className="fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 lg:bottom-6">
+      <div className="flex items-center gap-2 rounded-full bg-danger px-4 py-2 text-sm font-semibold text-danger-foreground shadow-[var(--shadow)]">
         <WifiOff className="h-4 w-4" />
         Offline Mode - Using Cached Data
       </div>

@@ -14,43 +14,43 @@ export default defineConfig({
         enabled: true
       },
       manifest: {
-        name: 'Academic Platform',
-        short_name: 'Academic',
-        description: 'Modern academic management system for college students',
-        theme_color: '#0ea5e9',
-        background_color: '#0f172a', // slate-900 for dark mode feel
+        name: 'RemindrX',
+        short_name: 'RemindrX',
+        description: 'Campus workspace for deadlines, attendance, timetable, and section updates',
+        theme_color: '#111111',
+        background_color: '#111111',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
         icons: [
           {
-            src: 'Logo.png?v=2',
+            src: 'icon-192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'Logo.png?v=2',
+            src: 'icon-512.png',
             sizes: '512x512',
             type: 'image/png'
           },
           {
-            src: 'Logo.png?v=2',
+            src: 'icon-maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ],
         shortcuts: [
           {
             name: 'Events',
             url: '/events',
-            icons: [{ src: 'Logo.png?v=2', sizes: '192x192' }]
+            icons: [{ src: 'icon-192.png', sizes: '192x192' }]
           },
           {
             name: 'Timeline',
             url: '/timeline',
-            icons: [{ src: 'Logo.png?v=2', sizes: '192x192' }]
+            icons: [{ src: 'icon-192.png', sizes: '192x192' }]
           }
         ]
       }

@@ -1,31 +1,49 @@
-import React, { forwardRef } from 'react';
+import { forwardRef, useId } from 'react';
 import type { InputHTMLAttributes } from 'react';
-import { cn } from './Button';
+import { cn } from '../../lib/cn';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  hint?: string;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, ...props }, ref) => {
+  ({ className, label, error, hint, id, ...props }, ref) => {
+    const generatedId = useId();
+    const inputId = id || generatedId;
+    const errorId = error ? `${inputId}-error` : undefined;
+    const hintId = hint && !error ? `${inputId}-hint` : undefined;
+
     return (
-      <div className="w-full space-y-2">
+      <div className="w-full space-y-1.5">
         {label && (
-          <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 ml-1 italic">
+          <label htmlFor={inputId} className="block text-sm font-medium text-foreground/90">
             {label}
           </label>
         )}
         <input
+          id={inputId}
           ref={ref}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={errorId || hintId}
           className={cn(
-            'flex h-14 w-full rounded-2xl border border-border/50 bg-card/50 backdrop-blur-md px-4 py-2 text-sm text-foreground placeholder:text-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 shadow-inner',
-            error && 'border-danger/50 focus-visible:ring-danger/40',
+            'flex h-11 w-full rounded-xl border border-border bg-surface/70 px-3.5 text-sm text-foreground shadow-sm backdrop-blur-sm placeholder:text-muted-foreground transition-all duration-200 focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50',
+            error && 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-[10px] font-bold text-danger uppercase tracking-wider ml-1">{error}</p>}
+        {error && (
+          <p id={errorId} className="text-sm font-medium text-danger">
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p id={hintId} className="text-xs text-muted-foreground">
+            {hint}
+          </p>
+        )}
       </div>
     );
   }

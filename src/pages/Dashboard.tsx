@@ -5,9 +5,14 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Task, Subject, Event, EventParticipation } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { AlertTriangle, Calendar, BookOpen, PartyPopper, Activity, ArrowRight, PlusCircle, CheckCircle2, ShieldAlert, Clock, Circle } from 'lucide-react';
+import { Calendar, BookOpen, PartyPopper, Activity, ArrowRight, CheckCircle2, ShieldAlert, Clock, Circle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
+import { PageHeader } from '../components/ui/PageHeader';
+import { StatCard } from '../components/ui/StatCard';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageSkeleton } from '../components/ui/Skeleton';
+import { Badge } from '../components/ui/Badge';
 import { toast } from 'react-hot-toast';
 
 export default function Dashboard() {
@@ -26,44 +31,34 @@ export default function Dashboard() {
     async function fetchDashboardData() {
       if (!userData?.classId) return;
       try {
-        // Fetch Subjects
         const subQ = query(collection(db, 'subjects'), where('classId', '==', userData.classId), where('isActive', '==', true));
         const subSnap = await getDocs(subQ);
-        const fetchedSubjects = subSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
-        setSubjects(fetchedSubjects);
+        setSubjects(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as Subject)));
 
-        // Fetch Tasks
         const taskQ = query(collection(db, 'tasks'), where('classId', '==', userData.classId));
         const taskSnap = await getDocs(taskQ);
-        const fetchedTasks = taskSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
-        setTasks(fetchedTasks);
+        setTasks(taskSnap.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
 
-        // Fetch Global Approved Events
         const eventQ = query(collection(db, 'events'), where('status', '==', 'approved'));
         const eventSnap = await getDocs(eventQ);
-        const fetchedEvents = eventSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
-        setEvents(fetchedEvents);
+        setEvents(eventSnap.docs.map(d => ({ id: d.id, ...d.data() } as Event)));
 
-        // Fetch User Participations
         if (currentUser) {
           const partQ = query(collection(db, 'event_participations'), where('userId', '==', currentUser.uid), where('status', '==', 'going'));
           const partSnap = await getDocs(partQ);
-          const fetchedParts = partSnap.docs.map(doc => (doc.data() as EventParticipation).eventId);
-          setParticipations(fetchedParts);
+          setParticipations(partSnap.docs.map(d => (d.data() as EventParticipation).eventId));
         }
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        console.error('Error fetching dashboard data:', error);
       } finally {
         setLoading(false);
       }
     }
     fetchDashboardData();
-  }, [userData]);
+  }, [userData, currentUser]);
 
   useEffect(() => {
-    if (!loading && isFirstTime) {
-      setShowFTEModal(true);
-    }
+    if (!loading && isFirstTime) setShowFTEModal(true);
   }, [loading, isFirstTime]);
 
   const closeFTEModal = () => {
@@ -79,13 +74,12 @@ export default function Dashboard() {
       await updateDoc(taskRef, {
         completedBy: isDone ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid)
       });
-      // Local update for immediate feedback
-      setTasks(prev => prev.map(t => t.id === taskId ? { 
-        ...t, 
+      setTasks(prev => prev.map(t => t.id === taskId ? {
+        ...t,
         completedBy: isDone ? (t.completedBy || []).filter(id => id !== currentUser.uid) : [...(t.completedBy || []), currentUser.uid]
       } : t));
       if (!isDone) toast.success('Marked as done', { position: 'bottom-right' });
-    } catch (error) {
+    } catch {
       toast.error('Sync failed');
     }
   };
@@ -94,7 +88,6 @@ export default function Dashboard() {
   const deadlineDays = userData?.deadlinePreference || 2;
   const deadlineTime = deadlineDays * 24 * 60 * 60 * 1000;
 
-  // Filter Danger Zone Tasks (not completed and (within user preference window OR missed))
   const dangerZoneTasks = tasks.filter(t => {
     const isDone = t.completedBy?.includes(currentUser?.uid || '') || false;
     const isMissed = !isDone && t.deadline < now;
@@ -102,212 +95,132 @@ export default function Dashboard() {
     return isMissed || isUpcoming;
   });
 
-  // Filter Upcoming Events (next 2 events that haven't passed and user is going)
   const dashboardEvents = events
     .filter(e => e.date > now && participations.includes(e.id))
     .sort((a, b) => a.date - b.date)
     .slice(0, 2);
 
-  if (loading) {
-    return <div className="animate-pulse space-y-6">
-      <div className="h-20 bg-card rounded-xl"></div>
-      <div className="h-40 bg-card rounded-xl"></div>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="h-64 bg-card rounded-xl"></div>
-        <div className="h-64 bg-card rounded-xl"></div>
-      </div>
-    </div>;
-  }
+  if (loading) return <PageSkeleton rows={4} />;
 
-  // FIRST-TIME EXPERIENCE
   if (subjects.length === 0 && tasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <div className="bg-primary/10 p-6 rounded-full mb-6">
-          <BookOpen className="h-16 w-16 text-primary" />
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight mb-3">Welcome back!</h1>
-        <p className="text-foreground/60 max-w-md mx-auto mb-8 text-lg">
-          You are the first one here or your class is brand new. Here is what you can do to get started:
-        </p>
-        
-        <div className="grid gap-4 max-w-sm w-full">
-          <div className="p-4 bg-card rounded-xl border border-border flex items-center gap-4 text-left shadow-sm">
-            <div className="bg-primary/20 p-2 rounded-lg text-primary"><BookOpen className="h-5 w-5" /></div>
-            <div>
-              <p className="font-semibold text-sm">0 Subjects Loaded</p>
-              <p className="text-xs text-foreground/60">Ask your CR to add subjects.</p>
-            </div>
+      <EmptyState
+        icon={BookOpen}
+        title={`Welcome, ${userData?.name?.split(' ')[0] || 'there'}`}
+        description="Your section is brand new. Ask your CR to add subjects, or connect attendance from the GLA portal."
+        action={
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button onClick={() => navigate('/attendance')}>Open attendance</Button>
+            <Button variant="secondary" onClick={() => navigate('/timeline')}>Open timeline</Button>
           </div>
-          <div className="p-4 bg-card rounded-xl border border-border flex items-center gap-4 text-left shadow-sm">
-            <div className="bg-accent/20 p-2 rounded-lg text-accent"><Calendar className="h-5 w-5" /></div>
-            <div>
-              <p className="font-semibold text-sm">0 Upcoming Deadlines</p>
-              <p className="text-xs text-foreground/60">Use the + button to add tasks.</p>
-            </div>
-          </div>
-          <div className="p-4 bg-card rounded-xl border border-border flex items-center gap-4 text-left shadow-sm">
-            <div className="bg-danger/20 p-2 rounded-lg text-danger"><Activity className="h-5 w-5" /></div>
-            <div>
-              <p className="font-semibold text-sm">No Attendance Data Yet</p>
-              <p className="text-xs text-foreground/60">Open Attendance to connect your GLA portal.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+        }
+      />
     );
   }
 
   const firstName = userData?.name?.split(' ')[0] || 'User';
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
-
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const activeTasks = tasks.filter(t => t.deadline > now && !t.completedBy?.includes(currentUser?.uid || '')).length;
   const upcomingEvents = events.filter(e => e.date > now).length;
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-10 duration-1000 pb-20">
-      <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[3.5rem] bg-card/60 backdrop-blur-xl border border-white/10 p-6 sm:p-10 lg:p-16 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
-        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <Activity className="h-64 w-64 text-primary" />
-        </div>
-        
-        <div className="relative z-10 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="h-1 w-12 bg-primary rounded-full" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">{greeting}</span>
-          </div>
-          
-          <div className="space-y-2">
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter italic uppercase bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent leading-none pr-8">
-              Hello, {firstName}
-            </h1>
-            <p className="text-sm font-medium text-foreground/40 max-w-xl leading-relaxed">
-              Here's your academic overview for today. Stay on track and crush your goals.
-            </p>
-          </div>
+    <div className="space-y-8 pb-8">
+      <PageHeader
+        eyebrow={greeting}
+        title={`Hello, ${firstName}`}
+        description="Here’s what needs attention across your section."
+      />
 
-          <div className="flex flex-wrap gap-3 pt-2">
-            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
-              <BookOpen className="h-4 w-4 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{subjects.length} Subjects</span>
-            </div>
-            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
-              <Clock className="h-4 w-4 text-warning" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{activeTasks} Active Tasks</span>
-            </div>
-            <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-[1.5rem] bg-white/5 border border-white/5">
-              <Calendar className="h-4 w-4 text-accent" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{upcomingEvents} Upcoming Events</span>
-            </div>
-          </div>
-        </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Subjects" value={subjects.length} icon={BookOpen} onClick={() => navigate('/subjects')} />
+        <StatCard label="Active tasks" value={activeTasks} icon={Clock} tone="warning" onClick={() => navigate('/timeline')} />
+        <StatCard label="Upcoming events" value={upcomingEvents} icon={Calendar} tone="accent" onClick={() => navigate('/events')} />
       </div>
 
-      {/* Danger Zone - Refactored to Ultra-Premium Warning */}
       {dangerZoneTasks.length > 0 && (
-        <div className="relative group overflow-hidden rounded-[2.5rem] border border-danger/30 bg-danger/5 backdrop-blur-2xl p-8 shadow-[0_32px_64px_-12px_rgba(239,68,68,0.2)]">
-          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-            <AlertTriangle className="h-32 w-32 text-danger" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-              <div className="flex items-center gap-5">
-                <div className="h-14 w-14 bg-danger/20 rounded-2xl flex items-center justify-center shadow-inner relative">
-                  <ShieldAlert className="h-7 w-7 text-danger" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-black italic uppercase tracking-tighter text-danger">Deadline Alert</h2>
-                  <p className="text-xs font-bold text-danger/60 uppercase tracking-[0.2em]">{dangerZoneTasks.length} CRITICAL TASK{dangerZoneTasks.length > 1 ? 'S' : ''}</p>
-                </div>
+        <Card className="overflow-hidden border-danger/30 bg-danger/5" elevated>
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-danger/15 text-danger">
+                <ShieldAlert className="h-6 w-6" />
               </div>
-              <Button variant="danger" size="xl" className="rounded-[2rem] px-10 shadow-2xl shadow-danger/20" onClick={() => navigate('/timeline')}>Review Now</Button>
+              <div>
+                <CardTitle className="text-danger">Deadline alert</CardTitle>
+                <p className="text-sm text-danger/70">
+                  {dangerZoneTasks.length} {dangerZoneTasks.length === 1 ? 'deadline needs attention' : 'deadlines need attention'}
+                </p>
+              </div>
             </div>
-            
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Button variant="danger" onClick={() => navigate('/timeline')}>Open timeline</Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {dangerZoneTasks.map(task => {
                 const isMissed = task.deadline < now;
                 const isDone = task.completedBy?.includes(currentUser?.uid || '') || false;
                 return (
-                  <div key={task.id} className={`flex flex-col gap-4 p-6 rounded-[2rem] bg-white/5 border border-white/10 ${isMissed ? 'opacity-60' : 'hover:border-primary/30'} transition-all group/item`}>
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] italic ${isMissed ? 'text-foreground/40' : 'text-primary'}`}>
-                          {isMissed ? 'Past Objective' : 'Active Deadline'}
-                        </span>
-                        <p className={`text-lg font-black tracking-tight leading-none uppercase italic ${isMissed ? 'text-foreground/60' : ''}`}>{task.title}</p>
+                  <div key={task.id} className="rounded-2xl border border-border bg-card/70 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <Badge tone={isMissed ? 'neutral' : 'danger'}>{isMissed ? 'Overdue' : 'Coming up'}</Badge>
+                        <p className="mt-2 font-semibold tracking-tight">{task.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(task.deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        className={`h-10 w-10 p-0 rounded-xl border border-white/10 ${isDone ? 'text-success bg-success/10' : 'text-foreground/20 hover:text-primary'}`}
+                      <Button
+                        variant="ghost"
+                        className={`h-10 w-10 p-0 ${isDone ? 'text-success bg-success/10' : ''}`}
                         onClick={() => handleToggleDone(task.id, isDone)}
                       >
                         {isDone ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
                       </Button>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-foreground/40">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">{new Date(task.deadline).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      {!isMissed && <Clock className="h-4 w-4 text-primary/20 animate-pulse" />}
-                    </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Main Bento Grid */}
-      <div className="grid gap-8 md:grid-cols-12">
-        {/* Subjects - Main Column */}
-        <div className="md:col-span-8 space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-3">
-              <BookOpen className="h-5 w-5 text-primary" />
-              <h3 className="font-black italic uppercase tracking-widest text-sm opacity-40">Academic Subjects</h3>
-            </div>
+      <div className="grid gap-6 lg:grid-cols-12">
+        <div className="space-y-4 lg:col-span-8">
+          <div className="flex items-center gap-2 px-1">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-muted-foreground">Subjects</h2>
           </div>
-
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid gap-4 sm:grid-cols-2">
             {subjects.map(subject => {
-              const subjectTasks = tasks.filter(t => 
-                t.subjectId === subject.id && 
-                t.deadline > now && 
+              const subjectTasks = tasks.filter(t =>
+                t.subjectId === subject.id &&
+                t.deadline > now &&
                 !t.completedBy?.includes(currentUser?.uid || '')
               );
               return (
-                <Card 
-                  key={subject.id} 
-                  className="group hover:scale-[1.02] active:scale-[0.98] cursor-pointer relative overflow-hidden"
+                <Card
+                  key={subject.id}
+                  interactive
+                  className="cursor-pointer"
                   onClick={() => navigate(`/subjects/${subject.id}`)}
                 >
-                  <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <div className="text-6xl font-black italic leading-none">{subject.code.slice(-2)}</div>
-                  </div>
-                  <CardHeader className="p-8 pb-4">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner ${
-                        subject.type === 'theory' ? 'bg-primary/20 text-primary' : 'bg-accent/20 text-accent'
+                  <CardHeader>
+                    <div className="mb-3 flex items-start justify-between">
+                      <div className={`flex h-11 w-11 items-center justify-center rounded-xl text-xs font-semibold ${
+                        subject.type === 'theory' ? 'bg-primary-soft text-primary' : 'bg-accent/15 text-accent'
                       }`}>
                         {subject.code.toUpperCase()}
                       </div>
-                      <ArrowRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
                     </div>
-                    <CardTitle className="text-2xl mb-1">{subject.name}</CardTitle>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 italic">{subject.type}</p>
+                    <CardTitle>{subject.name}</CardTitle>
+                    <p className="text-xs capitalize text-muted-foreground">{subject.type}</p>
                   </CardHeader>
-                  <CardContent className="p-8 pt-0 mt-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1 h-1.5 bg-foreground/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary/40 rounded-full w-[60%]" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
-                        {subjectTasks.length > 0 ? `${subjectTasks.length} Active` : 'Clear'}
-                      </span>
-                    </div>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      {subjectTasks.length > 0 ? `${subjectTasks.length} open ${subjectTasks.length === 1 ? 'task' : 'tasks'}` : 'No open tasks'}
+                    </p>
                   </CardContent>
                 </Card>
               );
@@ -315,93 +228,69 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Sidebar Column */}
-        <div className="md:col-span-4 space-y-8">
-          {/* Events */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 px-2">
-              <PartyPopper className="h-5 w-5 text-accent" />
-              <h3 className="font-black italic uppercase tracking-widest text-sm opacity-40">Upcoming Events</h3>
+        <div className="space-y-6 lg:col-span-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <PartyPopper className="h-4 w-4 text-accent" />
+              <h2 className="text-sm font-semibold text-muted-foreground">Upcoming events</h2>
             </div>
-            
             {dashboardEvents.length === 0 ? (
-              <Card className="p-10 text-center border-dashed border-white/10 bg-transparent">
-                <p className="text-xs font-bold opacity-20 uppercase tracking-widest">No Events Scheduled</p>
-              </Card>
+              <EmptyState
+                icon={Calendar}
+                title="No events you're going to"
+                description="Join an event to pin it here."
+                className="py-10"
+              />
             ) : (
-              <div className="space-y-4">
-                {dashboardEvents.map(event => (
-                  <div key={event.id} className="relative group overflow-hidden rounded-[2rem] border border-white/5 bg-accent/5 backdrop-blur-xl p-6 hover:bg-accent/10 transition-all cursor-pointer" onClick={() => navigate('/events')}>
-                    <div className="flex flex-col gap-4">
-                      <div className="flex justify-between items-start">
-                        <div className="h-10 w-10 bg-accent/20 rounded-xl flex items-center justify-center text-accent">
-                          <Calendar className="h-5 w-5" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-accent italic">Confirmed</span>
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-black tracking-tight uppercase italic">{event.title}</h4>
-                        <p className="text-xs font-bold opacity-40 mt-1">{event.venue} • {new Date(event.date).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              dashboardEvents.map(event => (
+                <Card key={event.id} interactive className="cursor-pointer p-5" onClick={() => navigate('/events')}>
+                  <Badge tone="accent">Confirmed</Badge>
+                  <h3 className="mt-3 font-semibold tracking-tight">{event.title}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {event.venue} · {new Date(event.date).toLocaleDateString()}
+                  </p>
+                </Card>
+              ))
             )}
           </div>
 
-          {/* Attendance Quick Link */}
-          <div className="relative group overflow-hidden rounded-[2rem] border border-primary/30 bg-primary/5 p-8 hover:bg-primary/10 transition-all cursor-pointer" onClick={() => navigate('/attendance')}>
-             <div className="absolute top-0 right-0 p-6 opacity-10">
-               <Activity className="h-20 w-20 text-primary" />
-             </div>
-             <div className="relative z-10 flex flex-col gap-6">
-                <div className="h-12 w-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary">
-                  <Activity className="h-6 w-6 animate-pulse" />
-                </div>
-                <div>
-                  <h4 className="text-xl font-black tracking-tighter uppercase italic">Attendance Monitor</h4>
-                  <p className="text-xs font-bold opacity-60 mt-2 leading-relaxed">System integration pending. Click to access manual entry.</p>
-                </div>
-                <div className="flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-widest">
-                  Sync Now <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-             </div>
-          </div>
+          <Card interactive className="cursor-pointer overflow-hidden border-primary/25 bg-primary-soft/40 p-6" onClick={() => navigate('/attendance')}>
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/20 text-primary">
+              <Activity className="h-5 w-5" />
+            </div>
+            <h3 className="text-lg font-semibold tracking-tight">Attendance</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Connect the GLA portal to see attendance and your timetable.</p>
+            <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-primary">
+              Open attendance <ArrowRight className="h-3.5 w-3.5" />
+            </p>
+          </Card>
         </div>
       </div>
 
-      {/* FTE Modal Upgrade */}
-      <Modal isOpen={showFTEModal} onClose={closeFTEModal} title="Setup Complete">
-        <div className="text-center space-y-10 py-8 px-4">
-          <div className="flex justify-center relative">
-            <div className="absolute inset-0 bg-success/20 blur-3xl rounded-full" />
-            <div className="relative bg-success/20 p-8 rounded-[2rem] border border-success/30 shadow-2xl">
-              <CheckCircle2 className="h-16 w-16 text-success animate-in zoom-in duration-500" />
-            </div>
+      <Modal isOpen={showFTEModal} onClose={closeFTEModal} title="Setup complete">
+        <div className="space-y-6 py-2 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-success/30 bg-success/15 text-success">
+            <CheckCircle2 className="h-8 w-8" />
           </div>
-          
-          <div className="space-y-3">
-            <h3 className="text-3xl font-black italic uppercase tracking-tighter">Welcome to RemindrX</h3>
-            <p className="text-foreground/40 font-bold uppercase tracking-widest text-[10px]">Your class workspace is now fully synchronized.</p>
+          <div>
+            <h3 className="text-2xl font-semibold tracking-tight">Welcome to RemindrX</h3>
+            <p className="mt-2 text-sm text-muted-foreground">You’re in. Here’s what is already set up.</p>
           </div>
-
-          <div className="grid gap-4">
-             {[
-               { icon: BookOpen, label: `${subjects.length} Subjects Loaded`, color: 'primary' },
-               { icon: Calendar, label: `${tasks.length} Active Deadlines`, color: 'accent' },
-               { icon: Activity, label: 'Attendance Sync Active', color: 'danger' }
-             ].map((item, idx) => (
-               <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-4 text-left transition-all hover:bg-white/10">
-                 <div className={`p-2.5 rounded-xl bg-${item.color}/20 text-${item.color}`}>
-                   <item.icon className="h-5 w-5" />
-                 </div>
-                 <p className="font-black italic uppercase tracking-tight text-sm">{item.label}</p>
-               </div>
-             ))}
+          <div className="grid gap-3 text-left">
+            {[
+              { icon: BookOpen, label: `${subjects.length} subjects loaded` },
+              { icon: Calendar, label: `${tasks.length} tasks on the timeline` },
+              { icon: Activity, label: 'Attendance is ready to connect' },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-3 rounded-2xl border border-border bg-muted/50 p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-semibold">{item.label}</p>
+              </div>
+            ))}
           </div>
-
-          <Button size="xl" className="w-full rounded-[2rem] shadow-2xl" onClick={closeFTEModal}>Enter Dashboard</Button>
+          <Button size="lg" className="w-full" onClick={closeFTEModal}>Enter dashboard</Button>
         </div>
       </Modal>
     </div>
