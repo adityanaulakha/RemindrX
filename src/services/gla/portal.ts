@@ -127,7 +127,17 @@ export async function portalEnroll(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ roll, password, captcha }),
   });
-  return parseJson<EnrollResponse>(res);
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as EnrollResponse;
+  } catch {
+    return {
+      success: false,
+      error: text?.trim()
+        ? `Enroll failed (${res.status}): ${text.slice(0, 180)}`
+        : `Enroll failed with HTTP ${res.status}`,
+    };
+  }
 }
 
 export async function portalDashboard(roll?: string | null): Promise<PortalDashboard | null> {

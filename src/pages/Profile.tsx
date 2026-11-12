@@ -78,7 +78,9 @@ export default function Profile() {
         setName(userData.name || currentUser.displayName || '');
         setEmail(userData.email || currentUser.email || '');
         setDeadlinePreference(userData.deadlinePreference || 2);
-        setDob(userData.dob || '');
+        // type="date" requires YYYY-MM-DD — Safari throws "string did not match expected pattern" otherwise
+        const rawDob = userData.dob || '';
+        setDob(/^\d{4}-\d{2}-\d{2}$/.test(rawDob) ? rawDob : '');
         setSection(userData.section || '');
         setRollNo(userData.rollNo || '');
         setYear(userData.year || '');
