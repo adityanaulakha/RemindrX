@@ -170,14 +170,11 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
 
         <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 space-y-3">
           <div>
-            <p className="text-xs text-primary font-bold tracking-normal mb-1">Generated Section Code</p>
-            <p className="font-mono text-lg">{joinCode}</p>
-            <p className="text-xs text-muted-foreground mt-1">Students will use this exact code to join this section.</p>
-          </div>
-          <div className="pt-2 border-t border-primary/10">
-            <p className="text-xs text-primary font-bold tracking-normal mb-1">Generated Admin Invite Code</p>
+            <p className="text-xs text-primary font-bold tracking-normal mb-1">Generated CR Invite Code</p>
             <p className="font-mono text-lg">{adminCode}</p>
-            <p className="text-xs text-muted-foreground mt-1">Unique code for Class Representatives to get admin rights.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Students map into sections via GLA portal enroll. This code only elevates a Class Rep.
+            </p>
           </div>
         </div>
 

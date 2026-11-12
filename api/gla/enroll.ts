@@ -104,8 +104,17 @@ export default async function handler(req: Req, res: Res) {
     });
 
     const db = adminDb();
-    const { classId, created, subjectUpserts } = await ensurePortalClassAndSubjects(db, profile);
-    await upsertPortalUser(db, uid, profile, classId);
+    let provisioned;
+    try {
+      provisioned = await ensurePortalClassAndSubjects(db, profile);
+    } catch (cohortErr) {
+      return res.status(422).json({
+        success: false,
+        error: cohortErr instanceof Error ? cohortErr.message : 'Could not map portal section',
+      });
+    }
+    const { classId, created, subjectUpserts, profile: mapped } = provisioned;
+    await upsertPortalUser(db, uid, mapped, classId);
 
     return res.status(200).json({
       success: true,
@@ -115,16 +124,16 @@ export default async function handler(req: Req, res: Res) {
       classCreated: created,
       subjectUpserts,
       profile: {
-        roll: profile.roll,
-        name: profile.name,
-        program: profile.program,
-        branch: profile.branch,
-        year: profile.year,
-        section: profile.section,
-        portalCohortKey: profile.portalCohortKey,
-        classDisplayName: profile.classDisplayName,
-        summary: profile.summary,
-        subjects: (profile.subjects || []).map((s) => ({
+        roll: mapped.roll,
+        name: mapped.name,
+        program: mapped.program,
+        branch: mapped.branch,
+        year: mapped.year,
+        section: mapped.section,
+        portalCohortKey: mapped.portalCohortKey,
+        classDisplayName: mapped.classDisplayName,
+        summary: mapped.summary,
+        subjects: (mapped.subjects || []).map((s) => ({
           name: s.name,
           code: s.code,
           type: s.type,

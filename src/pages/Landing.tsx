@@ -194,7 +194,7 @@ export default function Landing() {
               Your campus section, in one polished workspace.
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-              RemindrX keeps subjects, deadlines, GLA attendance, the timetable, class updates, and campus events together — after you verify your college email.
+              RemindrX keeps subjects, deadlines, GLA attendance, the timetable, class updates, and campus events together — after you enroll with the GLA portal.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button size="lg" onClick={() => navigate('/login')}>
@@ -217,7 +217,7 @@ export default function Landing() {
           <div className="max-w-2xl">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Built around a real section, not a generic to-do list.</h2>
             <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-              Sign in with your college email, join the section code from your class representative, and the same tools are available on your phone.
+              Enroll with your GLA Student Corner credentials — your section and subjects are mapped automatically, and the same tools work on your phone.
             </p>
           </div>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -234,9 +234,9 @@ export default function Landing() {
         </section>
 
         <section className="relative mt-16 overflow-hidden rounded-3xl border border-primary/25 bg-primary-soft px-6 py-10 sm:px-10">
-          <h2 className="relative max-w-xl text-3xl font-semibold tracking-tight">Sign in with your college email to join your section.</h2>
+          <h2 className="relative max-w-xl text-3xl font-semibold tracking-tight">Enroll with your GLA portal to open your section.</h2>
           <p className="relative mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-            New accounts need a verified institutional email. Class representatives use an invite code when they join.
+            Use your roll number and Student Corner password. RemindrX creates your campus session and maps your allotment — no section join code.
           </p>
           <Button className="relative mt-6" size="lg" onClick={() => navigate('/login')}>
             Continue to sign in <ArrowRight className="h-4 w-4" />

@@ -680,7 +680,9 @@ export default function SuperAdmin() {
                           <div key={c.id} className="p-6 rounded-2xl bg-muted border border-border group hover:border-emerald-400/40 transition-all cursor-pointer" onClick={() => openClassDetails(c)}>
                             <div className="flex justify-between items-start mb-4">
                               <p className="text-sm font-semibold truncate">{c.name}</p>
-                              <span className="text-xs font-semibold bg-success/15 text-success px-3 py-1 rounded-full">{c.joinCode}</span>
+                              <span className="text-xs font-semibold bg-success/15 text-success px-3 py-1 rounded-full">
+                                {c.source === 'portal' ? 'Portal' : 'Manual'}
+                              </span>
                             </div>
                             <div className="flex items-center gap-3">
                               <Users className="h-4 w-4 opacity-20" />
@@ -936,7 +938,7 @@ export default function SuperAdmin() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-3xl font-semibold tracking-tight">Sections</h2>
-                    <p className="text-xs text-muted-foreground font-medium mt-1">Sections students can join, and who is in them.</p>
+                    <p className="text-xs text-muted-foreground font-medium mt-1">Portal-mapped and manually created sections.</p>
                   </div>
                   <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2 rounded-xl h-14 px-8 font-medium shadow-[var(--shadow-lg)]">
                     <Plus className="h-5 w-5" /> New Section
@@ -959,9 +961,11 @@ export default function SuperAdmin() {
                           </div>
                           <div className="flex flex-col items-end">
                             <span className="text-xs font-semibold bg-primary/10 text-primary px-3 py-1 rounded-full tracking-normal mb-1">
-                              {cls.joinCode}
+                              {cls.source === 'portal' ? 'Portal' : 'Manual'}
                             </span>
-                            <span className="text-xs font-bold text-muted-foreground tracking-tighter">Join code</span>
+                            <span className="text-xs font-bold text-muted-foreground tracking-tighter">
+                              {cls.section ? `Sec ${cls.section}` : 'Section'}
+                            </span>
                           </div>
                         </div>
 
@@ -1075,20 +1079,14 @@ export default function SuperAdmin() {
           title={selectedClass.name}
         >
           <div className="space-y-8 py-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 group hover:bg-primary/10 transition-all relative">
-                <button 
-                  className="absolute top-4 right-4 p-2 rounded-xl bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white"
-                  onClick={() => {
-                    navigator.clipboard.writeText(selectedClass.joinCode);
-                    toast.success('Key Copied');
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                </button>
-                <p className="text-xs font-semibold text-primary mb-2 tracking-widest">Join code</p>
-                <p className="text-3xl font-semibold font-mono text-primary">{selectedClass.joinCode}</p>
-              </div>
+            <div className="grid grid-cols-1 gap-6">
+              {selectedClass.portalCohortKey ? (
+                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20">
+                  <p className="text-xs font-semibold text-primary mb-2 tracking-widest">Portal cohort</p>
+                  <p className="text-sm font-semibold font-mono text-primary break-all">{selectedClass.portalCohortKey}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Students auto-map here from GLA portal enroll.</p>
+                </div>
+              ) : null}
               <div className="p-6 rounded-2xl bg-accent/5 border border-accent/20 group hover:bg-accent/10 transition-all relative">
                 <button 
                   className="absolute top-4 right-4 p-2 rounded-xl bg-accent/10 text-accent opacity-0 group-hover:opacity-100 transition-all hover:bg-accent hover:text-white"
@@ -1099,7 +1097,7 @@ export default function SuperAdmin() {
                 >
                   <Copy className="h-4 w-4" />
                 </button>
-                <p className="text-xs font-semibold text-accent mb-2 tracking-widest">Admin code</p>
+                <p className="text-xs font-semibold text-accent mb-2 tracking-widest">CR invite code</p>
                 <p className="text-3xl font-semibold font-mono text-accent">{selectedClass.adminInviteCode}</p>
               </div>
             </div>
