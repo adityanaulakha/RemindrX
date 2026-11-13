@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, orderBy, limit, limitToLast } from 'firebase/firestore';
 import { computePostStatus, toggleVote } from '../utils/postStatus';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -45,8 +45,10 @@ export default function ClassUpdates() {
       collection(db, 'posts'),
       where('classId', '==', classId),
       where('createdAt', '>=', oneMonthAgo),
-      orderBy('createdAt', 'desc'),
-      limit(100)
+      // Newest 100 via ascending order + limitToLast: served by the existing
+      // posts(classId ASC, createdAt ASC) index (no separate DESC index needed).
+      orderBy('createdAt', 'asc'),
+      limitToLast(100)
     );
 
     const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
