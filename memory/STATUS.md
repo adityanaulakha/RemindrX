@@ -4,7 +4,7 @@
 
 ## Snapshot
 
-RemindrX Attendance is wired to **portal-backend-z9ce.onrender.com** (from portal-frontend): captcha login → live `/dashboard` attendance + CPI. Local PIN unlock + cached snapshot for reopen UX.
+RemindrX Attendance is wired to **reminder-backend-cf51.onrender.com**: captcha login → live `/dashboard` attendance + CPI. Local PIN unlock + cached snapshot for reopen UX; fresh snapshots skip re-scrape for 15 min.
 
 ## Working
 

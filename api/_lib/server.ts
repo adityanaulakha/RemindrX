@@ -295,8 +295,8 @@ export async function enforceLimits(
   res: Res,
   limits: { key: string; max: number; windowMs: number }[]
 ): Promise<boolean> {
-  for (const l of limits) {
-    const r = await rateLimit(l.key, l.max, l.windowMs);
+  const results = await Promise.all(limits.map((l) => rateLimit(l.key, l.max, l.windowMs)));
+  for (const r of results) {
     if (!r.ok) {
       res.setHeader('Retry-After', String(r.retryAfterSec));
       res.status(429).json({

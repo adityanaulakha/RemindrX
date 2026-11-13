@@ -266,6 +266,15 @@ export async function syncSubjects(
     if (d.code) byCode.set(String(d.code).toUpperCase(), docSnap);
   }
 
+  let batch = db.batch();
+  let batchOps = 0;
+  const flush = async () => {
+    if (batchOps === 0) return;
+    await batch.commit();
+    batch = db.batch();
+    batchOps = 0;
+  };
+
   for (const sub of subjects) {
     const portalCode = sub.code ? String(sub.code).trim().toUpperCase() : '';
     const name = String(sub.name || 'Subject').trim() || 'Subject';
@@ -280,8 +289,10 @@ export async function syncSubjects(
       if (portalCode && !data.portalCode) patch.portalCode = portalCode;
       if (name && data.name !== name) patch.name = name;
       if (Object.keys(patch).length) {
-        await match.ref.update(patch);
+        batch.update(match.ref, patch);
+        batchOps += 1;
         upserts += 1;
+        if (batchOps >= 400) await flush();
       }
       continue;
     }
@@ -300,18 +311,19 @@ export async function syncSubjects(
     };
     if (portalCode) {
       const ref = db.collection('subjects').doc(`${classId}__${portalCode.replace(/[^A-Z0-9_-]/g, '_')}`);
-      try {
-        await ref.create(docData);
-        upserts += 1;
-      } catch (err) {
-        // ALREADY_EXISTS (6): a classmate created it a moment ago — fine.
-        if ((err as { code?: number }).code !== 6) throw err;
-      }
-    } else {
-      await db.collection('subjects').add(docData);
+      batch.set(ref, docData, { merge: true });
+      batchOps += 1;
       upserts += 1;
+      if (batchOps >= 400) await flush();
+    } else {
+      const ref = db.collection('subjects').doc();
+      batch.set(ref, docData);
+      batchOps += 1;
+      upserts += 1;
+      if (batchOps >= 400) await flush();
     }
   }
+  await flush();
   return upserts;
 }
 

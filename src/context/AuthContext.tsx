@@ -82,12 +82,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUserData(newUser);
           }
 
+          // Do not block first paint on the system notification prompt
           if ('Notification' in window && Notification.permission === 'default') {
-            try {
-              await Notification.requestPermission();
-            } catch (err) {
+            void Notification.requestPermission().catch((err) => {
               console.error('Failed to request notification permission', err);
-            }
+            });
           }
           setLoading(false);
         });

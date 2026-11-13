@@ -5,28 +5,48 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { pathToFileURL } from 'node:url'
 import path from 'node:path'
 
-/** Local-dev shim so `/api/gla/enroll` works without `vercel dev`. */
-function glaEnrollApiPlugin(): Plugin {
+/** Local-dev shim so `/api/gla/*` works without `vercel dev`. */
+function glaApiPlugin(): Plugin {
+  const routes: Record<string, string> = {
+    '/api/gla/enroll': 'api/gla/enroll.ts',
+    '/api/gla/login': 'api/gla/login.ts',
+    '/api/gla/captcha': 'api/gla/captcha.ts',
+    '/api/gla/refresh': 'api/gla/refresh.ts',
+  }
+
   return {
-    name: 'gla-enroll-api',
+    name: 'gla-api',
     configureServer(server) {
-      server.middlewares.use('/api/gla/enroll', async (req, res) => {
-        if (req.method !== 'POST') {
-          res.statusCode = 405
-          res.setHeader('Allow', 'POST')
-          res.end(JSON.stringify({ success: false, error: 'Method not allowed' }))
-          return
-        }
+      server.middlewares.use(async (req, res, next) => {
+        const url = req.url || ''
+        const pathname = url.split('?')[0] || ''
+        const rel = routes[pathname]
+        if (!rel) return next()
+
         try {
           const chunks: Buffer[] = []
-          for await (const chunk of req) chunks.push(Buffer.from(chunk))
-          const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
-          const modPath = pathToFileURL(
-            path.resolve(server.config.root, 'api/gla/enroll.ts')
-          ).href
+          if (req.method !== 'GET' && req.method !== 'HEAD') {
+            for await (const chunk of req) chunks.push(Buffer.from(chunk))
+          }
+          const body =
+            chunks.length > 0
+              ? JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
+              : undefined
+          const query: Record<string, string> = {}
+          const q = url.includes('?') ? new URL(url, 'http://localhost').searchParams : null
+          q?.forEach((v, k) => {
+            query[k] = v
+          })
+
+          const modPath = pathToFileURL(path.resolve(server.config.root, rel)).href
           const { default: handler } = await server.ssrLoadModule(modPath)
           await handler(
-            { method: 'POST', body, headers: req.headers as Record<string, string> },
+            {
+              method: req.method,
+              body,
+              query,
+              headers: req.headers as Record<string, string>,
+            },
             {
               setHeader: (k: string, v: string) => res.setHeader(k, v),
               status: (n: number) => ({
@@ -39,13 +59,13 @@ function glaEnrollApiPlugin(): Plugin {
             }
           )
         } catch (err) {
-          console.error('[gla-enroll-api]', err)
+          console.error('[gla-api]', pathname, err)
           res.statusCode = 500
           res.setHeader('Content-Type', 'application/json')
           res.end(
             JSON.stringify({
               success: false,
-              error: err instanceof Error ? err.message : 'Enroll failed',
+              error: err instanceof Error ? err.message : 'API failed',
             })
           )
         }
@@ -59,7 +79,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    glaEnrollApiPlugin(),
+    glaApiPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: {

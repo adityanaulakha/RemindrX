@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import type { PortalDashboard, PortalSubject, PortalSummary } from '../services/gla/portal';
-import { refreshDashboard, restorePortalSession } from '../services/gla/client';
+import {
+  PORTAL_SNAPSHOT_TTL_MS,
+  refreshDashboard,
+  restorePortalSession,
+} from '../services/gla/client';
 import { loadMeta, loadSnapshot, type GlaPortalSnapshot } from '../services/gla/session';
 import { useNow } from './useNow';
 
-const STALE_MS = 15 * 60 * 1000;
+const STALE_MS = PORTAL_SNAPSHOT_TTL_MS;
 
 export interface PortalSessionState {
   live: boolean;

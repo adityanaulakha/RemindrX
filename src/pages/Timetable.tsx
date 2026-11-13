@@ -181,12 +181,25 @@ export default function Timetable() {
       }
 
       if (!restored.live && !restored.dashboard) {
+        // Cached timetable only — show it; reconnect via Attendance for live Sync
         setNeedsConnect(true);
         setLoading(false);
         return;
       }
 
-      await loadDay(new Date(), { merge: true });
+      const today = new Date();
+      const portalToday = formatPortalDate(today);
+      const hasToday =
+        cachedSnap?.grouped != null && lecturesForDate(cachedSnap.grouped, portalToday).length > 0;
+
+      // Fresh cache already has today — paint and quietly refresh in background
+      if (hasToday && isDateInCurrentMonth(today)) {
+        setLoading(false);
+        void loadDay(today, { merge: true });
+        return;
+      }
+
+      await loadDay(today, { merge: true });
     };
 
     boot();

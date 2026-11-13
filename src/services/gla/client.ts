@@ -220,12 +220,27 @@ export function mergeTimetableLectures(
   return normalizeTimetable([...kept, ...incomingFlat]);
 }
 
+/** Fresh snapshot window — skip Render /dashboard unless force refresh. */
+export const PORTAL_SNAPSHOT_TTL_MS = 15 * 60 * 1000;
+
+let restoreInFlight: Promise<{
+  live: boolean;
+  dashboard: PortalDashboard | null;
+  snapshot: GlaPortalSnapshot | null;
+}> | null = null;
+
+function dashboardFromSnapshot(snapshot: GlaPortalSnapshot): PortalDashboard {
+  return { summary: snapshot.summary, subjects: snapshot.subjects };
+}
+
 /**
  * Restore live portal session (retries cold starts via portalFetch).
- * Falls back to last cached enroll/attendance snapshot — never forces re-login
- * just because Render briefly slept.
+ * Dedupes concurrent callers and skips the network when the local snapshot is fresh.
+ * Falls back to cached enroll/attendance — never forces re-login just because Render slept.
  */
-export async function restorePortalSession(): Promise<{
+export async function restorePortalSession(opts?: {
+  force?: boolean;
+}): Promise<{
   live: boolean;
   dashboard: PortalDashboard | null;
   snapshot: GlaPortalSnapshot | null;
@@ -233,18 +248,41 @@ export async function restorePortalSession(): Promise<{
   const snapshot = loadSnapshot();
   const token = activeToken();
   if (!token) return { live: false, dashboard: null, snapshot };
-  try {
-    // portalDashboard retries on cold start; null = dead token or still down after retries
-    const dashboard = await portalDashboard(token);
-    if (dashboard) {
-      saveSnapshot(dashboard);
-      return { live: true, dashboard, snapshot };
-    }
-  } catch {
-    /* network / unexpected cold start — caller still has snapshot */
+
+  const fresh =
+    !opts?.force &&
+    snapshot != null &&
+    Date.now() - snapshot.savedAt < PORTAL_SNAPSHOT_TTL_MS;
+  if (fresh && snapshot) {
+    return {
+      live: true,
+      dashboard: dashboardFromSnapshot(snapshot),
+      snapshot,
+    };
   }
-  // After a real Render restart, in-memory jars are gone — keep snapshot for UI; reconnect only for live Sync.
-  return { live: false, dashboard: null, snapshot };
+
+  if (restoreInFlight && !opts?.force) return restoreInFlight;
+
+  const run = (async () => {
+    const snap = loadSnapshot();
+    try {
+      const dashboard = await portalDashboard(token);
+      if (dashboard) {
+        saveSnapshot(dashboard);
+        return { live: true, dashboard, snapshot: snap };
+      }
+    } catch {
+      /* network / unexpected cold start — caller still has snapshot */
+    }
+    return { live: false, dashboard: null, snapshot: snap };
+  })();
+
+  if (!opts?.force) restoreInFlight = run;
+  try {
+    return await run;
+  } finally {
+    if (restoreInFlight === run) restoreInFlight = null;
+  }
 }
 
 export async function loginAndFetch(
@@ -269,6 +307,8 @@ export async function loginAndFetch(
 export async function refreshDashboard(): Promise<PortalDashboard | null> {
   const token = activeToken();
   if (!token) return null;
+  // Force network — user explicitly refreshed / Sync
+  restoreInFlight = null;
   const dashboard = await portalDashboard(token);
   if (dashboard) saveSnapshot(dashboard);
   return dashboard;

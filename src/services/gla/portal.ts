@@ -2,9 +2,9 @@
  * Client for portal-backend (per-login session tokens).
  *
  * Endpoints:
- *   GET  /captcha?roll=…     → PNG + X-Portal-Attempt header (one-time attempt id)
- *   POST /login              → { roll, password, captcha, attempt } → { sessionToken }
- *   POST /enroll             → via RemindrX /api/gla/enroll (server-to-server)
+ *   GET  /api/gla/captcha?roll=… → { attempt, imageBase64 } (same Render host as enroll)
+ *   POST /api/gla/login      → { roll, password, captcha, attempt } → { sessionToken }
+ *   POST /api/gla/enroll     → portal verify + Firebase custom token
  *   GET  /dashboard          → Authorization: Bearer <sessionToken>
  *   GET  /timetable?date=…   → Authorization: Bearer <sessionToken>
  *   GET  /profile            → Authorization: Bearer <sessionToken>
@@ -17,17 +17,51 @@
 import { portalFetch } from './portalResilience';
 
 export const PORTAL_BASE =
-  (import.meta.env.VITE_PORTAL_BACKEND_URL as string | undefined) || 'https://portal-backend-z9ce.onrender.com';
+  (import.meta.env.VITE_PORTAL_BACKEND_URL as string | undefined) ||
+  'https://reminder-backend-cf51.onrender.com';
 
-/** Attempt id from the most recent captcha, bound to its roll. */
+const ATTEMPT_KEY = 'gla_portal_attempt_v1';
+
+/** Attempt id from the most recent captcha, bound to its roll (memory + sessionStorage). */
 let lastAttempt: { roll: string; id: string } | null = null;
 
 function normRoll(roll: string): string {
   return roll.trim().toUpperCase().replace(/\s+/g, '');
 }
 
+function persistAttempt(roll: string, id: string): void {
+  lastAttempt = { roll: normRoll(roll), id };
+  try {
+    sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify(lastAttempt));
+  } catch {
+    /* private mode */
+  }
+}
+
+function clearAttempt(): void {
+  lastAttempt = null;
+  try {
+    sessionStorage.removeItem(ATTEMPT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function attemptFor(roll: string): string | undefined {
-  return lastAttempt && lastAttempt.roll === normRoll(roll) ? lastAttempt.id : undefined;
+  const want = normRoll(roll);
+  if (lastAttempt && lastAttempt.roll === want) return lastAttempt.id;
+  try {
+    const raw = sessionStorage.getItem(ATTEMPT_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { roll?: string; id?: string };
+    if (parsed?.roll === want && parsed.id) {
+      lastAttempt = { roll: parsed.roll, id: parsed.id };
+      return parsed.id;
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
 }
 
 function authHeaders(token?: string | null): HeadersInit {
@@ -120,13 +154,31 @@ function withRoll(url: string, roll?: string | null): string {
   return u.toString();
 }
 
+/**
+ * Load captcha via same-origin proxy (/api/gla/captcha) so the attempt id is
+ * minted on the same Render host that /api/gla/enroll and /api/gla/login use.
+ */
 export async function fetchCaptchaBlob(roll: string): Promise<Blob> {
   if (!roll.trim()) throw new Error('Roll number required for captcha');
-  const res = await portalFetch(withRoll(`${PORTAL_BASE}/captcha`, roll), { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to load captcha');
-  const id = res.headers.get('X-Portal-Attempt');
-  lastAttempt = id ? { roll: normRoll(roll), id } : null;
-  return res.blob();
+  const url = withRoll('/api/gla/captcha', roll);
+  const res = await fetch(url, { cache: 'no-store' });
+  const data = await parseJson<{
+    success?: boolean;
+    error?: string;
+    attempt?: string;
+    imageBase64?: string;
+    contentType?: string;
+  }>(res).catch(() => ({ success: false, error: `Captcha failed (${res.status})` }));
+
+  if (!res.ok || !data.success || !data.attempt || !data.imageBase64) {
+    throw new Error(data.error || 'Failed to load captcha');
+  }
+
+  persistAttempt(roll, data.attempt);
+  const binary = atob(data.imageBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: data.contentType || 'image/png' });
 }
 
 export async function portalLogin(
@@ -134,12 +186,17 @@ export async function portalLogin(
   password: string,
   captcha: string
 ): Promise<{ success: boolean; error?: string; sessionToken?: string; expiresAt?: number }> {
-  const res = await portalFetch(`${PORTAL_BASE}/login`, {
+  const attempt = attemptFor(roll);
+  if (!attempt) {
+    return { success: false, error: 'Captcha expired — load a new captcha' };
+  }
+  // Same-origin proxy → same PORTAL_BACKEND_URL as captcha/enroll
+  const res = await fetch('/api/gla/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roll, password, captcha, attempt: attemptFor(roll) }),
+    body: JSON.stringify({ roll, password, captcha, attempt }),
   });
-  lastAttempt = null;
+  clearAttempt();
   const data = await parseJson<{ success?: boolean; error?: string; sessionToken?: string; expiresAt?: number }>(
     res
   ).catch(() => ({ success: false, error: `Login failed (${res.status})` }) as { success?: boolean; error?: string; sessionToken?: string; expiresAt?: number });
@@ -155,12 +212,16 @@ export async function portalEnroll(
   password: string,
   captcha: string
 ): Promise<EnrollResponse> {
+  const attempt = attemptFor(roll);
+  if (!attempt) {
+    return { success: false, error: 'Captcha expired — load a new captcha' };
+  }
   const res = await fetch('/api/gla/enroll', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roll, password, captcha, attempt: attemptFor(roll) }),
+    body: JSON.stringify({ roll, password, captcha, attempt }),
   });
-  lastAttempt = null;
+  clearAttempt();
   const text = await res.text();
   try {
     return JSON.parse(text) as EnrollResponse;

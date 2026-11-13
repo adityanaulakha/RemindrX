@@ -12,7 +12,7 @@ import {
   type Res,
 } from '../_lib/server.js';
 
-const UPSTREAM = process.env.PORTAL_BACKEND_URL || 'https://portal-backend-z9ce.onrender.com';
+const UPSTREAM = process.env.PORTAL_BACKEND_URL || 'https://reminder-backend-cf51.onrender.com';
 const WINDOW_MS = 15 * 60 * 1000;
 
 export default async function handler(req: Req, res: Res) {

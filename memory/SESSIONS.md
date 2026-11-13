@@ -9,7 +9,7 @@ Append-only session log.
 ## 2026-10-26 — portal-frontend integration
 
 - Cloned/scanned https://github.com/adityanaulakha/portal-frontend.git
-- BASE `https://portal-backend-z9ce.onrender.com` — `/captcha`, `/login`, `/dashboard`, `/timetable`, `/logout`
+- BASE `https://reminder-backend-cf51.onrender.com` — `/captcha`, `/login`, `/dashboard`, `/timetable`, `/logout`
 - RemindrX Attendance now uses real portal data (captcha + dashboard); local PIN + snapshot cache retained
 - URL map: `memory/rea-gla/PORTAL-FRONTEND-URLS.md`
 

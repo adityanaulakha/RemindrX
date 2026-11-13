@@ -6,8 +6,8 @@ Severity: `blocker` | `high` | `medium` | `low` | `info`
 
 ### ATT-001 — Portal backend may be single-tenant
 - **Severity:** medium
-- **Where:** `https://portal-backend-z9ce.onrender.com`
-- **Detail:** portal-frontend calls without cookies/`credentials`. Shared Render process may only hold one scraped portal session. OK for personal use; risky if many students hit one backend.
+- **Where:** `https://reminder-backend-cf51.onrender.com`
+- **Detail:** Mitigated with per-login `ps_…` session tokens. Still confirm production branch has session tokens + CORS/secret. Optional next: per-roll dashboard scrape cache + concurrency limit in portal-backend.
 
 ### ATT-002 — Render cold starts
 - **Severity:** low

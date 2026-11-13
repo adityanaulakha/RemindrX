@@ -99,7 +99,8 @@ FIREBASE_PROJECT_ID="your_project_id"
 FIREBASE_CLIENT_EMAIL="firebase-adminsdk@….iam.gserviceaccount.com"
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n…\n-----END PRIVATE KEY-----\n"
 # Or: FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",…}'
-PORTAL_BACKEND_URL="https://portal-backend-z9ce.onrender.com"
+PORTAL_BACKEND_URL="https://reminder-backend-cf51.onrender.com"
+VITE_PORTAL_BACKEND_URL="https://reminder-backend-cf51.onrender.com"
 ```
 
 ---

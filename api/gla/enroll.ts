@@ -30,7 +30,7 @@ import {
 } from '../_lib/server.js';
 import { ensurePortalClassAndSubjects, upsertPortalUser, type PortalProfileIn } from '../_lib/portalProvision.js';
 
-const PORTAL_BASE = process.env.PORTAL_BACKEND_URL || 'https://portal-backend-z9ce.onrender.com';
+const PORTAL_BASE = process.env.PORTAL_BACKEND_URL || 'https://reminder-backend-cf51.onrender.com';
 const WINDOW_MS = 15 * 60 * 1000;
 
 async function ensureAuthUser(uid: string, displayName: string) {

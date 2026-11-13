@@ -15,7 +15,7 @@ import {
 } from '../_lib/server.js';
 import { syncSubjects, type PortalProfileIn } from '../_lib/portalProvision.js';
 
-const PORTAL_BASE = process.env.PORTAL_BACKEND_URL || 'https://portal-backend-z9ce.onrender.com';
+const PORTAL_BASE = process.env.PORTAL_BACKEND_URL || 'https://reminder-backend-cf51.onrender.com';
 
 export default async function handler(req: Req, res: Res) {
   res.setHeader('Cache-Control', 'no-store');

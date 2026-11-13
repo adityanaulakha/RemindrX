@@ -1,6 +1,6 @@
 /**
  * Legacy finance-token refresh proxy (GLA native app).
- * Attendance now uses portal-backend-z9ce.onrender.com session + /dashboard.
+ * Attendance now uses reminder-backend-cf51.onrender.com session + /dashboard.
  * Kept for reference; prefer portal.ts client.
  */
 export default async function handler(

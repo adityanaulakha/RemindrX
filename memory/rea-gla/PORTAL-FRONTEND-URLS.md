@@ -6,7 +6,7 @@
 ## Base
 
 ```
-https://portal-backend-z9ce.onrender.com
+https://reminder-backend-cf51.onrender.com
 ```
 
 CORS: `Access-Control-Allow-Origin: *` (browser can call directly).

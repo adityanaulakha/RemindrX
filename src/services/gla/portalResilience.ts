@@ -12,7 +12,21 @@ export const PORTAL_KEEP_ALIVE_MS = 14 * 60 * 1000;
 /** Extra headroom for a cold boot after an unexpected spin-down. */
 export const PORTAL_COLD_START_TIMEOUT_MS = 60_000;
 
-const RETRY_DELAYS_MS = [0, 2_500, 6_000] as const;
+/** When the portal responded recently, fail faster instead of waiting a full cold boot. */
+export const PORTAL_WARM_TIMEOUT_MS = 12_000;
+
+const COLD_RETRY_DELAYS_MS = [0, 2_500, 6_000] as const;
+const WARM_RETRY_DELAYS_MS = [0, 1_500] as const;
+
+let lastPortalOkAt = 0;
+
+export function markPortalOk(): void {
+  lastPortalOkAt = Date.now();
+}
+
+export function isPortalWarm(now = Date.now()): boolean {
+  return lastPortalOkAt > 0 && now - lastPortalOkAt < PORTAL_KEEP_ALIVE_MS;
+}
 
 export function isTransientPortalStatus(status: number): boolean {
   return status === 502 || status === 503 || status === 504 || status === 521 || status === 522 || status === 524;
@@ -27,26 +41,30 @@ export type PortalRetryHook = (info: { attempt: number; maxAttempts: number }) =
 /**
  * fetch() with retries on network errors and gateway/cold-start statuses.
  * Non-transient responses (4xx, 200) return immediately.
+ * Warm path: shorter timeout + fewer retries when the portal succeeded recently.
  */
 export async function portalFetch(
   input: RequestInfo | URL,
   init?: RequestInit,
   opts?: { retries?: number; onRetry?: PortalRetryHook }
 ): Promise<Response> {
-  const maxExtra = opts?.retries ?? 2;
-  const maxAttempts = maxExtra + 1;
+  const warm = isPortalWarm();
+  const delays = warm ? WARM_RETRY_DELAYS_MS : COLD_RETRY_DELAYS_MS;
+  const timeoutMs = warm ? PORTAL_WARM_TIMEOUT_MS : PORTAL_COLD_START_TIMEOUT_MS;
+  const maxExtra = opts?.retries ?? (warm ? 1 : 2);
+  const maxAttempts = Math.min(maxExtra + 1, delays.length);
   let lastError: unknown;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (attempt > 0) {
       opts?.onRetry?.({ attempt, maxAttempts });
-      const delay = RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)] ?? 6_000;
+      const delay = delays[Math.min(attempt, delays.length - 1)] ?? 6_000;
       await sleep(delay);
     }
 
     try {
       const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), PORTAL_COLD_START_TIMEOUT_MS);
+      const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
       const userSignal = init?.signal;
       const onAbort = () => controller.abort();
       userSignal?.addEventListener('abort', onAbort);
@@ -62,6 +80,8 @@ export async function portalFetch(
         window.clearTimeout(timeout);
         userSignal?.removeEventListener('abort', onAbort);
       }
+
+      if (res.ok) markPortalOk();
 
       if (res.ok || !isTransientPortalStatus(res.status) || attempt === maxAttempts - 1) {
         return res;

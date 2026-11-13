@@ -30,6 +30,7 @@ import {
   hasLocalPin,
   isSessionUnlocked,
   loadMeta,
+  loadSnapshot,
   lockSession,
   setLocalPin,
   verifyLocalPin,
@@ -115,7 +116,20 @@ export default function Attendance() {
         setSessionLabel(preferredRoll);
       }
 
-      // Prefer live enroll session (portal-backend jar / session token from first login)
+      // Snapshot-first paint — don't wait on Render for the first frame
+      const cached = loadSnapshot();
+      if (cached) {
+        setSummary(cached.summary);
+        setSubjects(cached.subjects);
+        setLive(Boolean(meta.token));
+        if (hasLocalPin() && !isSessionUnlocked()) {
+          setGate('pin-unlock');
+        } else {
+          setGate('ready');
+        }
+      }
+
+      // Shared restore (TTL + in-flight dedupe with Dashboard/Timetable)
       const restored = await restorePortalSession();
       if (cancelled) return;
 
@@ -133,7 +147,6 @@ export default function Attendance() {
         return;
       }
 
-      // Enroll already saved a snapshot — show it. Don't force a second portal login.
       if (restored.snapshot) {
         setSummary(restored.snapshot.summary);
         setSubjects(restored.snapshot.subjects);

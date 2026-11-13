@@ -106,19 +106,9 @@ export default function Login() {
       // Keep portal session token so Attendance/Timetable reuse the live jar (no second login)
       const portalRoll = result.profile?.roll || roll.trim();
       markConnected(portalRoll, result.portalSession);
-      let snapSaved = false;
-      if (result.portalSession) {
-        try {
-          const dash = await portalDashboard(result.portalSession);
-          if (dash) {
-            saveSnapshot(dash);
-            snapSaved = true;
-          }
-        } catch {
-          /* fall through to enroll profile snapshot */
-        }
-      }
-      if (!snapSaved && result.profile?.summary && result.profile.subjects) {
+
+      // Prefer enroll payload — avoid a second India→Render→GLA /dashboard before navigate
+      if (result.profile?.summary && result.profile.subjects) {
         saveSnapshot({
           summary: {
             overall: result.profile.summary.overall ?? '--',
@@ -129,8 +119,17 @@ export default function Login() {
             attendance: (s as { attendance?: string | number }).attendance ?? '--',
             code: s.code,
             type: s.type,
+            present: (s as { present?: string | number }).present,
+            absent: (s as { absent?: string | number }).absent,
+            held: (s as { held?: string | number }).held,
           })),
         });
+      } else if (result.portalSession) {
+        void portalDashboard(result.portalSession)
+          .then((dash) => {
+            if (dash) saveSnapshot(dash);
+          })
+          .catch(() => {});
       }
 
       setPortalPassword('');
