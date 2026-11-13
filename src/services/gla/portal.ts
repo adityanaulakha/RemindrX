@@ -162,13 +162,19 @@ export async function fetchCaptchaBlob(roll: string): Promise<Blob> {
   if (!roll.trim()) throw new Error('Roll number required for captcha');
   const url = withRoll('/api/gla/captcha', roll);
   const res = await fetch(url, { cache: 'no-store' });
-  const data = await parseJson<{
+  type CaptchaPayload = {
     success?: boolean;
     error?: string;
     attempt?: string;
     imageBase64?: string;
     contentType?: string;
-  }>(res).catch(() => ({ success: false, error: `Captcha failed (${res.status})` }));
+  };
+  let data: CaptchaPayload;
+  try {
+    data = await parseJson<CaptchaPayload>(res);
+  } catch {
+    data = { success: false, error: `Captcha failed (${res.status})` };
+  }
 
   if (!res.ok || !data.success || !data.attempt || !data.imageBase64) {
     throw new Error(data.error || 'Failed to load captcha');
