@@ -110,6 +110,16 @@ export function clientIp(req: Req): string {
   );
 }
 
+/**
+ * Headers for server-to-server calls to portal-backend. Adds X-Portal-Secret
+ * when PORTAL_SHARED_SECRET is configured (required by /enroll and roll-based
+ * /profile once it is set on Render).
+ */
+export function portalHeaders(base: Record<string, string> = {}): Record<string, string> {
+  const secret = process.env.PORTAL_SHARED_SECRET;
+  return secret ? { ...base, 'X-Portal-Secret': secret } : { ...base };
+}
+
 export function bodyOf<T>(req: Req): Partial<T> {
   const b = req.body;
   if (!b) return {};

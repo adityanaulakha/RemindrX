@@ -10,6 +10,7 @@ import {
   verifyBearer,
   type Req,
   type Res,
+  portalHeaders,
 } from '../_lib/server.js';
 import { syncSubjects, type PortalProfileIn } from '../_lib/portalProvision.js';
 
@@ -34,8 +35,8 @@ export default async function handler(req: Req, res: Res) {
 
     let profileRes: Response;
     try {
-      profileRes = await fetch(`${PORTAL_BASE}/profile?roll=${encodeURIComponent(roll)}`, {
-        headers: { Accept: 'application/json' },
+      profileRes = await fetch(`${PORTAL_BASE}/profile`, {
+        headers: portalHeaders({ Accept: 'application/json', 'X-Portal-Roll': roll }),
         signal: AbortSignal.timeout(45_000),
       });
     } catch {

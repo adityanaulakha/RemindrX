@@ -3,21 +3,25 @@
 import http from 'node:http';
 import { generateKeyPairSync } from 'node:crypto';
 
+const portalSeen = [];
 const portal = http.createServer((req, res) => {
   let body = '';
   req.on('data', (c) => (body += c));
   req.on('end', () => {
-    const { roll, password } = JSON.parse(body || '{}');
+    const { roll, password, attempt } = JSON.parse(body || '{}');
+    portalSeen.push({ secret: req.headers['x-portal-secret'], attempt, url: req.url });
     res.setHeader('Content-Type', 'application/json');
+    if (req.headers['x-portal-secret'] !== 'test-portal-secret') { res.statusCode = 401; return res.end(JSON.stringify({ success: false, error: 'Unauthorized' })); }
     if (password !== 'right') { res.statusCode = 401; return res.end(JSON.stringify({ success: false, error: 'Invalid credentials' })); }
     setTimeout(() => res.end(JSON.stringify({ success: true, profile: {
       roll, name: 'Student ' + roll, program: 'B.Tech', branch: 'CSE', year: '3', section: 'A',
       subjects: [{ name: 'Operating Systems', code: 'BCSC0011', type: 'theory' }, { name: 'DBMS Lab', code: 'BCSC0012', type: 'lab' }],
-      summary: { overall: '82%', cpi: '8.1' } } })), 50);
+      summary: { overall: '82%', cpi: '8.1' } }, sessionToken: 'ps_test_' + roll, expiresAt: Date.now() + 1000 })), 50);
   });
 }).listen(4999);
 
 process.env.PORTAL_BACKEND_URL = 'http://127.0.0.1:4999';
+process.env.PORTAL_SHARED_SECRET = 'test-portal-secret';
 process.env.FIREBASE_PROJECT_ID = 'demo-remindrx';
 process.env.FIREBASE_CLIENT_EMAIL = 'test@demo-remindrx.iam.gserviceaccount.com';
 process.env.FIREBASE_PRIVATE_KEY = generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs8', format: 'pem' });
@@ -56,6 +60,10 @@ ok('portal subjects created once (2, not 16)', subs.size === 2, String(subs.size
 ok('uid is deterministic gla_{ROLL}', rs[0].json.uid === `gla_${rolls[0]}`, rs[0].json.uid);
 ok('custom token minted', typeof rs[0].json.customToken === 'string' && rs[0].json.customToken.split('.').length === 3);
 const userDoc = (await db.collection('users').doc(`gla_${rolls[0]}`).get()).data();
+ok('enroll sends X-Portal-Secret to portal-backend', portalSeen.length > 0 && portalSeen.every((p) => p.secret === 'test-portal-secret'));
+ok('portal session token returned to client', rs[0].json.portalSession === `ps_test_${rolls[0]}`, String(rs[0].json.portalSession));
+const withAttempt = await call(enroll, { body: { roll: rolls[1], password: 'right', captcha: 'x', attempt: 'a_abc' } });
+ok('captcha attempt id forwarded', withAttempt.status === 200 && portalSeen.at(-1).attempt === 'a_abc');
 ok('no password stored on user doc', !JSON.stringify(userDoc).includes('right'));
 
 // 2) repeat login reuses the same uid / class

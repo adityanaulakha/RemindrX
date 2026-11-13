@@ -9,6 +9,8 @@ const UNLOCKED_KEY = 'gla_portal_unlocked_v2';
 export interface GlaPortalMeta {
   roll: string | null;
   connectedAt: number | null;
+  /** portal-backend session token (expires server-side after ~45 min idle). */
+  token?: string | null;
 }
 
 export interface GlaPortalSnapshot {
@@ -80,8 +82,8 @@ export function clearGlaSession(): void {
   sessionStorage.removeItem(UNLOCKED_KEY);
 }
 
-export function markConnected(roll: string): void {
-  saveMeta({ roll, connectedAt: Date.now() });
+export function markConnected(roll: string, token?: string | null): void {
+  saveMeta({ roll, connectedAt: Date.now(), token: token || null });
 }
 
 async function sha256Hex(value: string): Promise<string> {

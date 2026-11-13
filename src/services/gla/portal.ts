@@ -1,17 +1,35 @@
 /**
- * Client for portal-backend (per-roll cookie sessions).
+ * Client for portal-backend (per-login session tokens).
  *
  * Endpoints:
- *   GET  /captcha?roll=…     → PNG
- *   POST /login              → { roll, password, captcha }
- *   POST /enroll             → login + profile (used via RemindrX /api/gla/enroll)
- *   GET  /dashboard?roll=…   → summary + subjects
- *   GET  /timetable?roll=…&date=…
- *   GET  /profile?roll=…
- *   POST /logout             → { roll }
+ *   GET  /captcha?roll=…     → PNG + X-Portal-Attempt header (one-time attempt id)
+ *   POST /login              → { roll, password, captcha, attempt } → { sessionToken }
+ *   POST /enroll             → via RemindrX /api/gla/enroll (server-to-server)
+ *   GET  /dashboard          → Authorization: Bearer <sessionToken>
+ *   GET  /timetable?date=…   → Authorization: Bearer <sessionToken>
+ *   GET  /profile            → Authorization: Bearer <sessionToken>
+ *   POST /logout             → Authorization: Bearer <sessionToken>
+ *
+ * The roll number alone never grants access; the session token does.
  */
 
-export const PORTAL_BASE = 'https://portal-backend-z9ce.onrender.com';
+export const PORTAL_BASE =
+  (import.meta.env.VITE_PORTAL_BACKEND_URL as string | undefined) || 'https://portal-backend-z9ce.onrender.com';
+
+/** Attempt id from the most recent captcha, bound to its roll. */
+let lastAttempt: { roll: string; id: string } | null = null;
+
+function normRoll(roll: string): string {
+  return roll.trim().toUpperCase().replace(/\s+/g, '');
+}
+
+function attemptFor(roll: string): string | undefined {
+  return lastAttempt && lastAttempt.roll === normRoll(roll) ? lastAttempt.id : undefined;
+}
+
+function authHeaders(token?: string | null): HeadersInit {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export interface PortalSubject {
   name: string;
@@ -78,6 +96,9 @@ export interface EnrollResponse {
   success: boolean;
   error?: string;
   customToken?: string;
+  /** portal-backend session token for Attendance / Timetable. */
+  portalSession?: string;
+  portalSessionExpiresAt?: number;
   uid?: string;
   classId?: string;
   classCreated?: boolean;
@@ -100,6 +121,8 @@ export async function fetchCaptchaBlob(roll: string): Promise<Blob> {
   if (!roll.trim()) throw new Error('Roll number required for captcha');
   const res = await fetch(withRoll(`${PORTAL_BASE}/captcha`, roll), { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to load captcha');
+  const id = res.headers.get('X-Portal-Attempt');
+  lastAttempt = id ? { roll: normRoll(roll), id } : null;
   return res.blob();
 }
 
@@ -107,14 +130,19 @@ export async function portalLogin(
   roll: string,
   password: string,
   captcha: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; sessionToken?: string; expiresAt?: number }> {
   const res = await fetch(`${PORTAL_BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roll, password, captcha }),
+    body: JSON.stringify({ roll, password, captcha, attempt: attemptFor(roll) }),
   });
-  const data = await parseJson<{ success?: boolean; error?: string }>(res);
-  if (data.success) return { success: true };
+  lastAttempt = null;
+  const data = await parseJson<{ success?: boolean; error?: string; sessionToken?: string; expiresAt?: number }>(
+    res
+  ).catch(() => ({ success: false, error: `Login failed (${res.status})` }) as { success?: boolean; error?: string; sessionToken?: string; expiresAt?: number });
+  if (data.success && data.sessionToken) {
+    return { success: true, sessionToken: data.sessionToken, expiresAt: data.expiresAt };
+  }
   return { success: false, error: data.error || 'Login failed' };
 }
 
@@ -127,8 +155,9 @@ export async function portalEnroll(
   const res = await fetch('/api/gla/enroll', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roll, password, captcha }),
+    body: JSON.stringify({ roll, password, captcha, attempt: attemptFor(roll) }),
   });
+  lastAttempt = null;
   const text = await res.text();
   try {
     return JSON.parse(text) as EnrollResponse;
@@ -142,9 +171,9 @@ export async function portalEnroll(
   }
 }
 
-export async function portalDashboard(roll?: string | null): Promise<PortalDashboard | null> {
-  const metaRoll = roll;
-  const res = await fetch(withRoll(`${PORTAL_BASE}/dashboard`, metaRoll));
+export async function portalDashboard(token?: string | null): Promise<PortalDashboard | null> {
+  if (!token) return null;
+  const res = await fetch(`${PORTAL_BASE}/dashboard`, { headers: authHeaders(token) });
   if (!res.ok) return null;
   const data = await parseJson<PortalDashboard & { error?: string }>(res);
   if (data.error) return null;
@@ -157,8 +186,9 @@ export async function portalDashboard(roll?: string | null): Promise<PortalDashb
   };
 }
 
-export async function portalProfile(roll: string): Promise<PortalProfile | null> {
-  const res = await fetch(withRoll(`${PORTAL_BASE}/profile`, roll));
+export async function portalProfile(token?: string | null): Promise<PortalProfile | null> {
+  if (!token) return null;
+  const res = await fetch(`${PORTAL_BASE}/profile`, { headers: authHeaders(token) });
   if (!res.ok) return null;
   const data = await parseJson<{ success?: boolean; profile?: PortalProfile; error?: string }>(res);
   return data.profile || null;
@@ -196,28 +226,29 @@ export async function refreshPortalProvision(idToken: string): Promise<{
 
 export async function portalTimetable(
   date?: Date | string | null,
-  roll?: string | null
+  token?: string | null
 ): Promise<PortalLecture[] | Record<string, PortalLecture[]> | null> {
+  if (!token) return null;
   const url = new URL(`${PORTAL_BASE}/timetable`);
-  if (roll) url.searchParams.set('roll', roll.trim());
   if (date instanceof Date && !Number.isNaN(date.getTime())) {
     url.searchParams.set('date', `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`);
   } else if (typeof date === 'string' && date.trim()) {
     url.searchParams.set('date', date.trim());
   }
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), { headers: authHeaders(token) });
   if (!res.ok) return null;
   const data = await parseJson<{ error?: string } & (PortalLecture[] | Record<string, PortalLecture[]>)>(res);
   if (data && typeof data === 'object' && 'error' in data && data.error) return null;
   return data as PortalLecture[] | Record<string, PortalLecture[]>;
 }
 
-export async function portalLogout(roll?: string | null): Promise<void> {
+export async function portalLogout(token?: string | null): Promise<void> {
+  if (!token) return;
   try {
     await fetch(`${PORTAL_BASE}/logout`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roll: roll || undefined }),
+      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+      body: '{}',
     });
   } catch {
     /* ignore */

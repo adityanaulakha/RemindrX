@@ -103,7 +103,7 @@ export default function Login() {
       await signInWithCustomToken(auth, result.customToken);
 
       // Keep local portal session meta so Attendance/Timetable reuse the live jar
-      markConnected(result.profile?.roll || roll.trim());
+      markConnected(result.profile?.roll || roll.trim(), result.portalSession);
       if (result.profile?.summary && result.profile.subjects) {
         saveSnapshot({
           summary: {

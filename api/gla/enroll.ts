@@ -25,6 +25,7 @@ import {
   glaUid,
   type Req,
   type Res,
+  portalHeaders,
 } from '../_lib/server.js';
 import { ensurePortalClassAndSubjects, upsertPortalUser, type PortalProfileIn } from '../_lib/portalProvision.js';
 
@@ -54,7 +55,8 @@ export default async function handler(req: Req, res: Res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  const body = bodyOf<{ roll: string; password: string; captcha: string }>(req);
+  const body = bodyOf<{ roll: string; password: string; captcha: string; attempt?: string }>(req);
+  const attempt = typeof body.attempt === 'string' && body.attempt.length <= 128 ? body.attempt : undefined;
   const roll = String(body.roll || '').trim().toUpperCase();
   const password = String(body.password || '');
   const captcha = String(body.captcha || '').trim();
@@ -79,8 +81,8 @@ export default async function handler(req: Req, res: Res) {
     try {
       upstream = await fetch(`${PORTAL_BASE}/enroll`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roll, password, captcha }),
+        headers: portalHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ roll, password, captcha, attempt }),
         signal: AbortSignal.timeout(PORTAL_TIMEOUT_MS),
       });
     } catch {
@@ -94,6 +96,8 @@ export default async function handler(req: Req, res: Res) {
       success?: boolean;
       error?: string;
       profile?: PortalProfileIn;
+      sessionToken?: string;
+      expiresAt?: number;
     };
 
     if (!upstream.ok || !portalJson.success || !portalJson.profile) {
@@ -129,6 +133,8 @@ export default async function handler(req: Req, res: Res) {
     return res.status(200).json({
       success: true,
       customToken,
+      portalSession: portalJson.sessionToken,
+      portalSessionExpiresAt: portalJson.expiresAt,
       uid,
       classId,
       classCreated: created,

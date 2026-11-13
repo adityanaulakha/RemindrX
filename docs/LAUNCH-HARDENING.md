@@ -72,3 +72,15 @@ emulators only.
 3. Firebase: upgrade to Blaze, enable backups/PITR, budget alert; optionally schedule a temporary account-creation increase for launch day.
 4. Render: portal-backend → Starter ($7) in Singapore; apply the session-token fix in portal-backend.
 5. Vercel: move to a Pro team before a commercial launch.
+
+## portal-backend session tokens (ships with this PR)
+
+portal-backend (adityanaulakha/portal-backend, branch `fix/session-tokens`) no longer keys sessions by roll:
+
+- `GET /captcha?roll=` returns `X-Portal-Attempt` (one-time, unguessable, bound to the roll). Loading a captcha no longer wipes another device's live session.
+- `/login` and `/enroll` turn the attempt into a `ps_…` session token. `/api/gla/enroll` passes it back to the browser as `portalSession`; the app keeps it in `gla_portal_meta_v2.token`.
+- `/dashboard`, `/timetable`, `/profile`, `/logout` need `Authorization: Bearer <token>`; bare `?roll=` → 401.
+- `/enroll` and roll-based `/profile` (used by `/api/gla/refresh`) need `X-Portal-Secret` = `PORTAL_SHARED_SECRET`, set on both Render and Vercel.
+- CORS allowlist; `/debug-home` only with `ENABLE_DEBUG_ROUTES=1`.
+
+After deploy, students with an older Attendance session see their cached snapshot and reconnect once (captcha + password) to get a token.
