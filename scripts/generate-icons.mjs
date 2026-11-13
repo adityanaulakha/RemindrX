@@ -43,9 +43,8 @@ async function renderLockupShot() {
   <rect x="0" y="8" width="112" height="112" rx="24" fill="#1A1A1A"/>
   <g transform="translate(8 16) scale(0.1875)">
     <g fill="#FF5B1F">
-      <path d="M256 138 L422 258 L256 348 L90 258 Z"/>
+      <path d="M256 138 L422 258 L422 410 L404 410 L404 267.76 L256 348 L90 258 Z"/>
       <path d="M170 368H342C360 368 374 382 374 400C374 424 340 442 256 442C172 442 138 424 138 400C138 382 152 368 170 368Z"/>
-      <rect x="404" y="258" width="18" height="152" rx="9"/>
     </g>
     <circle cx="413" cy="428" r="26" fill="#FFF3E3"/>
   </g>
