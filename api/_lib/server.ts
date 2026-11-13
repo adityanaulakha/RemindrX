@@ -132,11 +132,23 @@ const STATIC_ORIGINS = [
   'http://localhost:4173',
 ];
 
-/** Vercel preview URLs for this project (remindr-x-*.vercel.app). */
-const PREVIEW_ORIGIN = /^https:\/\/remindr-x(-[a-z0-9-]+)?\.vercel\.app$/;
+/** Vercel preview/branch URLs for this project. */
+const PREVIEW_ORIGIN =
+  /^https:\/\/remindr-(x|[a-z0-9-]+-adityanaulakhas-projects)\.vercel\.app$/;
 
-export function isAllowedOrigin(origin: string): boolean {
+function sameOrigin(req: Req, origin: string): boolean {
+  const host = header(req, 'x-forwarded-host') || header(req, 'host');
+  if (!host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
+export function isAllowedOrigin(origin: string, req?: Req): boolean {
   if (!origin) return false;
+  if (req && sameOrigin(req, origin)) return true;
   const extra = (process.env.ALLOWED_ORIGINS || '')
     .split(',')
     .map((s) => s.trim())
@@ -145,20 +157,21 @@ export function isAllowedOrigin(origin: string): boolean {
 }
 
 /**
- * Restrict CORS to app origins. Same-origin requests (no Origin header or
- * matching origin) pass. Returns true when the request was fully handled
- * (preflight or rejected).
+ * Restrict CORS to app origins. Same-origin requests (browsers still send
+ * Origin on POST) and requests without an Origin header pass. Returns true
+ * when the request was fully handled (preflight or rejected).
  */
 export function applyCors(req: Req, res: Res, methods = 'POST, OPTIONS'): boolean {
   const origin = header(req, 'origin');
   res.setHeader('Vary', 'Origin');
-  if (origin && isAllowedOrigin(origin)) {
+  const allowed = !origin || isAllowedOrigin(origin, req);
+  if (origin && allowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', methods);
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Access-Control-Max-Age', '600');
   }
-  if (origin && !isAllowedOrigin(origin)) {
+  if (!allowed) {
     res.status(403).json({ success: false, error: 'Origin not allowed' });
     return true;
   }

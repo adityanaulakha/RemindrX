@@ -25,10 +25,10 @@ same uid. The GLA password is never stored or logged (checked in tests).
 | `notifications` | CRs could notify any user anywhere | CR broadcast only to users in the CR's own class |
 | `subjects` | Super admin delete always failed (`allow delete: if false`) | Super admin can delete; CRs soft-delete (`isActive=false`) |
 | `tasks` | Classmates could rewrite `completedBy` for others | Only add/remove own uid |
-| API CORS | `/api/gla/refresh` sent `Access-Control-Allow-Origin: *` | All API routes: remindrx.xyz, www, `remindr-x-*.vercel.app` previews, localhost (+ `ALLOWED_ORIGINS` env) |
+| API CORS | `/api/gla/refresh` sent `Access-Control-Allow-Origin: *` | All API routes: same-origin requests, remindrx.xyz, www, `remindr-*.vercel.app` previews, localhost (+ `ALLOWED_ORIGINS` env) |
 
 Rules are covered by `tests/rules/firestore.rules.test.mjs` (60 checks) and the
-API handlers by `tests/rules/api.test.mjs` (24 checks) — both run against local
+API handlers by `tests/rules/api.test.mjs` (27 checks) — both run against local
 emulators only.
 
 ## Bottlenecks and how to manage each

@@ -77,6 +77,13 @@ ok('foreign Origin rejected (403)', evil.status === 403, String(evil.status));
 const good = await call(enroll, { body: {}, headers: { origin: 'https://www.remindrx.xyz' } });
 ok('app Origin allowed through (400 for empty body)', good.status === 400 && good.headers['Access-Control-Allow-Origin'] === 'https://www.remindrx.xyz');
 
+const preview = await call(enroll, { body: {}, headers: { origin: 'https://remindr-ps4hmjwot-adityanaulakhas-projects.vercel.app' } });
+ok('team preview Origin allowed', preview.status === 400, String(preview.status));
+const same = await call(enroll, { body: {}, headers: { origin: 'https://custom.example.com', host: 'custom.example.com' } });
+ok('same-origin POST allowed', same.status === 400, String(same.status));
+const spoof = await call(enroll, { body: {}, headers: { origin: 'https://remindr-evil.vercel.app' } });
+ok('look-alike vercel.app Origin rejected', spoof.status === 403, String(spoof.status));
+
 // 5) CR redeem via API: needs ID token. Use the Auth emulator to exchange a custom token.
 async function idTokenFor(uid) {
   const ct = await adminAuth().createCustomToken(uid);
