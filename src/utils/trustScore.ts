@@ -1,49 +1,39 @@
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Post } from '../types';
 
 /**
- * Dynamically calculates a user's Trust Score based on their posts,
- * then persists it to the user's Firestore document for leaderboard queries.
- * Trust Score is calculated as:
- * +10 points for each 'verified' post
- * +1 point for each confirmation received
- * -1 point for each dispute received
+ * Trust score for one author, from their posts in their own section:
+ *   +10 per verified post, +1 per confirmation from others, -1 per dispute.
+ * Read-only on the client. The persisted `users.trustScore` is server-owned
+ * (written by /api/class/roster), so students can't inflate it.
  */
-export async function calculateTrustScore(userId: string): Promise<number> {
+export function scorePosts(posts: Pick<Post, 'status' | 'confirmations' | 'disputes' | 'createdBy'>[]): number {
+  let score = 0;
+  for (const post of posts) {
+    if (post.status === 'verified') score += 10;
+    const confirmations = post.confirmations || [];
+    const disputes = post.disputes || [];
+    score += confirmations.filter((id) => id !== post.createdBy).length;
+    score -= disputes.length;
+  }
+  return Math.max(0, score);
+}
+
+export async function calculateTrustScore(userId: string, classId: string | null | undefined): Promise<number> {
+  if (!classId) return 0;
   try {
-    const q = query(collection(db, 'posts'), where('createdBy', '==', userId));
-    const snapshot = await getDocs(q);
-    
-    let score = 0;
-    snapshot.docs.forEach(d => {
-      const post = d.data() as Post;
-      
-      if (post.status === 'verified') {
-        score += 10;
-      }
-      
-      // Calculate points based on interactions
-      // Note: We might subtract 1 from confirmations because the creator auto-confirms their own post
-      const otherConfirmations = Math.max(0, post.confirmations.length - (post.confirmations.includes(userId) ? 1 : 0));
-      
-      score += otherConfirmations;
-      score -= post.disputes.length;
-    });
-    
-    const finalScore = Math.max(0, score); // Prevent negative scores
-
-    // Persist back to the user document so the Super Admin leaderboard can read it
-    try {
-      await updateDoc(doc(db, 'users', userId), { trustScore: finalScore });
-    } catch (writeErr) {
-      // Non-critical: if we can't write back (e.g. permissions), still return the computed score
-      console.warn("Could not persist trust score to Firestore:", writeErr);
-    }
-
-    return finalScore;
+    const snapshot = await getDocs(
+      query(
+        collection(db, 'posts'),
+        where('classId', '==', classId),
+        where('createdBy', '==', userId),
+        limit(300)
+      )
+    );
+    return scorePosts(snapshot.docs.map((d) => d.data() as Post));
   } catch (error) {
-    console.error("Error calculating trust score:", error);
+    console.error('Error calculating trust score:', error);
     return 0;
   }
 }

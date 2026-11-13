@@ -37,3 +37,6 @@ com.glauniversity.main_2.4.10.xapk
 .tmp/
 .tmp-portal-frontend/
 .tmp-portal-backend/
+
+# emulator logs
+*-debug.log

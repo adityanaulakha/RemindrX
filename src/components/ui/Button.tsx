@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '../../lib/cn';
 
+// eslint-disable-next-line react-refresh/only-export-components -- re-export kept for existing imports
 export { cn };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

@@ -1,152 +1,274 @@
 rules_version = '2';
 
+// RemindrX Firestore rules — launch hardening.
+//
+// Identity model: students never create GLA accounts. /api/gla/enroll verifies
+// GLA portal credentials server-side and mints a Firebase custom token for the
+// deterministic uid `gla_{ROLL}`. All privileged writes (class creation, CR
+// promotion/demotion, invite codes, roster, trust score) go through Vercel API
+// routes using the Admin SDK, which bypasses these rules.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuthenticated() {
+    // ---------- helpers ----------
+    function signedIn() {
       return request.auth != null;
     }
 
-    function getUserData() {
-      let path = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(path) ? get(path).data : null;
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasProfile() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     function isSuperAdmin() {
-      let userData = getUserData();
-      return userData != null && userData.isSuperAdmin == true;
-    }
-
-    function isClassAdmin(classId) {
-      let userData = getUserData();
-      return userData != null && userData.classId == classId && userData.role == 'admin';
+      return hasProfile() && me().get('isSuperAdmin', false) == true;
     }
 
     function sameClass(classId) {
-      let userData = getUserData();
-      return userData != null && userData.classId == classId;
+      return hasProfile() && classId is string && me().get('classId', null) == classId;
+    }
+
+    function isClassAdmin(classId) {
+      return sameClass(classId) && me().get('role', 'student') == 'admin';
     }
 
     function isClassMember(classId) {
       return isSuperAdmin() || sameClass(classId);
     }
 
-    // Users — portal enroll upserts via Admin SDK (bypasses rules)
+    function changed() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function unchanged(field) {
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
+    }
+
+    // The caller only added/removed their own uid in an array field.
+    function onlySelfToggled(field) {
+      let before = resource.data.get(field, []).toSet();
+      let after = request.resource.data.get(field, []).toSet();
+      return after.difference(before).hasOnly([request.auth.uid])
+        && before.difference(after).hasOnly([request.auth.uid]);
+    }
+
+    // ---------- users ----------
+    // Read: only yourself (super admin: everyone). CR roster comes from
+    // /api/class/roster with minimal fields.
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
-      allow delete: if isAuthenticated() && request.auth.uid == userId;
+      function isSelf() {
+        return signedIn() && request.auth.uid == userId;
+      }
+      function isPortalUid() {
+        return userId.matches('^gla_.*');
+      }
+      // Fields a user may edit on their own profile. Portal-synced identity
+      // fields (name/dob/rollNo) are server-owned for GLA users.
+      function selfEditableKeys() {
+        return isPortalUid()
+          ? ['email', 'deadlinePreference', 'fcmTokens', 'lastActive', 'photoURL']
+          : ['email', 'deadlinePreference', 'fcmTokens', 'lastActive', 'photoURL', 'name', 'dob', 'rollNo'];
+      }
+
+      allow read: if isSelf() || isSuperAdmin();
+
+      // Fallback self-create (AuthContext) for a missing profile: no class,
+      // no role, no admin flags.
+      allow create: if isSelf()
+        && request.resource.data.keys().hasOnly([
+          'id', 'name', 'email', 'classId', 'role', 'trustScore', 'createdAt',
+          'lastActive', 'authProvider', 'rollNo', 'collegeId'
+        ])
+        && request.resource.data.get('classId', null) == null
+        && request.resource.data.get('role', 'student') == 'student'
+        && request.resource.data.get('trustScore', 0) is int
+        && request.resource.data.get('trustScore', 0) <= 100;
+
+      allow update: if isSuperAdmin()
+        || (isSelf() && changed().hasOnly(selfEditableKeys()));
+
+      allow delete: if isSelf() || isSuperAdmin();
     }
 
-    // Classes — portal auto-create via Admin SDK
+    // ---------- classes ----------
+    // Invite / join codes live in classSecrets (never readable by students).
     match /classes/{classId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isSuperAdmin();
-      allow delete: if isAuthenticated() && isSuperAdmin();
-      allow update: if isAuthenticated() && (
-        isSuperAdmin() ||
-        isClassAdmin(classId) ||
-        (
-          sameClass(classId) &&
-          request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['adminCodeUses', 'admins'])
-        )
-      );
+      allow read: if isClassMember(classId);
+      allow create, update, delete: if isSuperAdmin();
     }
 
-    // Subjects — portal sync via Admin SDK; CRs manage extras
+    match /classSecrets/{classId} {
+      allow read: if isSuperAdmin() || isClassAdmin(classId);
+      allow write: if isSuperAdmin();
+    }
+
+    // ---------- subjects ----------
     match /subjects/{subjectId} {
-      allow read: if isAuthenticated() && (
-        isSuperAdmin() ||
-        (getUserData() != null && getUserData().classId == resource.data.classId)
-      );
-      allow create, update: if isAuthenticated() && isClassAdmin(request.resource.data.classId);
-      allow delete: if false;
+      allow read: if isClassMember(resource.data.classId);
+      allow create: if isSuperAdmin()
+        || (isClassAdmin(request.resource.data.classId)
+            && request.resource.data.createdBy == request.auth.uid);
+      allow update: if isSuperAdmin()
+        || (isClassAdmin(resource.data.classId) && unchanged('classId') && unchanged('createdBy'));
+      // Class reps soft-delete (isActive=false); only super admins hard-delete.
+      allow delete: if isSuperAdmin();
     }
 
-    // Tasks
+    // ---------- tasks ----------
     match /tasks/{taskId} {
-      allow read: if isAuthenticated() && isClassMember(resource.data.classId);
-      allow create: if isAuthenticated() && isClassMember(request.resource.data.classId);
-      allow update: if isAuthenticated() && (
-        isSuperAdmin() ||
-        request.auth.uid == resource.data.createdBy ||
-        isClassAdmin(resource.data.classId) ||
-        (
-          sameClass(resource.data.classId) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedBy'])
+      allow read: if isClassMember(resource.data.classId);
+      allow create: if isClassMember(request.resource.data.classId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.get('completedBy', []).size() == 0;
+      allow update: if isSuperAdmin()
+        || (
+          (request.auth.uid == resource.data.createdBy || isClassAdmin(resource.data.classId))
+          && unchanged('classId') && unchanged('createdBy')
         )
-      );
-      allow delete: if false;
+        || (
+          sameClass(resource.data.classId)
+          && changed().hasOnly(['completedBy'])
+          && onlySelfToggled('completedBy')
+        );
+      allow delete: if isSuperAdmin()
+        || request.auth.uid == resource.data.createdBy
+        || isClassAdmin(resource.data.classId);
     }
 
-    // Posts — require classId for class-scoped access (matches composite indexes)
+    // ---------- posts ----------
     match /posts/{postId} {
-      allow read: if isAuthenticated() && isClassMember(resource.data.classId);
-      allow create: if isAuthenticated() &&
-        request.resource.data.classId is string &&
-        isClassMember(request.resource.data.classId);
-      allow update: if isAuthenticated() && (
-        isSuperAdmin() ||
-        sameClass(resource.data.classId)
-      );
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.createdBy ||
-        isClassAdmin(resource.data.classId) ||
-        isSuperAdmin()
-      );
+      // Verified requires a CR, or >= 3 confirmations and no disputes.
+      function statusIsHonest() {
+        let d = request.resource.data;
+        return d.status in ['unverified', 'likely', 'verified']
+          && (d.status != 'verified'
+              || isClassAdmin(resource.data.classId)
+              || (d.confirmations.size() >= 3 && d.disputes.size() == 0));
+      }
+
+      allow read: if isClassMember(resource.data.classId);
+
+      allow create: if isClassMember(request.resource.data.classId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'unverified'
+        && request.resource.data.confirmations == [request.auth.uid]
+        && request.resource.data.disputes == [];
+
+      allow update: if isSuperAdmin()
+        // Creator edits content: resets verification.
+        || (
+          request.auth.uid == resource.data.createdBy
+          && changed().hasOnly(['content', 'subjectId', 'status', 'confirmations', 'disputes', 'updatedAt'])
+          && request.resource.data.status == 'unverified'
+          && request.resource.data.confirmations == [request.auth.uid]
+          && request.resource.data.disputes == []
+        )
+        // Classmates: only toggle their own confirm/dispute + derived status.
+        || (
+          sameClass(resource.data.classId)
+          && changed().hasOnly(['confirmations', 'disputes', 'status'])
+          && onlySelfToggled('confirmations')
+          && onlySelfToggled('disputes')
+          && statusIsHonest()
+        );
+
+      allow delete: if request.auth.uid == resource.data.createdBy
+        || isClassAdmin(resource.data.classId)
+        || isSuperAdmin();
     }
 
-    // Events
+    // ---------- events ----------
     match /events/{eventId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goingCount']) ||
-        (request.auth.uid == resource.data.createdBy && request.resource.data.status == 'pending') ||
-        isSuperAdmin()
+      allow read: if signedIn() && (
+        resource.data.status == 'approved'
+        || resource.data.createdBy == request.auth.uid
+        || isSuperAdmin()
       );
-      allow delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.createdBy ||
-        isSuperAdmin()
-      );
+
+      allow create: if hasProfile()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.get('goingCount', 0) == 0
+        && !('pendingUpdate' in request.resource.data)
+        && !('moderatorRemarks' in request.resource.data);
+
+      allow update: if isSuperAdmin()
+        // Creator edits go back to moderation.
+        || (
+          request.auth.uid == resource.data.createdBy
+          && request.resource.data.status == 'pending'
+          && unchanged('createdBy') && unchanged('goingCount') && unchanged('moderatorRemarks')
+        )
+        // RSVP counter: +/-1 only on approved events.
+        || (
+          signedIn()
+          && resource.data.status == 'approved'
+          && changed().hasOnly(['goingCount'])
+          && (request.resource.data.goingCount == resource.data.get('goingCount', 0) + 1
+              || request.resource.data.goingCount == resource.data.get('goingCount', 0) - 1)
+          && request.resource.data.goingCount >= 0
+        );
+
+      allow delete: if request.auth.uid == resource.data.createdBy || isSuperAdmin();
     }
 
     match /event_participations/{participationId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
-      allow delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow read: if signedIn() && (
+        request.auth.uid == resource.data.userId
+        || isSuperAdmin()
+        || get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.createdBy == request.auth.uid
+      );
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.eventId is string
+        && request.resource.data.status in ['going', 'not_going']
+        && get(/databases/$(database)/documents/events/$(request.resource.data.eventId)).data.status == 'approved';
+      allow update: if signedIn()
+        && request.auth.uid == resource.data.userId
+        && changed().hasOnly(['status', 'updatedAt'])
+        && request.resource.data.status in ['going', 'not_going'];
+      allow delete: if signedIn() && request.auth.uid == resource.data.userId;
     }
 
     // Retired with Super Admin class-transfer UI
     match /class_change_requests/{requestId} {
-      allow read, create, update, delete: if false;
+      allow read, write: if false;
     }
 
-    // In-app + CR section broadcast (classId on broadcast docs)
+    // ---------- notifications ----------
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && (
-        isSuperAdmin() ||
-        request.auth.uid == resource.data.userId
+      allow read: if signedIn() && (
+        request.auth.uid == resource.data.userId || isSuperAdmin()
       );
-      allow create: if isAuthenticated() && (
-        isSuperAdmin() ||
-        request.auth.uid == request.resource.data.userId ||
-        (
-          request.resource.data.classId is string &&
-          isClassAdmin(request.resource.data.classId)
+      allow create: if signedIn() && (
+        isSuperAdmin()
+        || request.auth.uid == request.resource.data.userId
+        // CR section broadcast: recipient must be in the CR's own class.
+        || (
+          request.resource.data.classId is string
+          && isClassAdmin(request.resource.data.classId)
+          && request.resource.data.createdBy == request.auth.uid
+          && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.get('classId', null)
+             == request.resource.data.classId
         )
       );
-      allow update: if isAuthenticated() &&
-        request.auth.uid == resource.data.userId &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow update: if signedIn()
+        && request.auth.uid == resource.data.userId
+        && changed().hasOnly(['read']);
       allow delete: if false;
     }
 
     match /institutes/{instituteId} {
       allow read: if true;
       allow write: if isSuperAdmin();
+    }
+
+    // Server-only collections (Admin SDK): rate-limit counters.
+    match /rateLimits/{key} {
+      allow read, write: if false;
     }
   }
 }

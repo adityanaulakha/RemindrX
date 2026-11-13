@@ -6,7 +6,6 @@ import {
   persistentMultipleTabManager 
 } from 'firebase/firestore';
 import { getMessaging } from 'firebase/messaging';
-import { getStorage } from 'firebase/storage';
 
 // Your web app's Firebase configuration
 // Replace these with your actual Firebase project config values
@@ -27,12 +26,12 @@ export const auth = getAuth(app);
 
 // Initialize Firestore with modern persistent cache (multi-tab support)
 export const db = initializeFirestore(app, {
+  // Optional fields (e.g. event links) are often `undefined`; drop them instead of throwing.
+  ignoreUndefinedProperties: true,
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
   })
 });
-
-export const storage = getStorage(app);
 
 // Messaging is only supported in context of a service worker or on supported browsers
 export const messaging = typeof window !== 'undefined' && 'serviceWorker' in navigator ? getMessaging(app) : null;

@@ -19,9 +19,11 @@ const AuthContext = createContext<AuthContextType>({
   setUserData: () => {},
 });
 
+// eslint-disable-next-line react-refresh/only-export-components -- context hook lives with its provider
 export const useAuth = () => useContext(AuthContext);
 
 /** GLA portal custom-token users use uid `gla_{ROLL}` and skip email verification. */
+// eslint-disable-next-line react-refresh/only-export-components -- tiny helper shared with Login
 export function isPortalAuthUser(user: FirebaseUser): boolean {
   return user.uid.startsWith('gla_');
 }

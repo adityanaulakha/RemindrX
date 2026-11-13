@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import type { PortalDashboard, PortalSubject, PortalSummary } from '../services/gla/portal';
 import { refreshDashboard, restorePortalSession } from '../services/gla/client';
 import { loadMeta, loadSnapshot, type GlaPortalSnapshot } from '../services/gla/session';
+import { useNow } from './useNow';
 
 const STALE_MS = 15 * 60 * 1000;
 
@@ -94,10 +95,11 @@ export function usePortalSession(options?: { auto?: boolean }): PortalSessionSta
     };
   }, [auto, userData?.rollNo, applyDashboard]);
 
+  const now = useNow();
   const stale =
     !live ||
-    (lastSyncedAt != null && Date.now() - lastSyncedAt > STALE_MS) ||
-    (snapshot != null && !live && Date.now() - snapshot.savedAt > STALE_MS);
+    (lastSyncedAt != null && now - lastSyncedAt > STALE_MS) ||
+    (snapshot != null && !live && now - snapshot.savedAt > STALE_MS);
 
   return {
     live,

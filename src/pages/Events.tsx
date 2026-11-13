@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, onSnapshot, doc, writeBatch, getDocs, deleteDoc, addDoc, orderBy, limit } from 'firebase/firestore';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { collection, query, where, onSnapshot, doc, getDocs, deleteDoc, addDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Event, EventParticipation } from '../types';
@@ -15,6 +15,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { EventModal } from '../components/EventModal';
 import { EventDetailModal } from '../components/EventDetailModal';
+import { useNow } from '../hooks/useNow';
 
 const CATEGORIES = ['All', 'Academic', 'Club', 'Sports', 'Cultural', 'Workshop', 'Hackathon', 'Other'];
 
@@ -30,14 +31,19 @@ export default function Events() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchEvents = async () => {
-    if (!currentUser) return;
+  const uid = currentUser?.uid;
+
+  const fetchEvents = useCallback(async () => {
+    if (!uid) return;
     
     setLoading(true);
     try {
+      // Upcoming + last week's events, soonest first (bounded).
       const q = query(
-        collection(db, 'events'), 
+        collection(db, 'events'),
         where('status', '==', 'approved'),
+        where('date', '>=', Date.now() - 7 * 24 * 60 * 60 * 1000),
+        orderBy('date', 'asc'),
         limit(100)
       );
       const snapshot = await getDocs(q);
@@ -51,7 +57,7 @@ export default function Events() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [uid]);
 
   useEffect(() => {
     fetchEvents();
@@ -59,7 +65,8 @@ export default function Events() {
     if (!currentUser) return;
     const participationsQuery = query(
       collection(db, 'event_participations'),
-      where('userId', '==', currentUser.uid)
+      where('userId', '==', currentUser.uid),
+      limit(200)
     );
     const unsubscribeParticipations = onSnapshot(participationsQuery, (snapshot) => {
       const parts: Record<string, string> = {};
@@ -71,7 +78,7 @@ export default function Events() {
     });
 
     return () => unsubscribeParticipations();
-  }, [currentUser]);
+  }, [currentUser, fetchEvents]);
 
   const handleDeleteEvent = async (eventId: string, remarks: string = "") => {
     if (!window.confirm('Delete this event?')) return;
@@ -94,12 +101,12 @@ export default function Events() {
       toast.success('Event deleted');
       setEvents(prev => prev.filter(e => e.id !== eventId));
       setSelectedEvent(null);
-    } catch (error) {
+    } catch {
       toast.error('Delete failed');
     }
   };
 
-  const now = Date.now();
+  const now = useNow();
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
       const matchesCategory = activeCategory === 'All' || e.category?.toLowerCase() === activeCategory.toLowerCase();

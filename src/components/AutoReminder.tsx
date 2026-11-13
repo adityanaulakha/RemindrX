@@ -1,15 +1,18 @@
 import { useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { Bell, Clock } from 'lucide-react';
+import type { Task, Event } from '../types';
 
 export function AutoReminder() {
   const { userData, currentUser } = useAuth();
+  const classId = userData?.classId;
+  const uid = currentUser?.uid;
 
   useEffect(() => {
-    if (!userData?.classId || !currentUser) return;
+    if (!classId || !uid) return;
 
     const checkReminders = async () => {
       try {
@@ -19,9 +22,10 @@ export function AutoReminder() {
         // 1. Check Tasks
         const tasksQ = query(
           collection(db, 'tasks'),
-          where('classId', '==', userData.classId),
+          where('classId', '==', classId),
           where('deadline', '>', now),
-          where('deadline', '<=', tomorrow)
+          where('deadline', '<=', tomorrow),
+          limit(20)
         );
         
         // 2. Check Events
@@ -29,7 +33,8 @@ export function AutoReminder() {
           collection(db, 'events'),
           where('status', '==', 'approved'),
           where('date', '>', now),
-          where('date', '<=', tomorrow)
+          where('date', '<=', tomorrow),
+          limit(20)
         );
 
         const [tasksSnap, eventsSnap] = await Promise.all([
@@ -37,11 +42,11 @@ export function AutoReminder() {
           getDocs(eventsQ)
         ]);
 
-        const upcomingTasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const upcomingEvents = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const upcomingTasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+        const upcomingEvents = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
 
         // Show reminders for tasks not yet acknowledged in this session
-        upcomingTasks.forEach((task: any) => {
+        upcomingTasks.forEach((task) => {
           const key = `reminder_task_${task.id}_${new Date().toDateString()}`;
           if (!localStorage.getItem(key)) {
             toast((t) => (
@@ -65,10 +70,10 @@ export function AutoReminder() {
         });
 
         // Show reminders for events
-        upcomingEvents.forEach((event: any) => {
+        upcomingEvents.forEach((event) => {
           const key = `reminder_event_${event.id}_${new Date().toDateString()}`;
           if (!localStorage.getItem(key)) {
-            toast((t) => (
+            toast(() => (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-accent">
                   <Bell className="h-4 w-4" />
@@ -91,7 +96,7 @@ export function AutoReminder() {
     checkReminders();
     const interval = setInterval(checkReminders, 60 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [userData, currentUser]);
+  }, [classId, uid]);
 
   return null; // This component doesn't render anything visible
 }

@@ -44,7 +44,7 @@ export function useNotifications() {
       const unsubscribe = onMessage(messaging, (payload) => {
         console.log('Foreground message received:', payload);
         toast(
-          (t) => (
+          () => (
             <div className="flex flex-col gap-1">
               <span className="font-bold text-primary">{payload.notification?.title}</span>
               <span className="text-sm">{payload.notification?.body}</span>

@@ -42,15 +42,25 @@ export interface ClassData {
   branch?: string;
   year?: string;
   section?: string;
-  joinCode: string;
-  adminInviteCode: string;
-  adminCodeUses: number;
-  adminCodeExpiry?: number; // timestamp
+  /** @deprecated moved to classSecrets/{classId}; present only on unmigrated docs */
+  joinCode?: string;
+  /** @deprecated moved to classSecrets/{classId} */
+  adminInviteCode?: string;
+  /** @deprecated moved to classSecrets/{classId} */
+  adminCodeUses?: number;
   admins: string[]; // array of userIds
   instituteId?: string; // Links to Institute
   portalCohortKey?: string;
   source?: 'portal' | 'manual';
   createdAt?: number;
+}
+
+/** classSecrets/{classId}: readable only by that class's CRs and super admins. */
+export interface ClassSecrets {
+  joinCode?: string;
+  adminInviteCode?: string;
+  adminCodeUses?: number;
+  adminCodeExpiry?: number | null;
 }
 
 export interface Subject {
@@ -91,6 +101,7 @@ export interface Post {
   status: PostStatus;
   createdAt: number;
   createdBy: string;
+  updatedAt?: number;
 }
 
 export interface Resource {

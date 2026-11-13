@@ -2,22 +2,28 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Subjects from './pages/Subjects';
-import SubjectDetails from './pages/SubjectDetails';
-import Timeline from './pages/Timeline';
-import Events from './pages/Events';
-import Profile from './pages/Profile';
-import CRPanel from './pages/CRPanel';
-import SuperAdmin from './pages/SuperAdmin';
-import ClassUpdates from './pages/ClassUpdates';
-import Attendance from './pages/Attendance';
-import Timetable from './pages/Timetable';
 import Landing from './pages/Landing';
+import Login from './pages/Login';
 import Layout from './components/layout/Layout';
 import { BootScreen } from './components/ui/BootScreen';
+import { PageSkeleton } from './components/ui/Skeleton';
 import { useTheme } from './hooks/useTheme';
+
+// Route-level code splitting: each page (and heavy deps like recharts on
+// Super Admin) loads on demand instead of in the first bundle.
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Subjects = lazy(() => import('./pages/Subjects'));
+const SubjectDetails = lazy(() => import('./pages/SubjectDetails'));
+const Timeline = lazy(() => import('./pages/Timeline'));
+const Events = lazy(() => import('./pages/Events'));
+const Profile = lazy(() => import('./pages/Profile'));
+const CRPanel = lazy(() => import('./pages/CRPanel'));
+const SuperAdmin = lazy(() => import('./pages/SuperAdmin'));
+const ClassUpdates = lazy(() => import('./pages/ClassUpdates'));
+const Attendance = lazy(() => import('./pages/Attendance'));
+const Timetable = lazy(() => import('./pages/Timetable'));
+
+const page = (node: React.ReactNode) => <Suspense fallback={<PageSkeleton rows={4} />}>{node}</Suspense>;
 
 const uiPreviewEnabled = import.meta.env.DEV && import.meta.env.VITE_UI_PREVIEW === '1';
 const UIPreview = uiPreviewEnabled ? lazy(() => import('./pages/UIPreview')) : null;
@@ -83,17 +89,17 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/subjects" element={<Subjects />} />
-            <Route path="/subjects/:id" element={<SubjectDetails />} />
-            <Route path="/timeline" element={<Timeline />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/updates" element={<ClassUpdates />} />
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/timetable" element={<Timetable />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/cr-panel" element={<CRPanel />} />
-            <Route path="/super-admin" element={<SuperAdmin />} />
+            <Route path="/dashboard" element={page(<Dashboard />)} />
+            <Route path="/subjects" element={page(<Subjects />)} />
+            <Route path="/subjects/:id" element={page(<SubjectDetails />)} />
+            <Route path="/timeline" element={page(<Timeline />)} />
+            <Route path="/events" element={page(<Events />)} />
+            <Route path="/updates" element={page(<ClassUpdates />)} />
+            <Route path="/attendance" element={page(<Attendance />)} />
+            <Route path="/timetable" element={page(<Timetable />)} />
+            <Route path="/profile" element={page(<Profile />)} />
+            <Route path="/cr-panel" element={page(<CRPanel />)} />
+            <Route path="/super-admin" element={page(<SuperAdmin />)} />
           </Route>
 
           <Route path="/" element={<DefaultRoute />} />

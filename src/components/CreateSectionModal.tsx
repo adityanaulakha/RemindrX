@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { toast } from 'react-hot-toast';
-import type { ClassData, Institute } from '../types';
+import type { ClassData, ClassSecrets, Institute } from '../types';
 
 interface CreateSectionModalProps {
   isOpen: boolean;
@@ -64,12 +64,13 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
     setLoading(true);
     try {
       // Check if joinCode is strictly unique
-      const q = query(collection(db, 'classes'), where('joinCode', '==', joinCode));
+      // Codes live in classSecrets (super admin / CR readable only).
+      const q = query(collection(db, 'classSecrets'), where('joinCode', '==', joinCode));
       const snap = await getDocs(q);
       if (!snap.empty) {
-        // Check if there's a collision in the currently selected institute
-        const sameInstituteMatch = snap.docs.find(doc => doc.data().instituteId === selectedInstituteId);
-        
+        const clashes = await Promise.all(snap.docs.map((d) => getDoc(doc(db, 'classes', d.id))));
+        const sameInstituteMatch = clashes.find((c) => c.exists() && c.data().instituteId === selectedInstituteId);
+
         if (sameInstituteMatch) {
           toast.error('This section already exists in the selected institute. Please delete it first to recreate.');
         } else {
@@ -85,20 +86,21 @@ export function CreateSectionModal({ isOpen, onClose, onSectionCreated }: Create
         branch,
         year,
         section: section.toUpperCase(),
-        joinCode,
-        adminInviteCode: adminCode,
-        adminCodeUses: adminLimit,
         admins: [],
-        instituteId: selectedInstituteId
+        instituteId: selectedInstituteId,
+        source: 'manual',
+        createdAt: Date.now(),
       };
 
-      await addDoc(collection(db, 'classes'), newSection);
+      const ref = await addDoc(collection(db, 'classes'), newSection);
+      const secrets: ClassSecrets = { joinCode, adminInviteCode: adminCode, adminCodeUses: adminLimit };
+      await setDoc(doc(db, 'classSecrets', ref.id), secrets);
       toast.success('Section created successfully!');
       
       onClose();
       if (onSectionCreated) onSectionCreated();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create section');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create section');
     } finally {
       setLoading(false);
     }

@@ -6,7 +6,7 @@ import type { Event } from '../types';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { Calendar, Clock, MapPin, Users, Globe, ExternalLink, Mail, Phone, DollarSign, Users2, Edit2, Plus, Trash2, AlertTriangle, Share2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Globe, ExternalLink, Mail, Phone, DollarSign, Users2, Edit2, Plus, Trash2, AlertTriangle, Share2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // Inlined Brand Icons (since Lucide removed them)
@@ -38,8 +38,6 @@ export function EventDetailModal({
   isOpen, 
   onClose, 
   event, 
-  isGoing, 
-  onToggleParticipation,
   onApprove,
   onReject,
   onDelete,
@@ -130,7 +128,7 @@ export function EventDetailModal({
         customFields: editCustomFields.filter(f => f.label && f.value),
       };
 
-      const updates: Record<string, any> = {};
+      const updates: Record<string, unknown> = {};
       
       if (event.status === 'approved') {
         // For already approved events, save changes into pendingUpdate
@@ -147,8 +145,8 @@ export function EventDetailModal({
       toast.success(event.status === 'approved' ? 'Changes submitted for review!' : 'Event re-submitted for approval.');
       setIsEditing(false);
       onClose();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update event');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update event');
     } finally {
       setSaving(false);
     }

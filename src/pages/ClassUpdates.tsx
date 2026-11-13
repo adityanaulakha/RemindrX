@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, orderBy, limit } from 'firebase/firestore';
+import { computePostStatus, toggleVote } from '../utils/postStatus';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Post, Subject } from '../types';
@@ -21,11 +22,14 @@ export default function ClassUpdates() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [visibleCount, setVisibleCount] = useState(10);
 
+  const classId = userData?.classId;
+  const uid = currentUser?.uid;
+
   useEffect(() => {
-    if (!userData?.classId || !currentUser) return;
+    if (!classId || !uid) return;
 
     const fetchSubjects = async () => {
-      const subQ = query(collection(db, 'subjects'), where('classId', '==', userData.classId));
+      const subQ = query(collection(db, 'subjects'), where('classId', '==', classId), limit(200));
       const snap = await getDocs(subQ);
       const subMap: Record<string, Subject> = {};
       snap.docs.forEach(doc => {
@@ -38,9 +42,11 @@ export default function ClassUpdates() {
 
     const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     const postsQuery = query(
-      collection(db, 'posts'), 
-      where('classId', '==', userData.classId),
-      where('createdAt', '>=', oneMonthAgo)
+      collection(db, 'posts'),
+      where('classId', '==', classId),
+      where('createdAt', '>=', oneMonthAgo),
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
 
     const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
@@ -48,37 +54,26 @@ export default function ClassUpdates() {
       fetchedPosts.sort((a, b) => b.createdAt - a.createdAt);
       setPosts(fetchedPosts);
       setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setLoading(false);
     });
 
     return () => unsubscribePosts();
-  }, [userData, currentUser]);
+  }, [classId, uid]);
 
   const handleInteract = async (postId: string, type: 'confirm' | 'dispute') => {
     if (!currentUser) return;
     const post = posts.find(p => p.id === postId);
     if (!post) return;
 
-    let newConfirmations = post.confirmations.filter(id => id !== currentUser.uid);
-    let newDisputes = post.disputes.filter(id => id !== currentUser.uid);
-
-    if (type === 'confirm') {
-      if (!post.confirmations.includes(currentUser.uid)) newConfirmations.push(currentUser.uid);
-    } else {
-      if (!post.disputes.includes(currentUser.uid)) newDisputes.push(currentUser.uid);
-    }
-
-    let newStatus = post.status;
-    const confirmCount = newConfirmations.length;
-    const disputeCount = newDisputes.length;
-
-    if (disputeCount > confirmCount) newStatus = 'unverified';
-    else if (confirmCount > 2 && disputeCount === 0) newStatus = 'verified';
-    else if (confirmCount > 0) newStatus = 'likely';
-    else newStatus = 'unverified';
+    const { confirmations: newConfirmations, disputes: newDisputes } = toggleVote(post, currentUser.uid, type);
+    const repConfirming = userData?.role === 'admin' && newConfirmations.includes(currentUser.uid);
+    const newStatus = computePostStatus(newConfirmations, newDisputes, repConfirming);
 
     try {
       await updateDoc(doc(db, 'posts', postId), { confirmations: newConfirmations, disputes: newDisputes, status: newStatus });
-    } catch (error) {
+    } catch {
       toast.error('Sync error');
     }
   };

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { useState, useEffect, useCallback } from 'react';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Subject, Post } from '../types';
@@ -18,12 +18,32 @@ interface PostModalProps {
 
 export function PostModal({ isOpen, onClose, onPostAdded, defaultSubjectId, editPost }: PostModalProps) {
   const { userData, currentUser } = useAuth();
+  const classId = userData?.classId;
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Form State
   const [content, setContent] = useState('');
   const [subjectId, setSubjectId] = useState('');
+
+  const fetchSubjects = useCallback(async () => {
+    try {
+      const q = query(
+        collection(db, 'subjects'),
+        where('classId', '==', classId),
+        where('isActive', '==', true),
+        limit(100)
+      );
+      const snapshot = await getDocs(q);
+      const fetchedSubjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
+      setSubjects(fetchedSubjects);
+      if (fetchedSubjects.length > 0 && !defaultSubjectId) {
+        setSubjectId((prev) => prev || fetchedSubjects[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+    }
+  }, [classId, defaultSubjectId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -35,29 +55,12 @@ export function PostModal({ isOpen, onClose, onPostAdded, defaultSubjectId, edit
         setSubjectId(defaultSubjectId || '');
       }
       
-      if (userData?.classId) {
-        fetchSubjects();
+      if (classId) {
+        void fetchSubjects();
       }
     }
-  }, [isOpen, userData, defaultSubjectId, editPost]);
+  }, [isOpen, classId, defaultSubjectId, editPost, fetchSubjects]);
 
-  const fetchSubjects = async () => {
-    try {
-      const q = query(
-        collection(db, 'subjects'),
-        where('classId', '==', userData!.classId),
-        where('isActive', '==', true)
-      );
-      const snapshot = await getDocs(q);
-      const fetchedSubjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
-      setSubjects(fetchedSubjects);
-      if (fetchedSubjects.length > 0 && !subjectId && !defaultSubjectId) {
-        setSubjectId(fetchedSubjects[0].id);
-      }
-    } catch (error) {
-      console.error("Error fetching subjects:", error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +99,7 @@ export function PostModal({ isOpen, onClose, onPostAdded, defaultSubjectId, edit
       setContent('');
       onClose();
       if (onPostAdded) onPostAdded();
-    } catch (error: any) {
+    } catch {
       toast.error('Could not post the update');
     } finally {
       setLoading(false);

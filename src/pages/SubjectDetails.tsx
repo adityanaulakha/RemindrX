@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDoc, addDoc, doc, updateDoc, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { computePostStatus, toggleVote } from '../utils/postStatus';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Subject, Post, Task } from '../types';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { Badge } from '../components/ui/Badge';
 import { MessageSquare, ThumbsUp, ThumbsDown, ShieldCheck, ArrowLeft, CheckSquare, Calendar, Clock, AlertTriangle, Activity } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useNow } from '../hooks/useNow';
 
 export default function SubjectDetails() {
   const { id } = useParams<{ id: string }>();
@@ -25,15 +26,16 @@ export default function SubjectDetails() {
   const [activeTab, setActiveTab] = useState<'tasks' | 'updates'>('tasks');
   const [visiblePosts, setVisiblePosts] = useState(10);
 
+  const classId = userData?.classId;
+
   useEffect(() => {
-    if (!id || !userData?.classId) return;
+    if (!id || !classId) return;
 
     const fetchSubject = async () => {
       try {
-        const q = query(collection(db, 'subjects'), where('__name__', '==', id));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          setSubject({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Subject);
+        const snapshot = await getDoc(doc(db, 'subjects', id));
+        if (snapshot.exists()) {
+          setSubject({ id: snapshot.id, ...snapshot.data() } as Subject);
         } else {
           toast.error("Subject not found");
           navigate('/subjects');
@@ -46,10 +48,14 @@ export default function SubjectDetails() {
     fetchSubject();
 
     const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    // classId filter is required by the security rules (section-scoped reads).
     const postsQuery = query(
-      collection(db, 'posts'), 
+      collection(db, 'posts'),
+      where('classId', '==', classId),
       where('subjectId', '==', id),
-      where('createdAt', '>=', oneMonthAgo)
+      where('createdAt', '>=', oneMonthAgo),
+      orderBy('createdAt', 'desc'),
+      limit(100)
     );
     const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
       const fetchedPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
@@ -57,11 +63,21 @@ export default function SubjectDetails() {
       setPosts(fetchedPosts);
     });
 
-    const tasksQuery = query(collection(db, 'tasks'), where('subjectId', '==', id));
+    const tasksQuery = query(
+      collection(db, 'tasks'),
+      where('classId', '==', classId),
+      where('subjectId', '==', id),
+      where('deadline', '>=', Date.now() - 30 * 24 * 60 * 60 * 1000),
+      orderBy('deadline', 'asc'),
+      limit(100)
+    );
     const unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
       const fetchedTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
       fetchedTasks.sort((a, b) => a.deadline - b.deadline);
       setTasks(fetchedTasks);
+      setLoading(false);
+    }, (err) => {
+      console.error(err);
       setLoading(false);
     });
 
@@ -69,7 +85,7 @@ export default function SubjectDetails() {
       unsubscribePosts();
       unsubscribeTasks();
     };
-  }, [id, userData, navigate]);
+  }, [id, classId, navigate]);
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +110,7 @@ export default function SubjectDetails() {
       await addDoc(collection(db, 'posts'), newPost);
       setNewPostContent('');
       toast.success('Update posted');
-    } catch (error) {
+    } catch {
       toast.error('Could not post the update');
     }
   };
@@ -111,25 +127,9 @@ export default function SubjectDetails() {
 
     try {
       const postRef = doc(db, 'posts', post.id);
-      let newConfirmations = [...post.confirmations];
-      let newDisputes = [...post.disputes];
-
-      if (isConfirm) {
-        newConfirmations.push(currentUser.uid);
-        newDisputes = newDisputes.filter(uid => uid !== currentUser.uid);
-      } else {
-        newDisputes.push(currentUser.uid);
-        newConfirmations = newConfirmations.filter(uid => uid !== currentUser.uid);
-      }
-
-      let newStatus = post.status;
-      if (newConfirmations.length >= 10 || userData.role === 'admin') {
-        newStatus = 'verified';
-      } else if (newConfirmations.length >= 5) {
-        newStatus = 'likely';
-      } else if (newDisputes.length > newConfirmations.length) {
-        newStatus = 'unverified';
-      }
+      const { confirmations: newConfirmations, disputes: newDisputes } = toggleVote(post, currentUser.uid, type);
+      const repConfirming = userData.role === 'admin' && newConfirmations.includes(currentUser.uid);
+      const newStatus = computePostStatus(newConfirmations, newDisputes, repConfirming);
 
       await updateDoc(postRef, {
         confirmations: newConfirmations,
@@ -137,12 +137,12 @@ export default function SubjectDetails() {
         status: newStatus
       });
 
-    } catch (error) {
+    } catch {
       toast.error('Sync failed');
     }
   };
 
-  const now = Date.now();
+  const now = useNow();
   const isPast = (deadline: number) => deadline < now;
   const isCritical = (deadline: number, priority: string) => !isPast(deadline) && (deadline <= now + 48 * 60 * 60 * 1000 || priority === 'critical');
 
@@ -176,7 +176,7 @@ export default function SubjectDetails() {
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as typeof activeTab)}
             className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${
               activeTab === tab.id ? 'bg-primary text-primary-foreground ' : 'text-muted-foreground hover:text-foreground'
             }`}

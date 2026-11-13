@@ -104,8 +104,8 @@ export function EventModal({ isOpen, onClose, onEventAdded }: EventModalProps) {
       resetForm();
       onClose();
       if (onEventAdded) onEventAdded();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create event');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create event');
     } finally {
       setLoading(false);
     }
