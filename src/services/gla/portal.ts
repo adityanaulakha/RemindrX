@@ -149,8 +149,15 @@ async function parseJson<T>(res: Response): Promise<T> {
 
 function withRoll(url: string, roll?: string | null): string {
   if (!roll) return url;
-  const u = new URL(url);
+  // Relative paths (e.g. /api/gla/captcha) need a base — bare `new URL('/…')` throws in the browser.
+  const u = /^https?:\/\//i.test(url)
+    ? new URL(url)
+    : new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
   u.searchParams.set('roll', roll.trim());
+  // Keep same-origin fetches as path+query (avoid leaking absolute origin into tests)
+  if (!/^https?:\/\//i.test(url)) {
+    return `${u.pathname}${u.search}`;
+  }
   return u.toString();
 }
 
