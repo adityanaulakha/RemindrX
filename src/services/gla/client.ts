@@ -220,7 +220,11 @@ export function mergeTimetableLectures(
   return normalizeTimetable([...kept, ...incomingFlat]);
 }
 
-/** Try restore live portal session; fall back to last cached snapshot. */
+/**
+ * Restore live portal session (retries cold starts via portalFetch).
+ * Falls back to last cached enroll/attendance snapshot — never forces re-login
+ * just because Render briefly slept.
+ */
 export async function restorePortalSession(): Promise<{
   live: boolean;
   dashboard: PortalDashboard | null;
@@ -230,14 +234,16 @@ export async function restorePortalSession(): Promise<{
   const token = activeToken();
   if (!token) return { live: false, dashboard: null, snapshot };
   try {
+    // portalDashboard retries on cold start; null = dead token or still down after retries
     const dashboard = await portalDashboard(token);
     if (dashboard) {
       saveSnapshot(dashboard);
       return { live: true, dashboard, snapshot };
     }
   } catch {
-    /* network / cold start */
+    /* network / unexpected cold start — caller still has snapshot */
   }
+  // After a real Render restart, in-memory jars are gone — keep snapshot for UI; reconnect only for live Sync.
   return { live: false, dashboard: null, snapshot };
 }
 

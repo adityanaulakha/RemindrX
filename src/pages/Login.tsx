@@ -15,7 +15,7 @@ import { ThemeSwitch } from '../components/ui/ThemeSwitch';
 import { useTheme } from '../hooks/useTheme';
 import { BookOpen, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import { BrandLockup } from '../components/BrandMark';
-import { fetchCaptchaBlob, portalEnroll } from '../services/gla/portal';
+import { fetchCaptchaBlob, portalDashboard, portalEnroll } from '../services/gla/portal';
 import { markConnected, saveSnapshot } from '../services/gla/session';
 import {
   canLoadCaptcha,
@@ -65,7 +65,7 @@ export default function Login() {
     }
     markCaptchaRequested();
     setCaptchaCooldown(captchaCooldownSecondsLeft());
-    toast.loading('Loading captcha… portal may take a few seconds to wake', { id: 'captcha-load' });
+    toast.loading('Loading captcha…', { id: 'captcha-load' });
     try {
       if (captchaUrl) URL.revokeObjectURL(captchaUrl);
       const blob = await fetchCaptchaBlob(r);
@@ -73,9 +73,10 @@ export default function Login() {
       setCaptcha('');
       toast.success('Captcha ready', { id: 'captcha-load' });
     } catch {
-      toast.error('Could not load captcha (backend may be waking up — retry in a few seconds)', {
-        id: 'captcha-load',
-      });
+      toast.error(
+        'Could not load captcha. If the portal just restarted, wait ~30s and try again.',
+        { id: 'captcha-load' }
+      );
     }
   };
 
@@ -102,9 +103,22 @@ export default function Login() {
 
       await signInWithCustomToken(auth, result.customToken);
 
-      // Keep local portal session meta so Attendance/Timetable reuse the live jar
-      markConnected(result.profile?.roll || roll.trim(), result.portalSession);
-      if (result.profile?.summary && result.profile.subjects) {
+      // Keep portal session token so Attendance/Timetable reuse the live jar (no second login)
+      const portalRoll = result.profile?.roll || roll.trim();
+      markConnected(portalRoll, result.portalSession);
+      let snapSaved = false;
+      if (result.portalSession) {
+        try {
+          const dash = await portalDashboard(result.portalSession);
+          if (dash) {
+            saveSnapshot(dash);
+            snapSaved = true;
+          }
+        } catch {
+          /* fall through to enroll profile snapshot */
+        }
+      }
+      if (!snapSaved && result.profile?.summary && result.profile.subjects) {
         saveSnapshot({
           summary: {
             overall: result.profile.summary.overall ?? '--',

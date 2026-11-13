@@ -41,8 +41,9 @@ emulators only.
 * **Next step if needed:** serve the campus-wide approved-events list from one cached API response (`Cache-Control: s-maxage=300`) instead of every student reading the same event docs.
 
 ### 2. Render portal service (`portal-backend`)
-* **Current (Render API, read-only):** plan **free**, 1 instance, region **Oregon (US)**. Free web services spin down after 15 min idle (≈1 min cold start) and share the workspace's free instance hours with the other free services.
-* Sessions (cookie jars) are kept **in memory**, so every spin-down/restart logs every student out of the portal.
+* **Current (Render API, read-only):** plan **free**, 1 instance, region **Oregon (US)**. Free web services spin down after 15 min idle unless kept warm.
+* **Keep-alive:** a self-ping every **14 minutes** usually prevents idle spin-down. RemindrX still retries portal calls (2.5s / 6s backoff, 60s timeout) if a ping is missed and Render cold-starts.
+* Sessions (cookie jars / tokens) are kept **in memory**, so a real process restart (deploy, crash, or rare spin-down) still clears live portal sessions — students keep cached Attendance and reconnect once.
 * **Recommendation:** Starter plan **$7/month** (0.5 CPU, 512 MB) — https://render.com/pricing — and recreate it in **Singapore** (closest Render region to GLA, Mathura) to cut India↔US round trips. Move the session store to Render Key Value (Redis) if you want sessions to survive deploys.
 * **Security (must fix in the portal-backend repo, not in this PR):** `/profile`, `/dashboard`, `/timetable`, `/debug-home`, `/logout` take only `?roll=` with `cors()` open to every origin. Anyone who knows a roll number can read that student's attendance/CPI/profile while their session is alive, or log them out. Fix: return an opaque session token from `/enroll`/`/login` and require it on every call (or require a signed token minted by `/api/gla/*` after verifying the Firebase ID token), restrict CORS to the app origins, and remove `/debug-home`.
 

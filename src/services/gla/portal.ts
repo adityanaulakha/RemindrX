@@ -11,7 +11,10 @@
  *   POST /logout             → Authorization: Bearer <sessionToken>
  *
  * The roll number alone never grants access; the session token does.
+ * Render is keep-alive pinged ~every 14 min; fetches retry on cold-start.
  */
+
+import { portalFetch } from './portalResilience';
 
 export const PORTAL_BASE =
   (import.meta.env.VITE_PORTAL_BACKEND_URL as string | undefined) || 'https://portal-backend-z9ce.onrender.com';
@@ -119,7 +122,7 @@ function withRoll(url: string, roll?: string | null): string {
 
 export async function fetchCaptchaBlob(roll: string): Promise<Blob> {
   if (!roll.trim()) throw new Error('Roll number required for captcha');
-  const res = await fetch(withRoll(`${PORTAL_BASE}/captcha`, roll), { cache: 'no-store' });
+  const res = await portalFetch(withRoll(`${PORTAL_BASE}/captcha`, roll), { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to load captcha');
   const id = res.headers.get('X-Portal-Attempt');
   lastAttempt = id ? { roll: normRoll(roll), id } : null;
@@ -131,7 +134,7 @@ export async function portalLogin(
   password: string,
   captcha: string
 ): Promise<{ success: boolean; error?: string; sessionToken?: string; expiresAt?: number }> {
-  const res = await fetch(`${PORTAL_BASE}/login`, {
+  const res = await portalFetch(`${PORTAL_BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ roll, password, captcha, attempt: attemptFor(roll) }),
@@ -173,25 +176,33 @@ export async function portalEnroll(
 
 export async function portalDashboard(token?: string | null): Promise<PortalDashboard | null> {
   if (!token) return null;
-  const res = await fetch(`${PORTAL_BASE}/dashboard`, { headers: authHeaders(token) });
-  if (!res.ok) return null;
-  const data = await parseJson<PortalDashboard & { error?: string }>(res);
-  if (data.error) return null;
-  return {
-    summary: {
-      overall: data.summary?.overall ?? '--',
-      cpi: data.summary?.cpi ?? '--',
-    },
-    subjects: Array.isArray(data.subjects) ? data.subjects : [],
-  };
+  try {
+    const res = await portalFetch(`${PORTAL_BASE}/dashboard`, { headers: authHeaders(token) });
+    if (!res.ok) return null;
+    const data = await parseJson<PortalDashboard & { error?: string }>(res);
+    if (data.error) return null;
+    return {
+      summary: {
+        overall: data.summary?.overall ?? '--',
+        cpi: data.summary?.cpi ?? '--',
+      },
+      subjects: Array.isArray(data.subjects) ? data.subjects : [],
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function portalProfile(token?: string | null): Promise<PortalProfile | null> {
   if (!token) return null;
-  const res = await fetch(`${PORTAL_BASE}/profile`, { headers: authHeaders(token) });
-  if (!res.ok) return null;
-  const data = await parseJson<{ success?: boolean; profile?: PortalProfile; error?: string }>(res);
-  return data.profile || null;
+  try {
+    const res = await portalFetch(`${PORTAL_BASE}/profile`, { headers: authHeaders(token) });
+    if (!res.ok) return null;
+    const data = await parseJson<{ success?: boolean; profile?: PortalProfile; error?: string }>(res);
+    return data.profile || null;
+  } catch {
+    return null;
+  }
 }
 
 /** Sync Firestore user + subjects from live portal jar (requires Firebase ID token). */
@@ -235,11 +246,15 @@ export async function portalTimetable(
   } else if (typeof date === 'string' && date.trim()) {
     url.searchParams.set('date', date.trim());
   }
-  const res = await fetch(url.toString(), { headers: authHeaders(token) });
-  if (!res.ok) return null;
-  const data = await parseJson<{ error?: string } & (PortalLecture[] | Record<string, PortalLecture[]>)>(res);
-  if (data && typeof data === 'object' && 'error' in data && data.error) return null;
-  return data as PortalLecture[] | Record<string, PortalLecture[]>;
+  try {
+    const res = await portalFetch(url.toString(), { headers: authHeaders(token) });
+    if (!res.ok) return null;
+    const data = await parseJson<{ error?: string } & (PortalLecture[] | Record<string, PortalLecture[]>)>(res);
+    if (data && typeof data === 'object' && 'error' in data && data.error) return null;
+    return data as PortalLecture[] | Record<string, PortalLecture[]>;
+  } catch {
+    return null;
+  }
 }
 
 export async function portalLogout(token?: string | null): Promise<void> {

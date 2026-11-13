@@ -8,7 +8,7 @@ Prioritized backlog. Move completed items to `DONE.md`.
 
 ## High (known product gaps)
 
-- [ ] Configure FCM VAPID key and persist tokens (`src/hooks/useNotifications.tsx`, `AuthContext`)
+- [x] Configure FCM VAPID key and persist tokens (`VITE_FIREBASE_VAPID_KEY` in `.env.local` + Vercel; `useNotifications.tsx`)
 - [ ] Tighten Firestore rules (especially `classes` update, `tasks`/`posts` read/update)
 
 

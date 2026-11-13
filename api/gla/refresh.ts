@@ -10,6 +10,7 @@ import {
   verifyBearer,
   type Req,
   type Res,
+  portalFetchRetry,
   portalHeaders,
 } from '../_lib/server.js';
 import { syncSubjects, type PortalProfileIn } from '../_lib/portalProvision.js';
@@ -35,17 +36,22 @@ export default async function handler(req: Req, res: Res) {
 
     let profileRes: Response;
     try {
-      profileRes = await fetch(`${PORTAL_BASE}/profile`, {
+      profileRes = await portalFetchRetry(`${PORTAL_BASE}/profile`, {
         headers: portalHeaders({ Accept: 'application/json', 'X-Portal-Roll': roll }),
-        signal: AbortSignal.timeout(45_000),
       });
     } catch {
-      return res.status(504).json({ success: false, error: 'Portal backend is waking up — try again in a minute.' });
+      return res.status(504).json({
+        success: false,
+        error: 'Portal backend is waking up after downtime. Wait about a minute and try again.',
+      });
     }
     if (!profileRes.ok) {
       return res.status(502).json({
         success: false,
-        error: 'Portal session expired or backend waking — reconnect Attendance, then refresh.',
+        error:
+          profileRes.status === 401
+            ? 'Portal session expired — reconnect once on Attendance, then refresh.'
+            : 'Could not load portal profile — try again in a minute.',
       });
     }
     const body = (await profileRes.json().catch(() => ({}))) as { profile?: PortalProfileIn; error?: string };

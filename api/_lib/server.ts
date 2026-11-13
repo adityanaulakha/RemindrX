@@ -120,6 +120,52 @@ export function portalHeaders(base: Record<string, string> = {}): Record<string,
   return secret ? { ...base, 'X-Portal-Secret': secret } : { ...base };
 }
 
+/** Render keep-alive is ~14 min; allow cold-boot headroom if a ping is missed. */
+export const PORTAL_TIMEOUT_MS = 60_000;
+const PORTAL_RETRY_DELAYS_MS = [0, 2_500, 6_000];
+
+function isTransientPortalStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504 || status === 521 || status === 522 || status === 524;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Upstream portal fetch with retries for unexpected Render cold starts.
+ * Non-transient HTTP statuses return immediately (do not burn retries on 401).
+ */
+export async function portalFetchRetry(
+  input: string,
+  init?: RequestInit,
+  opts?: { retries?: number; timeoutMs?: number }
+): Promise<Response> {
+  const retries = opts?.retries ?? 2;
+  const timeoutMs = opts?.timeoutMs ?? PORTAL_TIMEOUT_MS;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      await sleep(PORTAL_RETRY_DELAYS_MS[Math.min(attempt, PORTAL_RETRY_DELAYS_MS.length - 1)] ?? 6_000);
+    }
+    try {
+      const res = await fetch(input, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (res.ok || !isTransientPortalStatus(res.status) || attempt === retries) {
+        return res;
+      }
+      lastError = new Error(`Portal HTTP ${res.status}`);
+    } catch (err) {
+      lastError = err;
+      if (attempt === retries) throw err;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Portal request failed');
+}
+
 export function bodyOf<T>(req: Req): Partial<T> {
   const b = req.body;
   if (!b) return {};

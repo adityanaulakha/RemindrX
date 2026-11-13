@@ -9,7 +9,7 @@ const UNLOCKED_KEY = 'gla_portal_unlocked_v2';
 export interface GlaPortalMeta {
   roll: string | null;
   connectedAt: number | null;
-  /** portal-backend session token (expires server-side after ~45 min idle). */
+  /** portal-backend session token (in-memory; survives keep-alive, cleared on Render restart / ~45 min idle). */
   token?: string | null;
 }
 

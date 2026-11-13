@@ -89,7 +89,7 @@ export default function Attendance() {
     }
     markCaptchaRequested();
     setCaptchaCooldown(captchaCooldownSecondsLeft());
-    toast.loading('Loading captcha… portal may take a few seconds to wake', { id: 'captcha-load' });
+    toast.loading('Loading captcha…', { id: 'captcha-load' });
     try {
       if (captchaUrl) URL.revokeObjectURL(captchaUrl);
       const blob = await fetchCaptchaBlob(r);
@@ -97,9 +97,10 @@ export default function Attendance() {
       setCaptcha('');
       toast.success('Captcha ready', { id: 'captcha-load' });
     } catch {
-      toast.error('Could not load captcha (backend may be waking up — retry in a few seconds)', {
-        id: 'captcha-load',
-      });
+      toast.error(
+        'Could not load captcha. If the portal just restarted, wait ~30s and try again.',
+        { id: 'captcha-load' }
+      );
     }
   };
 
@@ -114,7 +115,7 @@ export default function Attendance() {
         setSessionLabel(preferredRoll);
       }
 
-      // Prefer live enroll session (same roll jar on portal-backend)
+      // Prefer live enroll session (portal-backend jar / session token from first login)
       const restored = await restorePortalSession();
       if (cancelled) return;
 
@@ -124,26 +125,28 @@ export default function Attendance() {
         setLive(restored.live);
         if (hasLocalPin() && !isSessionUnlocked()) {
           setGate('pin-unlock');
-        } else if (!hasLocalPin() && restored.live) {
-          // Portal enroll already authenticated — skip PIN gate for first live session
-          if (userData?.authProvider === 'gla_portal') {
-            setGate('ready');
-          } else {
-            setGate('pin-setup');
-          }
+        } else if (!hasLocalPin() && restored.live && userData?.authProvider !== 'gla_portal') {
+          setGate('pin-setup');
         } else {
           setGate('ready');
         }
         return;
       }
 
+      // Enroll already saved a snapshot — show it. Don't force a second portal login.
       if (restored.snapshot) {
         setSummary(restored.snapshot.summary);
         setSubjects(restored.snapshot.subjects);
         setLive(false);
+        if (hasLocalPin() && !isSessionUnlocked()) {
+          setGate('pin-unlock');
+        } else {
+          setGate('ready');
+        }
+        return;
       }
 
-      // Session expired — reconnect with captcha (roll prefilled for portal users)
+      // No live jar and no enroll cache — need portal credentials once
       setGate('connect');
       if (preferredRoll) await loadCaptcha(preferredRoll);
     };
@@ -179,7 +182,7 @@ export default function Attendance() {
       toast.success('GLA portal connected');
       setGate(hasLocalPin() ? 'ready' : 'pin-setup');
     } catch {
-      toast.error('Login request failed — is the portal backend awake?');
+      toast.error('Could not reach the portal. If it just restarted, wait ~30s and try again.');
       await loadCaptcha();
     } finally {
       setLoading(false);
@@ -394,7 +397,9 @@ export default function Attendance() {
             </div>
             <div className="flex items-start gap-3 rounded-2xl border border-warning/25 bg-warning/10 p-4">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-              <p className="text-sm text-warning/80">The portal service may take a moment to wake up on the first request.</p>
+              <p className="text-sm text-warning/80">
+                Portal stays warm via keep-alive. If a ping was missed and Render restarted, the first request can take ~30–60s — we retry automatically.
+              </p>
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? (
@@ -414,9 +419,9 @@ export default function Attendance() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow={live ? 'Live portal sync' : 'Cached snapshot'}
+        eyebrow={live ? 'Live portal sync' : 'From your enroll session'}
         title="Attendance"
-        description={`${sessionLabel ? `Signed in as ${sessionLabel}` : 'GLA portal'} — overall ${summary.overall}${summary.overall !== '--' ? '%' : ''} · CPI ${summary.cpi}`}
+        description={`${sessionLabel ? `Roll ${sessionLabel}` : 'GLA portal'} — overall ${summary.overall}${summary.overall !== '--' ? '%' : ''} · CPI ${summary.cpi}`}
         actions={
           <>
             <Link to="/timetable"><Button variant="secondary"><CalendarDays className="h-4 w-4" /> Timetable</Button></Link>
@@ -429,6 +434,25 @@ export default function Attendance() {
           </>
         }
       />
+
+      {!live && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-medium text-warning/90">
+            Showing numbers from your last portal sync. Use Sync for a live refresh; reconnect (password + captcha) only if the GLA session expired or the portal restarted.
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0"
+            onClick={async () => {
+              setGate('connect');
+              if (roll) await loadCaptcha(roll);
+            }}
+          >
+            Refresh live
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="flex items-center gap-5 p-6" elevated>
@@ -478,7 +502,7 @@ export default function Attendance() {
       </div>
 
       {subjects.length === 0 && (
-        <p className="text-center text-sm text-muted-foreground">No subject rows returned. Try Sync after the backend wakes up.</p>
+        <p className="text-center text-sm text-muted-foreground">No subject rows yet. Tap Sync, or Refresh live if the portal session expired.</p>
       )}
     </div>
   );

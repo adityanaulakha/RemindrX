@@ -2,7 +2,15 @@
  * Same-origin proxy for portal login (per-roll sessions), used by Attendance
  * reconnect. Password is forwarded once, never stored or logged.
  */
-import { applyCors, bodyOf, clientIp, enforceLimits, type Req, type Res } from '../_lib/server.js';
+import {
+  applyCors,
+  bodyOf,
+  clientIp,
+  enforceLimits,
+  portalFetchRetry,
+  type Req,
+  type Res,
+} from '../_lib/server.js';
 
 const UPSTREAM = process.env.PORTAL_BACKEND_URL || 'https://portal-backend-z9ce.onrender.com';
 const WINDOW_MS = 15 * 60 * 1000;
@@ -30,15 +38,17 @@ export default async function handler(req: Req, res: Res) {
   ]);
   if (!allowed) return;
   try {
-    const upstream = await fetch(`${UPSTREAM}/login`, {
+    const upstream = await portalFetchRetry(`${UPSTREAM}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roll: r, password, captcha, attempt }),
-      signal: AbortSignal.timeout(45_000),
     });
     const json = await upstream.json().catch(() => ({ success: false, error: 'Bad portal response' }));
     return res.status(upstream.status).json(json);
   } catch {
-    return res.status(502).json({ success: false, error: 'Upstream login failed — portal may be waking up.' });
+    return res.status(502).json({
+      success: false,
+      error: 'Portal backend is waking up after downtime. Wait about a minute and try again.',
+    });
   }
 }

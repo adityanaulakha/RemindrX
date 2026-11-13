@@ -25,13 +25,13 @@ import {
   glaUid,
   type Req,
   type Res,
+  portalFetchRetry,
   portalHeaders,
 } from '../_lib/server.js';
 import { ensurePortalClassAndSubjects, upsertPortalUser, type PortalProfileIn } from '../_lib/portalProvision.js';
 
 const PORTAL_BASE = process.env.PORTAL_BACKEND_URL || 'https://portal-backend-z9ce.onrender.com';
 const WINDOW_MS = 15 * 60 * 1000;
-const PORTAL_TIMEOUT_MS = 45_000;
 
 async function ensureAuthUser(uid: string, displayName: string) {
   // Best effort only. signInWithCustomToken creates the Auth user on first
@@ -79,16 +79,16 @@ export default async function handler(req: Req, res: Res) {
   try {
     let upstream: Response;
     try {
-      upstream = await fetch(`${PORTAL_BASE}/enroll`, {
+      upstream = await portalFetchRetry(`${PORTAL_BASE}/enroll`, {
         method: 'POST',
         headers: portalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ roll, password, captcha, attempt }),
-        signal: AbortSignal.timeout(PORTAL_TIMEOUT_MS),
       });
     } catch {
       return res.status(504).json({
         success: false,
-        error: 'GLA portal is slow to respond right now. Please try again in a minute.',
+        error:
+          'Portal backend is waking up after downtime. Wait about a minute and try again.',
       });
     }
 
