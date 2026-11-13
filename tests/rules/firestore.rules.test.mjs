@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, getDocs, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, getDocs, arrayUnion, orderBy, limit, limitToLast } from 'firebase/firestore';
 
 const env = await initializeTestEnvironment({
   projectId: 'demo-remindrx',
@@ -114,6 +114,8 @@ await check('app: own participations query', getDocs(query(collection(A, 'event_
 await check('app: own notifications query', getDocs(query(collection(A, 'notifications'), where('userId', '==', 'gla_A1'))), 'allow');
 await check('app: class tasks window query', getDocs(query(collection(A, 'tasks'), where('classId', '==', 'C1'), where('deadline', '>=', 0))), 'allow');
 await check('app: class subjects query', getDocs(query(collection(A, 'subjects'), where('classId', '==', 'C1'), where('isActive', '==', true))), 'allow');
+await check('app: class updates (asc + limitToLast)', getDocs(query(collection(A, 'posts'), where('classId', '==', 'C1'), where('createdAt', '>=', 0), orderBy('createdAt', 'asc'), limitToLast(100))), 'allow');
+await check('app: subject tasks via class window', getDocs(query(collection(A, 'tasks'), where('classId', '==', 'C1'), where('deadline', '>=', 0), orderBy('deadline', 'asc'), limit(300))), 'allow');
 await check('app: own trust-score posts query', getDocs(query(collection(A, 'posts'), where('classId', '==', 'C1'), where('createdBy', '==', 'gla_A1'))), 'allow');
 await check('app: super admin lists users', getDocs(collection(SA, 'users')), 'allow');
 await check('app: super admin reads class secrets', getDoc(doc(SA, 'classSecrets/C1')), 'allow');

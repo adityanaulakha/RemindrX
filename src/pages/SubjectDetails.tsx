@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDoc, addDoc, doc, updateDoc, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDoc, addDoc, doc, updateDoc, onSnapshot, orderBy, limit, limitToLast } from 'firebase/firestore';
 import { computePostStatus, toggleVote } from '../utils/postStatus';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -49,16 +49,19 @@ export default function SubjectDetails() {
 
     const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     // classId filter is required by the security rules (section-scoped reads).
+    // Query by class (existing classId+createdAt / classId+deadline indexes) and
+    // filter the subject client-side; bounded by the window + limit.
     const postsQuery = query(
       collection(db, 'posts'),
       where('classId', '==', classId),
-      where('subjectId', '==', id),
       where('createdAt', '>=', oneMonthAgo),
-      orderBy('createdAt', 'desc'),
-      limit(100)
+      orderBy('createdAt', 'asc'),
+      limitToLast(300)
     );
     const unsubscribePosts = onSnapshot(postsQuery, (snapshot) => {
-      const fetchedPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+      const fetchedPosts = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Post))
+        .filter(p => p.subjectId === id);
       fetchedPosts.sort((a, b) => b.createdAt - a.createdAt);
       setPosts(fetchedPosts);
     });
@@ -66,13 +69,14 @@ export default function SubjectDetails() {
     const tasksQuery = query(
       collection(db, 'tasks'),
       where('classId', '==', classId),
-      where('subjectId', '==', id),
       where('deadline', '>=', Date.now() - 30 * 24 * 60 * 60 * 1000),
       orderBy('deadline', 'asc'),
-      limit(100)
+      limit(300)
     );
     const unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
-      const fetchedTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+      const fetchedTasks = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Task))
+        .filter(t => t.subjectId === id);
       fetchedTasks.sort((a, b) => a.deadline - b.deadline);
       setTasks(fetchedTasks);
       setLoading(false);
