@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { collection, doc, updateDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, doc, updateDoc, getDoc, getDocs, setDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { toast } from 'react-hot-toast';
-import type { ClassData, Institute } from '../types';
+import type { ClassData, ClassSecrets, Institute } from '../types';
 
 interface EditSectionModalProps {
   isOpen: boolean;
@@ -26,8 +26,17 @@ export function EditSectionModal({ isOpen, onClose, section, onSectionUpdated }:
 
   useEffect(() => {
     if (isOpen && section) {
+      // Codes live in classSecrets/{id}; fall back to legacy fields on unmigrated docs.
       setAdminCode(section.adminInviteCode || '');
       setAdminLimit(section.adminCodeUses || 2);
+      getDoc(doc(db, 'classSecrets', section.id))
+        .then((snap) => {
+          if (!snap.exists()) return;
+          const sec = snap.data() as ClassSecrets;
+          if (sec.adminInviteCode) setAdminCode(sec.adminInviteCode);
+          if (typeof sec.adminCodeUses === 'number') setAdminLimit(sec.adminCodeUses);
+        })
+        .catch((err) => console.error('Failed to load section codes', err));
       setName(section.name || '');
       setSelectedInstituteId(section.instituteId || '');
       setYear(section.year || '');
@@ -52,18 +61,18 @@ export function EditSectionModal({ isOpen, onClose, section, onSectionUpdated }:
     try {
       await updateDoc(doc(db, 'classes', section.id), {
         name,
-        adminInviteCode: adminCode,
-        adminCodeUses: adminLimit,
         instituteId: selectedInstituteId,
         year,
         section: sectionTag
       });
+      const secrets: ClassSecrets = { adminInviteCode: adminCode, adminCodeUses: adminLimit };
+      await setDoc(doc(db, 'classSecrets', section.id), secrets, { merge: true });
       toast.success('Section updated successfully!');
       
       onClose();
       if (onSectionUpdated) onSectionUpdated();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update section');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update section');
     } finally {
       setLoading(false);
     }

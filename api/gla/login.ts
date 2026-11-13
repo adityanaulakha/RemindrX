@@ -1,33 +1,44 @@
 /**
- * Same-origin proxy for portal login (per-roll sessions).
- * Prefer /api/gla/enroll for student signup; this remains for Attendance reconnect.
+ * Same-origin proxy for portal login (per-roll sessions), used by Attendance
+ * reconnect. Password is forwarded once, never stored or logged.
  */
-const UPSTREAM = process.env.PORTAL_BACKEND_URL || 'https://portal-backend-z9ce.onrender.com';
+import { applyCors, bodyOf, clientIp, enforceLimits, type Req, type Res } from '../_lib/server.js';
 
-export default async function handler(
-  req: { method?: string; body?: { roll?: string; password?: string; captcha?: string } },
-  res: { setHeader: (k: string, v: string) => void; status: (n: number) => { json: (b: unknown) => void } }
-) {
+const UPSTREAM = process.env.PORTAL_BACKEND_URL || 'https://portal-backend-z9ce.onrender.com';
+const WINDOW_MS = 15 * 60 * 1000;
+
+export default async function handler(req: Req, res: Res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (applyCors(req, res)) return;
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
-  const { roll, password, captcha } = req.body || {};
+  const { roll, password, captcha, attempt } = bodyOf<{
+    roll: string;
+    password: string;
+    captcha: string;
+    attempt?: string;
+  }>(req);
   if (!roll || !password || !captcha) {
     return res.status(400).json({ success: false, error: 'roll, password, and captcha are required' });
   }
+  const r = String(roll).trim().toUpperCase();
+  const allowed = await enforceLimits(res, [
+    { key: `login:roll:${r}`, max: 10, windowMs: WINDOW_MS },
+    { key: `login:ip:${clientIp(req)}`, max: 300, windowMs: WINDOW_MS },
+  ]);
+  if (!allowed) return;
   try {
     const upstream = await fetch(`${UPSTREAM}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roll, password, captcha }),
+      body: JSON.stringify({ roll: r, password, captcha, attempt }),
+      signal: AbortSignal.timeout(45_000),
     });
-    const json = await upstream.json();
+    const json = await upstream.json().catch(() => ({ success: false, error: 'Bad portal response' }));
     return res.status(upstream.status).json(json);
-  } catch (err) {
-    return res.status(502).json({
-      success: false,
-      error: err instanceof Error ? err.message : 'Upstream login failed',
-    });
+  } catch {
+    return res.status(502).json({ success: false, error: 'Upstream login failed — portal may be waking up.' });
   }
 }

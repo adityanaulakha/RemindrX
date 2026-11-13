@@ -108,6 +108,20 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rolldownOptions: {
+      output: {
+        // Stable vendor chunks: cache well across deploys and keep the entry small.
+        // recharts/d3 stay in the lazily-loaded Super Admin chunk.
+        codeSplitting: {
+          groups: [
+            { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/ },
+            { name: 'vendor-firebase', test: /node_modules[\\/](@firebase|firebase)[\\/]/ },
+          ],
+        },
+      },
+    },
+  },
   optimizeDeps: {
     include: ['recharts', 'react-is']
   },

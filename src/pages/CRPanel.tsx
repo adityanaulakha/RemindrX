@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, arrayRemove, addDoc, getCountFromServer } from 'firebase/firestore';
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import { collection, query, where, getDoc, doc, addDoc, getCountFromServer } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import type { User, ClassData } from '../types';
+import type { ClassData, ClassSecrets } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -10,14 +10,15 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { ShieldAlert, Users, ShieldCheck, Search, ChevronLeft, ChevronRight, GraduationCap, LayoutGrid, Info, Copy, Bell, Activity } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { calculateTrustScore } from '../utils/trustScore';
+import { crApi, type RosterStudent } from '../services/api';
 
 const ITEMS_PER_PAGE = 8;
 
 export default function CRPanel() {
   const { userData, currentUser } = useAuth();
   const [classData, setClassData] = useState<ClassData | null>(null);
-  const [students, setStudents] = useState<User[]>([]);
+  const [secrets, setSecrets] = useState<ClassSecrets | null>(null);
+  const [students, setStudents] = useState<RosterStudent[]>([]);
   const [trustScores, setTrustScores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   
@@ -29,61 +30,52 @@ export default function CRPanel() {
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [health, setHealth] = useState({ subjects: 0, openTasks: 0, avgTrust: 0 });
 
-  useEffect(() => {
-    fetchAdminData();
-  }, [userData]);
-
-  const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(async () => {
     if (!userData?.classId || userData.role !== 'admin') return;
+    const classId = userData.classId;
 
     try {
-      // Fetch Class Data
-      const classSnap = await getDocs(query(collection(db, 'classes'), where('__name__', '==', userData.classId)));
-      if (!classSnap.empty) {
-        setClassData({ id: classSnap.docs[0].id, ...classSnap.docs[0].data() } as ClassData);
-      }
+      // One roster call: minimal fields + trust scores computed server-side
+      // from a single posts query (no per-student reads).
+      const [classSnap, secretSnap, rosterRes, subCount, openTaskCount] = await Promise.all([
+        getDoc(doc(db, 'classes', classId)),
+        getDoc(doc(db, 'classSecrets', classId)).catch(() => null),
+        crApi.roster(),
+        getCountFromServer(
+          query(collection(db, 'subjects'), where('classId', '==', classId), where('isActive', '==', true))
+        ),
+        getCountFromServer(
+          query(collection(db, 'tasks'), where('classId', '==', classId), where('deadline', '>', Date.now()))
+        ),
+      ]);
+      if (classSnap.exists()) setClassData({ id: classSnap.id, ...classSnap.data() } as ClassData);
+      setSecrets(secretSnap && secretSnap.exists() ? (secretSnap.data() as ClassSecrets) : null);
 
-      // Fetch Students
-      const q = query(collection(db, 'users'), where('classId', '==', userData.classId));
-      const studentSnap = await getDocs(q);
-      const fetchedStudents = studentSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      const fetchedStudents = rosterRes.students;
       setStudents(fetchedStudents);
-      
-      // Compute trust scores
       const scores: Record<string, number> = {};
-      await Promise.all(fetchedStudents.map(async (student) => {
-        scores[student.id] = await calculateTrustScore(student.id);
-      }));
+      for (const st of fetchedStudents) scores[st.id] = st.trustScore;
       setTrustScores(scores);
 
-      const [subCount, taskSnap] = await Promise.all([
-        getCountFromServer(
-          query(collection(db, 'subjects'), where('classId', '==', userData.classId), where('isActive', '==', true))
-        ),
-        getDocs(query(collection(db, 'tasks'), where('classId', '==', userData.classId))),
-      ]);
-      const now = Date.now();
-      const openTasks = taskSnap.docs.filter((d) => {
-        const data = d.data() as { deadline?: number };
-        return (data.deadline || 0) > now;
-      }).length;
-      const avgTrust =
-        fetchedStudents.length === 0
-          ? 0
-          : Math.round(
-              Object.values(scores).reduce((a, b) => a + b, 0) / Math.max(1, Object.values(scores).length)
-            );
+      const values = Object.values(scores);
+      const avgTrust = values.length === 0 ? 0 : Math.round(values.reduce((a, b) => a + b, 0) / values.length);
       setHealth({
         subjects: subCount.data().count,
-        openTasks,
+        openTasks: openTaskCount.data().count,
         avgTrust,
       });
     } catch (error) {
-      console.error("Error fetching CR panel data:", error);
+      console.error('Error fetching CR panel data:', error);
+      toast.error(error instanceof Error ? error.message : 'Could not load section data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [userData?.classId, userData?.role]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount
+    void fetchAdminData();
+  }, [fetchAdminData]);
 
   const handleNotifySection = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,18 +119,11 @@ export default function CRPanel() {
     if (!classData || !window.confirm("Are you sure you want to demote this CR to a student?")) return;
 
     try {
-      await updateDoc(doc(db, 'classes', classData.id), {
-        admins: arrayRemove(userId)
-      });
-      
-      await updateDoc(doc(db, 'users', userId), {
-        role: 'student'
-      });
-
-      toast.success("CR status revoked");
+      await crApi.demote(userId);
+      toast.success('CR status revoked');
       fetchAdminData();
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error(error instanceof Error ? error.message : 'Failed to update status');
     }
   };
 
@@ -273,7 +258,7 @@ export default function CRPanel() {
                  <button
                     className="absolute top-4 right-4 p-2 rounded-xl bg-danger/10 text-danger opacity-0 group-hover:opacity-100 transition-all hover:bg-danger hover:text-white z-20"
                     onClick={() => {
-                      navigator.clipboard.writeText(classData.adminInviteCode);
+                      navigator.clipboard.writeText(secrets?.adminInviteCode || '');
                       toast.success('ID Copied');
                     }}
                   >
@@ -284,8 +269,8 @@ export default function CRPanel() {
                  </div>
                  <p className="text-xs font-medium text-danger opacity-60 mb-2">CR Invite Code</p>
                  <div className="flex items-center justify-between">
-                   <code className="text-2xl font-semibold text-danger">{classData.adminInviteCode}</code>
-                   <span className="text-xs font-bold text-danger/40">{classData.adminCodeUses} left</span>
+                   <code className="text-2xl font-semibold text-danger">{secrets?.adminInviteCode || '—'}</code>
+                   <span className="text-xs font-bold text-danger/40">{secrets?.adminCodeUses ?? 0} left</span>
                  </div>
                  <p className="mt-3 text-xs text-muted-foreground">Students enroll via GLA portal — this code only elevates a classmate to Class Rep.</p>
                </div>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { useState, useEffect, useCallback } from 'react';
+import { collection, query, where, getDocs, addDoc, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Subject, Task, Priority } from '../types';
@@ -16,6 +16,7 @@ interface TaskModalProps {
 
 export function TaskModal({ isOpen, onClose, onTaskAdded }: TaskModalProps) {
   const { userData, currentUser } = useAuth();
+  const classId = userData?.classId;
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -27,29 +28,31 @@ export function TaskModal({ isOpen, onClose, onTaskAdded }: TaskModalProps) {
   const [deadlineTime, setDeadlineTime] = useState('');
   const [priority, setPriority] = useState<Priority>('medium');
 
-  useEffect(() => {
-    if (isOpen && userData?.classId) {
-      fetchSubjects();
-    }
-  }, [isOpen, userData]);
-
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       const q = query(
         collection(db, 'subjects'),
-        where('classId', '==', userData!.classId),
-        where('isActive', '==', true)
+        where('classId', '==', classId),
+        where('isActive', '==', true),
+        limit(100)
       );
       const snapshot = await getDocs(q);
       const fetchedSubjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
       setSubjects(fetchedSubjects);
-      if (fetchedSubjects.length > 0 && !subjectId) {
-        setSubjectId(fetchedSubjects[0].id);
+      if (fetchedSubjects.length > 0) {
+        setSubjectId((prev) => prev || fetchedSubjects[0].id);
       }
     } catch (error) {
       console.error("Error fetching subjects:", error);
     }
-  };
+  }, [classId]);
+
+  useEffect(() => {
+    if (isOpen && classId) {
+      void fetchSubjects();
+    }
+  }, [isOpen, classId, fetchSubjects]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,8 +87,8 @@ export function TaskModal({ isOpen, onClose, onTaskAdded }: TaskModalProps) {
       setPriority('medium');
       onClose();
       if (onTaskAdded) onTaskAdded();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create task');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create task');
     } finally {
       setLoading(false);
     }

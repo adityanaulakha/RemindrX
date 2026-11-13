@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, arrayRemove, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Task, Subject, Event, EventParticipation } from '../types';
@@ -15,6 +15,9 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { Badge } from '../components/ui/Badge';
 import { toast } from 'react-hot-toast';
 import { usePortalSession } from '../hooks/usePortalSession';
+import { useNow } from '../hooks/useNow';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default function Dashboard() {
   const { userData, currentUser } = useAuth();
@@ -29,27 +32,40 @@ export default function Dashboard() {
   const isFirstTime = searchParams.get('firstTime') === 'true';
   const [showFTEModal, setShowFTEModal] = useState(false);
 
+  const classId = userData?.classId;
+  const uid = currentUser?.uid;
+
   useEffect(() => {
     async function fetchDashboardData() {
-      if (!userData?.classId) return;
+      if (!classId) return;
       try {
-        const subQ = query(collection(db, 'subjects'), where('classId', '==', userData.classId), where('isActive', '==', true));
-        const subSnap = await getDocs(subQ);
+        const now = Date.now();
+        // Bounded windows: missed tasks from the last 2 weeks + everything upcoming
+        // (max 100), and approved events from yesterday onward (max 30).
+        const [subSnap, taskSnap, eventSnap, partSnap] = await Promise.all([
+          getDocs(query(collection(db, 'subjects'), where('classId', '==', classId), where('isActive', '==', true), limit(100))),
+          getDocs(query(
+            collection(db, 'tasks'),
+            where('classId', '==', classId),
+            where('deadline', '>=', now - 14 * DAY_MS),
+            orderBy('deadline', 'asc'),
+            limit(100)
+          )),
+          getDocs(query(
+            collection(db, 'events'),
+            where('status', '==', 'approved'),
+            where('date', '>=', now - DAY_MS),
+            orderBy('date', 'asc'),
+            limit(30)
+          )),
+          uid
+            ? getDocs(query(collection(db, 'event_participations'), where('userId', '==', uid), where('status', '==', 'going'), limit(100)))
+            : Promise.resolve(null),
+        ]);
         setSubjects(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as Subject)));
-
-        const taskQ = query(collection(db, 'tasks'), where('classId', '==', userData.classId));
-        const taskSnap = await getDocs(taskQ);
         setTasks(taskSnap.docs.map(d => ({ id: d.id, ...d.data() } as Task)));
-
-        const eventQ = query(collection(db, 'events'), where('status', '==', 'approved'));
-        const eventSnap = await getDocs(eventQ);
         setEvents(eventSnap.docs.map(d => ({ id: d.id, ...d.data() } as Event)));
-
-        if (currentUser) {
-          const partQ = query(collection(db, 'event_participations'), where('userId', '==', currentUser.uid), where('status', '==', 'going'));
-          const partSnap = await getDocs(partQ);
-          setParticipations(partSnap.docs.map(d => (d.data() as EventParticipation).eventId));
-        }
+        if (partSnap) setParticipations(partSnap.docs.map(d => (d.data() as EventParticipation).eventId));
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -57,7 +73,7 @@ export default function Dashboard() {
       }
     }
     fetchDashboardData();
-  }, [userData, currentUser]);
+  }, [classId, uid]);
 
   useEffect(() => {
     if (!loading && isFirstTime) setShowFTEModal(true);
@@ -86,7 +102,7 @@ export default function Dashboard() {
     }
   };
 
-  const now = Date.now();
+  const now = useNow();
   const deadlineDays = userData?.deadlinePreference || 2;
   const deadlineTime = deadlineDays * 24 * 60 * 60 * 1000;
 

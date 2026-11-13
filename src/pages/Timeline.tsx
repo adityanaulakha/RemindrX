@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, onSnapshot, getDocs, updateDoc, doc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, arrayRemove, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Task, Event, EventParticipation } from '../types';
@@ -12,6 +12,9 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { Plus, Clock, Calendar, AlertTriangle, MapPin, CheckCircle2, Circle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Card } from '../components/ui/Card';
+import { useNow } from '../hooks/useNow';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 type TimelineItem = 
   | { type: 'task'; data: Task; timestamp: number }
@@ -24,19 +27,38 @@ export default function Timeline() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshTimer, setRefreshTimer] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchTimeline = async (force = false) => {
-    if (!userData?.classId || !currentUser || (refreshTimer > 0 && !force)) return;
+  const classId = userData?.classId;
+  const uid = currentUser?.uid;
+  const lastFetchRef = useRef(0);
+
+  const fetchTimeline = useCallback(async (force = false) => {
+    if (!classId || !uid) return;
+    // 10s cooldown between non-forced fetches (saves reads on quick re-renders).
+    if (!force && Date.now() - lastFetchRef.current < 10_000) return;
+    lastFetchRef.current = Date.now();
     
-    setIsRefreshing(true);
     if (!force) setLoading(true);
 
     try {
       const [tasksSnap, eventsSnap, partsSnap] = await Promise.all([
-        getDocs(query(collection(db, 'tasks'), where('classId', '==', userData.classId))),
-        getDocs(query(collection(db, 'events'), where('status', '==', 'approved'))),
-        getDocs(query(collection(db, 'event_participations'), where('userId', '==', currentUser.uid)))
+        // Bounded window: last 30 days → next 180 days.
+        getDocs(query(
+          collection(db, 'tasks'),
+          where('classId', '==', classId),
+          where('deadline', '>=', Date.now() - 30 * DAY_MS),
+          where('deadline', '<=', Date.now() + 180 * DAY_MS),
+          orderBy('deadline', 'asc'),
+          limit(200)
+        )),
+        getDocs(query(
+          collection(db, 'events'),
+          where('status', '==', 'approved'),
+          where('date', '>=', Date.now() - 30 * DAY_MS),
+          orderBy('date', 'asc'),
+          limit(100)
+        )),
+        getDocs(query(collection(db, 'event_participations'), where('userId', '==', uid), limit(200)))
       ]);
 
       const tasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
@@ -61,9 +83,8 @@ export default function Timeline() {
       toast.error('Sync failed');
     } finally {
       setLoading(false);
-      setIsRefreshing(false);
     }
-  };
+  }, [classId, uid]);
 
   const handleToggleDone = async (taskId: string, isDone: boolean) => {
     if (!currentUser) return;
@@ -74,18 +95,18 @@ export default function Timeline() {
       });
       fetchTimeline(true);
       if (!isDone) toast.success('Marked as done', { position: 'bottom-right' });
-    } catch (error) {
+    } catch {
       toast.error('Sync failed');
     }
   };
 
   useEffect(() => {
-    fetchTimeline();
+    void fetchTimeline();
 
     const handleGlobalRefresh = () => fetchTimeline(true);
     window.addEventListener('app-refresh', handleGlobalRefresh);
     return () => window.removeEventListener('app-refresh', handleGlobalRefresh);
-  }, [userData, currentUser]);
+  }, [fetchTimeline]);
 
   useEffect(() => {
     if (refreshTimer > 0) {
@@ -94,7 +115,7 @@ export default function Timeline() {
     }
   }, [refreshTimer]);
 
-  const now = Date.now();
+  const now = useNow();
 
   const isPast = (timestamp: number) => timestamp < now;
   const isCritical = (timestamp: number, priority?: string) => !isPast(timestamp) && (timestamp <= now + 48 * 60 * 60 * 1000 || priority === 'critical');

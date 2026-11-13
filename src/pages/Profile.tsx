@@ -11,15 +11,13 @@ import {
 } from 'firebase/auth';
 import {
   doc,
+  getDoc,
   updateDoc,
   collection,
   query,
   where,
-  getDocs,
   deleteDoc,
   getCountFromServer,
-  arrayUnion,
-  increment,
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -41,7 +39,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
 import { useNotifications } from '../hooks/useNotifications';
-import type { ClassData } from '../types';
+import { crApi } from '../services/api';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -90,15 +88,13 @@ export default function Profile() {
         setBranch(userData.branch || '');
         setCourse(userData.course || userData.program || '');
         setSemester(userData.semester || '');
-        calculateTrustScore(currentUser.uid).then(setTrustScore);
+        calculateTrustScore(currentUser.uid, userData.classId).then(setTrustScore);
 
         if (userData.classId) {
           try {
-            const classSnap = await getDocs(
-              query(collection(db, 'classes'), where('__name__', '==', userData.classId))
-            );
-            if (!classSnap.empty) {
-              const classData = classSnap.docs[0].data();
+            const classSnap = await getDoc(doc(db, 'classes', userData.classId));
+            if (classSnap.exists()) {
+              const classData = classSnap.data();
               if (classData.year && !userData.year) setYear(classData.year);
               if (classData.section && !userData.section) setSection(classData.section);
               if (classData.program && !userData.program) setProgram(classData.program);
@@ -131,33 +127,8 @@ export default function Profile() {
 
     setCrLoading(true);
     try {
-      const classRef = doc(db, 'classes', userData.classId);
-      const classSnap = await getDocs(query(collection(db, 'classes'), where('__name__', '==', userData.classId)));
-      if (classSnap.empty) {
-        toast.error('Section not found');
-        return;
-      }
-      const classDoc = classSnap.docs[0];
-      const classData = classDoc.data() as ClassData;
-
-      if (classData.adminInviteCode !== code) {
-        toast.error('Invalid CR invite code');
-        return;
-      }
-      if ((classData.adminCodeUses ?? 0) <= 0) {
-        toast.error('CR invite code usage limit reached');
-        return;
-      }
-      if (classData.adminCodeExpiry && classData.adminCodeExpiry < Date.now()) {
-        toast.error('CR invite code has expired');
-        return;
-      }
-
-      await updateDoc(classRef, {
-        adminCodeUses: increment(-1),
-        admins: arrayUnion(currentUser.uid),
-      });
-      await updateDoc(doc(db, 'users', currentUser.uid), { role: 'admin' });
+      // Verified server-side (Admin SDK): code check, usage count, expiry.
+      await crApi.redeem(code);
       setUserData({ ...userData, role: 'admin' });
       setCrInviteCode('');
       toast.success('You are now a Class Rep');

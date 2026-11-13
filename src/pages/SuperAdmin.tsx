@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, getDocs, getCountFromServer, addDoc, orderBy, limit, getDoc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, deleteDoc, getDocs, getCountFromServer, addDoc, orderBy, limit, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import type { Event, ClassData, User, Subject, Institute } from '../types';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import type { Event, ClassData, ClassSecrets, User, Subject, Institute } from '../types';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { CreateSectionModal } from '../components/CreateSectionModal';
 import { EditSectionModal } from '../components/EditSectionModal';
 import { EventDetailModal } from '../components/EventDetailModal';
-import { Calendar, CheckCircle, XCircle, Users, BookOpen, LayoutDashboard, Search, ListTodo, MessageSquare, TrendingUp, Trophy, Plus, Edit2, Trash2, Share2, School, Globe, Settings, ShieldAlert, Activity, RefreshCw, ShieldCheck, Copy } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, Users, BookOpen, LayoutDashboard, Search, TrendingUp, Plus, Edit2, Trash2, School, Globe, Copy } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  PieChart, Pie, Cell, AreaChart, Area, LineChart, Line 
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
+
+const USER_PAGE = 200;
+const CLASS_PAGE = 200;
+const SUBJECT_PAGE = 300;
 
 const CHART_COLORS = ['#0F6B56', '#C45C26', '#B54708', '#1D4E89', '#067647'];
 
@@ -30,20 +32,15 @@ export default function SuperAdmin() {
   const { userData, currentUser } = useAuth();
   const [pendingEvents, setPendingEvents] = useState<Event[]>([]);
   const [classes, setClasses] = useState<ClassData[]>([]);
-  const [crMap, setCrMap] = useState<Record<string, string>>({}); // userId -> name
   const [analytics, setAnalytics] = useState<Analytics>({ 
     totalUsers: 0, totalClasses: 0, totalEvents: 0, totalSubjects: 0 
   });
-  const [topUsers, setTopUsers] = useState<User[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeDetailTab, setActiveDetailTab] = useState<string | null>(null);
-  const [filterProgram, setFilterProgram] = useState('');
-  const [filterYear, setFilterYear] = useState('');
-  const [filterBranch, setFilterBranch] = useState('');
   const [activeTab, setActiveTab] = useState<'analytics' | 'events' | 'classes' | 'institutes'>('analytics');
 
   // Institute State
@@ -55,7 +52,8 @@ export default function SuperAdmin() {
 
   // Modal State
   const [selectedClass, setSelectedClass] = useState<ClassData | null>(null);
-  const [classDetailsLoading, setClassDetailsLoading] = useState(false);
+  const [selectedSecrets, setSelectedSecrets] = useState<ClassSecrets | null>(null);
+  const [activeCounts, setActiveCounts] = useState({ day: 0, week: 0 });
   const [classStudents, setClassStudents] = useState<User[]>([]);
   const [classSubjects, setClassSubjects] = useState<Subject[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -68,7 +66,6 @@ export default function SuperAdmin() {
 
   // Stats & Cooldown
   const [refreshTimer, setRefreshTimer] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   // Chart Data State
   const [chartData, setChartData] = useState<{
     branchDist: { name: string, value: number }[];
@@ -88,18 +85,20 @@ export default function SuperAdmin() {
 
   const fetchData = async (force = false) => {
     if (!userData?.isSuperAdmin || (refreshTimer > 0 && !force)) return;
-    
-    setIsRefreshing(true);
     setLoading(true);
 
     try {
       // 1. Fetch Stats (Cheap Aggregations)
-      const [uCount, cCount, eCount, sCount] = await Promise.all([
+      const now = Date.now();
+      const [uCount, cCount, eCount, sCount, active24h, active7d] = await Promise.all([
         getCountFromServer(collection(db, 'users')),
         getCountFromServer(collection(db, 'classes')),
         getCountFromServer(collection(db, 'events')),
-        getCountFromServer(collection(db, 'subjects'))
+        getCountFromServer(collection(db, 'subjects')),
+        getCountFromServer(query(collection(db, 'users'), where('lastActive', '>', now - 24 * 60 * 60 * 1000))),
+        getCountFromServer(query(collection(db, 'users'), where('lastActive', '>', now - 7 * 24 * 60 * 60 * 1000))),
       ]);
+      setActiveCounts({ day: active24h.data().count, week: active7d.data().count });
 
       setAnalytics({
         totalUsers: uCount.data().count,
@@ -109,12 +108,13 @@ export default function SuperAdmin() {
       });
 
       // 2. Fetch Active Lists based on current view or basic needs
+      // Paged/limited lists — totals above come from count aggregations.
       const [instSnap, pendingEventsSnap, usersSnap, eventsSnap, subjectsSnap] = await Promise.all([
-        getDocs(query(collection(db, 'institutes'), orderBy('name', 'asc'))),
-        getDocs(query(collection(db, 'events'), where('status', '==', 'pending'))),
-        getDocs(collection(db, 'users')),
+        getDocs(query(collection(db, 'institutes'), orderBy('name', 'asc'), limit(100))),
+        getDocs(query(collection(db, 'events'), where('status', '==', 'pending'), limit(100))),
+        getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(USER_PAGE))),
         getDocs(query(collection(db, 'events'), orderBy('date', 'desc'), limit(100))),
-        getDocs(collection(db, 'subjects'))
+        getDocs(query(collection(db, 'subjects'), limit(SUBJECT_PAGE)))
       ]);
 
       setInstitutes(instSnap.docs.map(d => ({ id: d.id, ...d.data() } as Institute)));
@@ -122,7 +122,6 @@ export default function SuperAdmin() {
 
       const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
       setAllUsers(users);
-      setTopUsers([...users].sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0)).slice(0, 5));
 
       setAllEvents(eventsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Event)));
       setAllSubjects(subjectsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Subject)));
@@ -136,20 +135,17 @@ export default function SuperAdmin() {
       console.error("Fetch error:", error);
       toast.error('Data Sync Failed');
     } finally {
-      setIsRefreshing(false);
       setLoading(false);
     }
   };
 
   const fetchDetailedUsers = async () => {
-    const snap = await getDocs(query(collection(db, 'users'), limit(100)));
-    const users = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-    setAllUsers(users);
-    setTopUsers([...users].sort((a, b) => (b.trustScore || 0) - (a.trustScore || 0)).slice(0, 5));
+    const snap = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(USER_PAGE)));
+    setAllUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
   };
 
   const fetchDetailedClasses = async () => {
-    const snap = await getDocs(collection(db, 'classes'));
+    const snap = await getDocs(query(collection(db, 'classes'), limit(CLASS_PAGE)));
     setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() } as ClassData)));
   };
 
@@ -159,7 +155,7 @@ export default function SuperAdmin() {
   };
 
   const fetchDetailedSubjects = async () => {
-    const snap = await getDocs(collection(db, 'subjects'));
+    const snap = await getDocs(query(collection(db, 'subjects'), limit(SUBJECT_PAGE)));
     setAllSubjects(snap.docs.map(d => ({ id: d.id, ...d.data() } as Subject)));
   };
 
@@ -169,7 +165,9 @@ export default function SuperAdmin() {
     const handleGlobalRefresh = () => fetchData(true);
     window.addEventListener('app-refresh', handleGlobalRefresh);
     return () => window.removeEventListener('app-refresh', handleGlobalRefresh);
-  }, [userData]);
+    // Only re-run when super-admin status changes, not on every profile snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData?.isSuperAdmin]);
 
   useEffect(() => {
     if (refreshTimer > 0) {
@@ -184,6 +182,8 @@ export default function SuperAdmin() {
     if ((activeDetailTab === 'classes' || activeTab === 'classes') && classes.length === 0) fetchDetailedClasses();
     if ((activeDetailTab === 'events' || activeTab === 'events') && allEvents.length === 0) fetchDetailedEvents();
     if ((activeDetailTab === 'subjects' || activeTab === 'classes') && allSubjects.length === 0) fetchDetailedSubjects();
+    // Lazy per-tab loading: intentionally keyed on tab changes only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDetailTab, activeTab]);
 
   // Reactive Chart Data Processing
@@ -208,7 +208,8 @@ export default function SuperAdmin() {
     // 3. Sign-ups
     const growthCounts: Record<string, number> = {};
     allUsers.forEach(u => {
-      const date = new Date(u.createdAt || (Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000))
+      if (!u.createdAt) return;
+      const date = new Date(u.createdAt)
         .toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       growthCounts[date] = (growthCounts[date] || 0) + 1;
     });
@@ -235,13 +236,10 @@ export default function SuperAdmin() {
     ];
 
     // 6. User Retention
-    const now = Date.now();
-    const active24h = allUsers.filter(u => (u.lastActive || 0) > now - 24 * 60 * 60 * 1000).length;
-    const active7d = allUsers.filter(u => (u.lastActive || 0) > now - 7 * 24 * 60 * 60 * 1000).length;
     const retentionData = [
-      { name: 'Daily Active', value: active24h },
-      { name: 'Weekly Active', value: active7d },
-      { name: 'Total', value: allUsers.length }
+      { name: 'Daily Active', value: activeCounts.day },
+      { name: 'Weekly Active', value: activeCounts.week },
+      { name: 'Total', value: analytics.totalUsers || allUsers.length }
     ];
 
     setChartData({
@@ -252,7 +250,7 @@ export default function SuperAdmin() {
       userGrowth,
       retentionData
     });
-  }, [allUsers, allEvents, allSubjects]);
+  }, [allUsers, allEvents, allSubjects, activeCounts, analytics.totalUsers]);
 
   const handleAction = async (eventId: string, status: 'approved' | 'rejected', remarks: string) => {
     try {
@@ -264,7 +262,7 @@ export default function SuperAdmin() {
       }
 
       const isModification = !!eventDoc.pendingUpdate;
-      const updates: Record<string, any> = { 
+      const updates: Record<string, unknown> = { 
         status: status === 'approved' ? 'approved' : (isModification ? 'approved' : 'rejected'),
         moderatorRemarks: remarks,
         pendingUpdate: null // Always clear the pending update after action
@@ -333,9 +331,9 @@ export default function SuperAdmin() {
           });
           console.log('Notification sent successfully');
           toast.success('Creator notified');
-        } catch (notifyError: any) {
+        } catch (notifyError) {
           console.error('Notification failed:', notifyError);
-          toast.error(`Could not notify creator: ${notifyError.message}`);
+          toast.error(`Could not notify creator: ${notifyError instanceof Error ? notifyError.message : 'unknown error'}`);
         }
       }
 
@@ -350,22 +348,21 @@ export default function SuperAdmin() {
 
   const openClassDetails = async (cls: ClassData) => {
     setSelectedClass(cls);
-    setClassDetailsLoading(true);
     try {
-      const studentsQ = query(collection(db, 'users'), where('classId', '==', cls.id));
-      const subjectsQ = query(collection(db, 'subjects'), where('classId', '==', cls.id));
+      const studentsQ = query(collection(db, 'users'), where('classId', '==', cls.id), limit(500));
+      const subjectsQ = query(collection(db, 'subjects'), where('classId', '==', cls.id), limit(200));
       
-      const [studentsSnap, subjectsSnap] = await Promise.all([
+      const [studentsSnap, subjectsSnap, secretSnap] = await Promise.all([
         getDocs(studentsQ),
-        getDocs(subjectsQ)
+        getDocs(subjectsQ),
+        getDoc(doc(db, 'classSecrets', cls.id)),
       ]);
+      setSelectedSecrets(secretSnap.exists() ? (secretSnap.data() as ClassSecrets) : null);
 
       setClassStudents(studentsSnap.docs.map(d => ({ id: d.id, ...d.data() } as User)));
       setClassSubjects(subjectsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Subject)));
-    } catch (err) {
+    } catch {
       toast.error("Failed to load section details");
-    } finally {
-      setClassDetailsLoading(false);
     }
   };
 
@@ -373,9 +370,10 @@ export default function SuperAdmin() {
     if (window.confirm(`Are you absolutely sure you want to delete ${cls.name}? This action cannot be undone.`)) {
       try {
         await deleteDoc(doc(db, 'classes', cls.id));
+        await deleteDoc(doc(db, 'classSecrets', cls.id)).catch(() => undefined);
         toast.success(`${cls.name} deleted successfully`);
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to delete section');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to delete section');
       }
     }
   };
@@ -403,7 +401,7 @@ export default function SuperAdmin() {
       setEditingInstitute(null);
       setNewInstName('');
       setNewInstDomains('');
-    } catch (e) {
+    } catch {
       toast.error('Operation failed');
     } finally {
       setLoading(false);
@@ -435,7 +433,7 @@ export default function SuperAdmin() {
       }
       setIsEditingSubject(false);
       setSubjectForm({});
-    } catch (error) {
+    } catch {
       toast.error('Specification error');
     }
   };
@@ -445,7 +443,7 @@ export default function SuperAdmin() {
     try {
       await deleteDoc(doc(db, 'subjects', id));
       toast.success('Unit purged');
-    } catch (error) {
+    } catch {
       toast.error('Could not delete');
     }
   };
@@ -455,7 +453,7 @@ export default function SuperAdmin() {
     try {
       await deleteDoc(doc(db, 'institutes', id));
       toast.success('Institute deleted');
-    } catch (e) {
+    } catch {
       toast.error('Failed to delete');
     }
   };
@@ -485,7 +483,7 @@ export default function SuperAdmin() {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all ${
                   activeTab === tab.id
                     ? 'bg-primary text-primary-foreground '
@@ -525,7 +523,7 @@ export default function SuperAdmin() {
                   <div 
                     key={stat.id} 
                     className={`group relative overflow-hidden bg-card/20  border border-border rounded-2xl p-8 transition-all duration-500 hover:scale-[1.05] hover:border-primary/30 hover:shadow-2xl cursor-pointer ${activeDetailTab === stat.id ? 'border-primary/50 bg-primary/5' : ''}`}
-                    onClick={() => setActiveDetailTab(activeDetailTab === stat.id ? null : stat.id as any)}
+                    onClick={() => setActiveDetailTab(activeDetailTab === stat.id ? null : stat.id)}
                   >
                     <div className="flex flex-col gap-6 relative z-10">
                       <div className={`h-12 w-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-inner  transition-transform`}>
@@ -932,14 +930,14 @@ export default function SuperAdmin() {
                 <button 
                   className="absolute top-4 right-4 p-2 rounded-xl bg-accent/10 text-accent opacity-0 group-hover:opacity-100 transition-all hover:bg-accent hover:text-white"
                   onClick={() => {
-                    navigator.clipboard.writeText(selectedClass.adminInviteCode);
+                    navigator.clipboard.writeText(selectedSecrets?.adminInviteCode || '');
                     toast.success('ID Copied');
                   }}
                 >
                   <Copy className="h-4 w-4" />
                 </button>
                 <p className="text-xs font-semibold text-accent mb-2 tracking-widest">CR invite code</p>
-                <p className="text-3xl font-semibold font-mono text-accent">{selectedClass.adminInviteCode}</p>
+                <p className="text-3xl font-semibold font-mono text-accent">{selectedSecrets?.adminInviteCode || '—'}</p>
               </div>
             </div>
 
@@ -1148,7 +1146,7 @@ export default function SuperAdmin() {
                       <select
                         className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary font-semibold"
                         value={subjectForm.type}
-                        onChange={e => setSubjectForm(prev => ({ ...prev, type: e.target.value as any }))}
+                        onChange={e => setSubjectForm(prev => ({ ...prev, type: e.target.value as Subject['type'] }))}
                       >
                         <option value="theory">Theory</option>
                         <option value="lab">Laboratory</option>

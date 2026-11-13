@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { useEffect, useState, useCallback } from 'react';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, limit } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,7 @@ import { refreshPortalProvision } from '../services/gla/portal';
 
 export default function Subjects() {
   const { userData, currentUser } = useAuth();
+  const classId = userData?.classId;
   const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,19 +33,16 @@ export default function Subjects() {
   const [credits, setCredits] = useState('0');
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSubjects();
-  }, [userData]);
-
-  const fetchSubjects = async (force = false) => {
-    if (!userData?.classId) return;
+  const fetchSubjects = useCallback(async () => {
+    if (!classId) return;
     setLoading(true);
 
     try {
       const q = query(
         collection(db, 'subjects'),
-        where('classId', '==', userData.classId),
-        where('isActive', '==', true)
+        where('classId', '==', classId),
+        where('isActive', '==', true),
+        limit(100)
       );
       const snapshot = await getDocs(q);
       const fetchedSubjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subject));
@@ -55,7 +53,13 @@ export default function Subjects() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch
+    void fetchSubjects();
+  }, [fetchSubjects]);
+
 
   const handleRefreshFromPortal = async () => {
     if (!currentUser || !isPortalUser) return;
@@ -72,7 +76,7 @@ export default function Subjects() {
           ? `Synced from portal (${result.subjectUpserts} subject updates)`
           : 'Portal profile refreshed'
       );
-      await fetchSubjects(true);
+      await fetchSubjects();
     } catch {
       toast.error('Portal refresh failed');
     } finally {
@@ -110,7 +114,7 @@ export default function Subjects() {
       setName(''); setCode(''); setType('theory'); setCredits('0');
       setEditingId(null); setShowAddForm(false);
       fetchSubjects();
-    } catch (error) {
+    } catch {
       toast.error('Operation failed');
     }
   };
