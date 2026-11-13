@@ -1,9 +1,17 @@
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { pathToFileURL } from 'node:url'
 import path from 'node:path'
+
+/** Expose .env / .env.local (incl. FIREBASE_*) to the Vite Node process for /api/gla/*. */
+function loadServerEnv(mode: string, root: string) {
+  const env = loadEnv(mode, root, '')
+  for (const [key, value] of Object.entries(env)) {
+    if (process.env[key] === undefined) process.env[key] = value
+  }
+}
 
 /** Local-dev shim so `/api/gla/*` works without `vercel dev`. */
 function glaApiPlugin(): Plugin {
@@ -75,74 +83,81 @@ function glaApiPlugin(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    glaApiPlugin(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      devOptions: {
-        enabled: true
-      },
-      manifest: {
-        name: 'RemindrX',
-        short_name: 'RemindrX',
-        description: 'Campus workspace for deadlines, attendance, timetable, and section updates',
-        theme_color: '#111111',
-        background_color: '#111111',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
-        icons: [
-          {
-            src: 'icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'icon-maskable-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
-          }
-        ],
-        shortcuts: [
-          {
-            name: 'Events',
-            url: '/events',
-            icons: [{ src: 'icon-192.png', sizes: '192x192' }]
-          },
-          {
-            name: 'Timeline',
-            url: '/timeline',
-            icons: [{ src: 'icon-192.png', sizes: '192x192' }]
-          }
-        ]
-      }
-    })
-  ],
-  build: {
-    rolldownOptions: {
-      output: {
-        // Stable vendor chunks: cache well across deploys and keep the entry small.
-        // recharts/d3 stay in the lazily-loaded Super Admin chunk.
-        codeSplitting: {
-          groups: [
-            { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/ },
-            { name: 'vendor-firebase', test: /node_modules[\\/](@firebase|firebase)[\\/]/ },
+export default defineConfig(({ mode }) => {
+  loadServerEnv(mode, process.cwd())
+
+  return {
+    plugins: [
+      react(),
+      tailwindcss(),
+      glaApiPlugin(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        devOptions: {
+          enabled: true,
+        },
+        manifest: {
+          name: 'RemindrX',
+          short_name: 'RemindrX',
+          description: 'Campus workspace for deadlines, attendance, timetable, and section updates',
+          theme_color: '#111111',
+          background_color: '#111111',
+          display: 'standalone',
+          orientation: 'portrait',
+          scope: '/',
+          start_url: '/',
+          icons: [
+            {
+              src: 'icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: 'icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+            {
+              src: 'icon-maskable-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
           ],
+          shortcuts: [
+            {
+              name: 'Events',
+              url: '/events',
+              icons: [{ src: 'icon-192.png', sizes: '192x192' }],
+            },
+            {
+              name: 'Timeline',
+              url: '/timeline',
+              icons: [{ src: 'icon-192.png', sizes: '192x192' }],
+            },
+          ],
+        },
+      }),
+    ],
+    build: {
+      rolldownOptions: {
+        output: {
+          // Stable vendor chunks: cache well across deploys and keep the entry small.
+          // recharts/d3 stay in the lazily-loaded Super Admin chunk.
+          codeSplitting: {
+            groups: [
+              {
+                name: 'vendor-react',
+                test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/,
+              },
+              { name: 'vendor-firebase', test: /node_modules[\\/](@firebase|firebase)[\\/]/ },
+            ],
+          },
         },
       },
     },
-  },
-  optimizeDeps: {
-    include: ['recharts', 'react-is']
-  },
+    optimizeDeps: {
+      include: ['recharts', 'react-is'],
+    },
+  }
 })

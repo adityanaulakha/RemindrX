@@ -264,10 +264,10 @@ export async function rateLimit(
   max: number,
   windowMs: number
 ): Promise<{ ok: boolean; retryAfterSec: number }> {
-  const db = adminDb();
-  const ref = db.collection('rateLimits').doc(sha(key, 40));
-  const now = Date.now();
   try {
+    const db = adminDb();
+    const ref = db.collection('rateLimits').doc(sha(key, 40));
+    const now = Date.now();
     return await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       const data = snap.exists ? (snap.data() as { windowStart?: number; count?: number }) : null;

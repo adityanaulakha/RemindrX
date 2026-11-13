@@ -56,16 +56,38 @@ function normalizeProfilePayload(raw: unknown): Partial<PortalProfileIn> | null 
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
   const nested = o.profile && typeof o.profile === 'object' ? (o.profile as Record<string, unknown>) : o;
+  // GetStudentBasicDetails shape: { list: [{ Name, Course, DOB, RollNo, ... }] }
+  const list0 =
+    (Array.isArray(nested.list) && nested.list[0] && typeof nested.list[0] === 'object'
+      ? (nested.list[0] as Record<string, unknown>)
+      : null) ||
+    (Array.isArray((raw as { list?: unknown[] }).list) &&
+    (raw as { list: unknown[] }).list[0] &&
+    typeof (raw as { list: unknown[] }).list[0] === 'object'
+      ? ((raw as { list: Record<string, unknown>[] }).list[0] as Record<string, unknown>)
+      : null);
+
+  const src = list0 || nested;
+  const course = pickStr(src.course, src.Course, nested.course, nested.Course);
+  let program = pickStr(src.program, src.Program, nested.program, nested.Program, course);
+  let branch = pickStr(src.branch, src.Branch, nested.branch, nested.Branch, nested.stream);
+  // e.g. "B.Tech.( Computer Science & Engineering )"
+  const m = course ? /^(.+?)\(\s*(.+?)\s*\)\s*$/.exec(course) : null;
+  if (m) {
+    program = m[1].trim() || program;
+    branch = m[2].trim() || branch;
+  }
+
   return {
-    roll: pickStr(nested.roll, nested.rollNo, nested.RollNo) || undefined,
-    name: pickStr(nested.name, nested.Name, nested.studentName) || undefined,
-    dob: pickDob(nested.dob, nested.DOB, nested.dateOfBirth),
-    course: pickStr(nested.course, nested.Course),
-    program: pickStr(nested.program, nested.Program, nested.course, nested.Course),
-    branch: pickStr(nested.branch, nested.Branch, nested.stream),
-    year: pickStr(nested.year, nested.Year, nested.academicYear),
-    section: pickStr(nested.section, nested.Section, nested.sec),
-    semester: pickStr(nested.semester, nested.Semester, nested.sem),
+    roll: pickStr(src.roll, src.RollNo, src.rollNo, nested.roll, nested.rollNo, nested.RollNo) || undefined,
+    name: pickStr(src.name, src.Name, src.studentName, nested.name, nested.Name, nested.studentName) || undefined,
+    dob: pickDob(src.dob, src.DOB, src.dateOfBirth, nested.dob, nested.DOB, nested.dateOfBirth),
+    course,
+    program,
+    branch,
+    year: pickStr(src.year, src.Year, nested.year, nested.Year, nested.academicYear),
+    section: pickStr(src.section, src.Section, nested.section, nested.Section, nested.sec),
+    semester: pickStr(src.semester, src.Semester, nested.semester, nested.Semester, nested.sem),
     subjects: Array.isArray(nested.subjects) ? (nested.subjects as PortalProfileIn['subjects']) : undefined,
     summary:
       nested.summary && typeof nested.summary === 'object'
