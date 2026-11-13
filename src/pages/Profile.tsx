@@ -35,11 +35,14 @@ import {
   Fingerprint,
   GraduationCap,
   Shield,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateTrustScore } from '../utils/trustScore';
 import { useNotifications } from '../hooks/useNotifications';
 import { crApi } from '../services/api';
+import { refreshPortalProvision } from '../services/gla/portal';
+import { loadMeta } from '../services/gla/session';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -47,6 +50,7 @@ export default function Profile() {
   const { requestPermission } = useNotifications();
   const isPortalUser = userData?.authProvider === 'gla_portal' || currentUser?.uid.startsWith('gla_');
 
+  const [portalSyncing, setPortalSyncing] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -108,6 +112,53 @@ export default function Profile() {
     }
     loadProfileData();
   }, [userData, currentUser]);
+
+  const handleSyncFromPortal = async () => {
+    if (!currentUser || !isPortalUser) return;
+    const portalSession = loadMeta().token;
+    if (!portalSession) {
+      toast.error('Open Attendance and reconnect once, then sync again');
+      return;
+    }
+    setPortalSyncing(true);
+    try {
+      const idToken = await currentUser.getIdToken();
+      const result = await refreshPortalProvision(idToken, portalSession);
+      if (!result.success) {
+        toast.error(result.error || 'Could not sync from portal');
+        return;
+      }
+      const p = result.profile;
+      if (p) {
+        if (p.name) setName(p.name);
+        if (p.dob) setDob(String(p.dob));
+        if (p.course || p.program) setCourse(String(p.course || p.program || ''));
+        if (p.program || p.course) setProgram(String(p.program || p.course || ''));
+        if (p.branch) setBranch(String(p.branch));
+        if (p.year) setYear(String(p.year));
+        if (p.section) setSection(String(p.section).toUpperCase());
+        if (p.semester) setSemester(String(p.semester));
+        if (userData) {
+          setUserData({
+            ...userData,
+            name: p.name || userData.name,
+            dob: p.dob != null ? String(p.dob) : userData.dob,
+            course: (p.course || p.program || userData.course) as string | undefined,
+            program: (p.program || p.course || userData.program) as string | undefined,
+            branch: (p.branch || userData.branch) as string | undefined,
+            year: p.year != null ? String(p.year) : userData.year,
+            section: p.section ? String(p.section).toUpperCase() : userData.section,
+            semester: (p.semester || userData.semester) as string | undefined,
+          });
+        }
+      }
+      toast.success('Academic details synced from GLA portal');
+    } catch {
+      toast.error('Portal sync failed');
+    } finally {
+      setPortalSyncing(false);
+    }
+  };
 
   const handleBecomeCR = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,12 +390,26 @@ export default function Profile() {
               </div>
 
               <div className="space-y-8">
-                <h3 className="flex items-center gap-2 text-xs font-semibold tracking-normal text-muted-foreground">
-                  <GraduationCap className="h-3 w-3" /> Academic Details
+                <h3 className="flex items-center justify-between gap-2 text-xs font-semibold tracking-normal text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    <GraduationCap className="h-3 w-3" /> Academic Details
+                    {isPortalUser && (
+                      <span className="font-normal normal-case tracking-normal text-[10px] text-muted-foreground/80">
+                        from GLA portal
+                      </span>
+                    )}
+                  </span>
                   {isPortalUser && (
-                    <span className="font-normal normal-case tracking-normal text-[10px] text-muted-foreground/80">
-                      from GLA portal
-                    </span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-8 px-2 text-[11px]"
+                      disabled={portalSyncing}
+                      onClick={() => void handleSyncFromPortal()}
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${portalSyncing ? 'animate-spin' : ''}`} />
+                      {portalSyncing ? 'Syncing…' : 'Sync'}
+                    </Button>
                   )}
                 </h3>
                 <div className="space-y-6">

@@ -1,11 +1,13 @@
 /**
  * Refresh portal profile + subjects for an already-enrolled gla_* user.
- * Auth: Bearer Firebase ID token. Portal session must still be live for that roll.
+ * Auth: Bearer Firebase ID token.
+ * Portal: body.portalSession (ps_…) → Authorization Bearer on portal /profile.
  * CORS: app origins only.
  */
 import {
   adminDb,
   applyCors,
+  bodyOf,
   enforceLimits,
   verifyBearer,
   type Req,
@@ -13,7 +15,12 @@ import {
   portalFetchRetry,
   portalHeaders,
 } from '../_lib/server.js';
-import { syncSubjects, type PortalProfileIn } from '../_lib/portalProvision.js';
+import { syncSubjects, upsertPortalUser, type PortalProfileIn } from '../_lib/portalProvision.js';
+import {
+  enrichProfileWithSession,
+  fetchPortalProfileWithSession,
+  mergePortalProfiles,
+} from '../_lib/portalProfile.js';
 
 const PORTAL_BASE = process.env.PORTAL_BACKEND_URL || 'https://reminder-backend-cf51.onrender.com';
 
@@ -34,30 +41,61 @@ export default async function handler(req: Req, res: Res) {
     const allowed = await enforceLimits(res, [{ key: `refresh:uid:${uid}`, max: 20, windowMs: 15 * 60 * 1000 }]);
     if (!allowed) return;
 
-    let profileRes: Response;
-    try {
-      profileRes = await portalFetchRetry(`${PORTAL_BASE}/profile`, {
-        headers: portalHeaders({ Accept: 'application/json', 'X-Portal-Roll': roll }),
-      });
-    } catch {
-      return res.status(504).json({
-        success: false,
-        error: 'Portal backend is waking up after downtime. Wait about a minute and try again.',
-      });
+    const body = bodyOf<{ portalSession?: string }>(req);
+    const portalSession =
+      typeof body.portalSession === 'string' && body.portalSession.startsWith('ps_')
+        ? body.portalSession
+        : undefined;
+
+    let partial: Partial<PortalProfileIn> | null = null;
+
+    if (portalSession) {
+      try {
+        partial = await fetchPortalProfileWithSession(PORTAL_BASE, portalSession);
+      } catch {
+        return res.status(504).json({
+          success: false,
+          error: 'Portal backend is waking up after downtime. Wait about a minute and try again.',
+        });
+      }
     }
-    if (!profileRes.ok) {
+
+    // Legacy fallback: shared-secret + roll (older portal-backend builds)
+    if (!partial) {
+      let profileRes: Response;
+      try {
+        profileRes = await portalFetchRetry(`${PORTAL_BASE}/profile?roll=${encodeURIComponent(roll)}`, {
+          headers: portalHeaders({ Accept: 'application/json', 'X-Portal-Roll': roll }),
+        });
+      } catch {
+        return res.status(504).json({
+          success: false,
+          error: 'Portal backend is waking up after downtime. Wait about a minute and try again.',
+        });
+      }
+      if (!profileRes.ok) {
+        return res.status(502).json({
+          success: false,
+          error:
+            profileRes.status === 401
+              ? 'Portal session expired — open Attendance, reconnect once, then sync again.'
+              : 'Could not load portal profile — try again in a minute.',
+        });
+      }
+      const legacy = (await profileRes.json().catch(() => ({}))) as { profile?: PortalProfileIn; error?: string };
+      partial = legacy.profile || null;
+      if (!partial) {
+        return res.status(502).json({ success: false, error: legacy.error || 'Could not load portal profile' });
+      }
+    }
+
+    if (!partial) {
       return res.status(502).json({
         success: false,
-        error:
-          profileRes.status === 401
-            ? 'Portal session expired — reconnect once on Attendance, then refresh.'
-            : 'Could not load portal profile — try again in a minute.',
+        error: portalSession
+          ? 'Could not load portal profile — reconnect on Attendance, then sync.'
+          : 'Portal session missing — open Attendance to reconnect, then sync from portal.',
       });
-    }
-    const body = (await profileRes.json().catch(() => ({}))) as { profile?: PortalProfileIn; error?: string };
-    const profile = body.profile;
-    if (!profile) {
-      return res.status(502).json({ success: false, error: body.error || 'Could not load portal profile' });
     }
 
     const db = adminDb();
@@ -66,29 +104,32 @@ export default async function handler(req: Req, res: Res) {
     if (!snap.exists) {
       return res.status(404).json({ success: false, error: 'User not found — re-enroll from Login' });
     }
-    const classId = String(snap.data()?.classId || '');
+    const existing = snap.data() || {};
+    const classId = String(existing.classId || '');
     if (!classId) {
       return res.status(422).json({ success: false, error: 'No class mapped yet — re-enroll from Login' });
     }
 
-    const now = Date.now();
-    await userRef.set(
-      {
-        name: profile.name,
-        dob: profile.dob || null,
-        course: profile.course || profile.program || null,
-        program: profile.program || profile.course || null,
-        branch: profile.branch || null,
-        year: profile.year ? String(profile.year) : null,
-        section: profile.section ? String(profile.section).toUpperCase() : null,
-        semester: profile.semester || null,
-        portalSyncedAt: now,
-        portalSummary: profile.summary || null,
-        lastActive: now,
-      },
-      { merge: true }
-    );
+    const base: PortalProfileIn = {
+      roll,
+      name: String(existing.name || `Student ${roll}`),
+      dob: existing.dob || null,
+      course: existing.course || null,
+      program: existing.program || null,
+      branch: existing.branch || null,
+      year: existing.year || null,
+      section: existing.section || null,
+      semester: existing.semester || null,
+      subjects: [],
+      summary: existing.portalSummary || null,
+    };
 
+    let profile = mergePortalProfiles(base, partial);
+    if (portalSession) {
+      profile = await enrichProfileWithSession(PORTAL_BASE, portalSession, profile);
+    }
+
+    await upsertPortalUser(db, uid, profile, classId);
     const subjectUpserts = await syncSubjects(db, classId, profile.subjects || [], 'portal-refresh');
 
     return res.status(200).json({

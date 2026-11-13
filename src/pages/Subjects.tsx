@@ -14,6 +14,7 @@ import { Badge } from '../components/ui/Badge';
 import { BookOpen, Edit2, Plus, Trash2, GraduationCap, Layers, Zap, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { refreshPortalProvision } from '../services/gla/portal';
+import { loadMeta } from '../services/gla/session';
 
 export default function Subjects() {
   const { userData, currentUser } = useAuth();
@@ -66,7 +67,7 @@ export default function Subjects() {
     setRefreshing(true);
     try {
       const idToken = await currentUser.getIdToken();
-      const result = await refreshPortalProvision(idToken);
+      const result = await refreshPortalProvision(idToken, loadMeta().token);
       if (!result.success) {
         toast.error(result.error || 'Portal refresh failed');
         return;

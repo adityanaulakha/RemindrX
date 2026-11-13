@@ -29,6 +29,7 @@ import {
   portalHeaders,
 } from '../_lib/server.js';
 import { ensurePortalClassAndSubjects, upsertPortalUser, type PortalProfileIn } from '../_lib/portalProvision.js';
+import { enrichProfileWithSession, profileLooksThin } from '../_lib/portalProfile.js';
 
 const PORTAL_BASE = process.env.PORTAL_BACKEND_URL || 'https://reminder-backend-cf51.onrender.com';
 const WINDOW_MS = 15 * 60 * 1000;
@@ -108,7 +109,15 @@ export default async function handler(req: Req, res: Res) {
       });
     }
 
-    const profile = portalJson.profile;
+    // Enroll scrape is often thin (name "Student {roll}", missing course/branch).
+    // /profile with the session token fills academic details before we provision.
+    let profile: PortalProfileIn = portalJson.profile;
+    if (portalJson.sessionToken) {
+      profile = await enrichProfileWithSession(PORTAL_BASE, portalJson.sessionToken, profile);
+      if (profileLooksThin(profile)) {
+        console.warn('enroll profile still thin after /profile enrich', profile.roll);
+      }
+    }
     const uid = glaUid(profile.roll || roll);
 
     const db = adminDb();
@@ -123,7 +132,7 @@ export default async function handler(req: Req, res: Res) {
     }
     const { classId, created, subjectUpserts, profile: mapped } = provisioned;
     const { isNew } = await upsertPortalUser(db, uid, mapped, classId);
-    if (isNew) await ensureAuthUser(uid, profile.name || profile.roll || roll);
+    if (isNew) await ensureAuthUser(uid, mapped.name || profile.roll || roll);
 
     const customToken = await adminAuth().createCustomToken(uid, {
       authProvider: 'gla_portal',

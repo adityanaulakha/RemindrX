@@ -279,8 +279,11 @@ export async function portalProfile(token?: string | null): Promise<PortalProfil
   }
 }
 
-/** Sync Firestore user + subjects from live portal jar (requires Firebase ID token). */
-export async function refreshPortalProvision(idToken: string): Promise<{
+/** Sync Firestore user + subjects from live portal jar (requires Firebase ID token + portal session). */
+export async function refreshPortalProvision(
+  idToken: string,
+  portalSession?: string | null
+): Promise<{
   success: boolean;
   error?: string;
   subjectUpserts?: number;
@@ -292,6 +295,9 @@ export async function refreshPortalProvision(idToken: string): Promise<{
       'Content-Type': 'application/json',
       Authorization: `Bearer ${idToken}`,
     },
+    body: JSON.stringify({
+      portalSession: portalSession || undefined,
+    }),
   });
   const text = await res.text();
   try {
